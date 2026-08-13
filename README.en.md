@@ -13,7 +13,7 @@ A production-minded community container project for the official DeepSeek Harnes
 
 `0.1.0-rc.6` maps directly to the latest official `@deepseek-ai/dsh` artifact in the npm Registry at build time; it is not a project-defined version. The public upstream `master` still identified itself as `rc.5` at that point. This project packages the installable npm distribution instead of building source, and intentionally does not publish a drifting Docker `latest` tag.
 
-📖 Further reading: [DeepSeek Harness architecture, runtime mechanics, and cloud-native containerization](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/) (Chinese)
+📖 Further reading: [DeepSeek Harness GitHub repository deep dive](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) · [Docker, Compose, and Helm deployment guide](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/) (Chinese)
 
 ![DeepSeek Harness Web UI running from this image](assets/deepseek-harness-web.png)
 
@@ -29,7 +29,7 @@ A production-minded community container project for the official DeepSeek Harnes
 
 ## Deep dive: understanding DeepSeek Harness
 
-This section is a condensed companion to the full [aik8s.run technical article](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/) covering architecture, Agent turns, persistence, the security model, and the container verification matrix.
+This section is a condensed companion to the [GitHub repository deep dive](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) for Cordis architecture, Agent turns, and event-sourced persistence, plus the [Docker, Compose, and Helm guide](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/) for image design, the security model, and the container verification matrix.
 
 ### What it is—and what it is not
 

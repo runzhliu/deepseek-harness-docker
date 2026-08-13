@@ -13,7 +13,7 @@
 
 `0.1.0-rc.6` 直接对应构建时官方 npm Registry 的 `@deepseek-ai/dsh` 最新发行物，并非本项目自定义版本。上游公开 `master` 当时仍标记 `rc.5`；本项目封装 npm 成品而不从源码构建，因此以可安装的官方发行物为基线，并故意不发布漂移的 Docker `latest` 标签。
 
-📖 延伸阅读：[DeepSeek Harness 架构、运行机制与云原生容器化](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/)
+📖 延伸阅读：[DeepSeek Harness GitHub 仓库深度解析](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) · [Docker、Compose 与 Helm 部署实战](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/)
 
 ![DeepSeek Harness Web UI running from this image](assets/deepseek-harness-web.png)
 
@@ -29,7 +29,7 @@
 
 ## DeepSeek Harness 深入分析
 
-本节是配套技术文章的精简版。完整的架构、Agent 轮次、持久化、安全模型和容器验证矩阵见 [aik8s.run 专题文章](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/)。
+本节是配套技术文章的精简版。Cordis 架构、Agent 轮次和事件溯源持久化见 [GitHub 仓库深度解析](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/)；镜像设计、安全模型和容器验证矩阵见 [Docker、Compose 与 Helm 部署实战](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/)。
 
 ### 它是什么，不是什么
 
