@@ -1,0 +1,20 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "deepseek-harness.fullname" . }}
+  labels:
+    {{- include "deepseek-harness.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "deepseek-harness.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  {{- with .Values.networkPolicy.ingress }}
+  ingress:
+    {{- toYaml . | nindent 4 }}
+  {{- else }}
+  ingress: []
+  {{- end }}
+{{- end }}

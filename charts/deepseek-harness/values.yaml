@@ -1,0 +1,85 @@
+image:
+  repository: runzhliu/deepseek-harness
+  tag: 0.1.0-rc.6
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  port: 3080
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+  annotations: {}
+
+workspace:
+  existingClaim: ""
+  subPath: ""
+
+# Every key in this Secret is exposed as a runtime environment variable. Use
+# it for provider credentials; never put secret values directly in values.yaml.
+credentials:
+  existingSecret: ""
+
+extraEnv: []
+extraEnvFrom: []
+
+args:
+  - web
+  - --patch
+  - /opt/deepseek-harness/web.cordis.patch.yml
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+livenessProbe:
+  initialDelaySeconds: 20
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 6
+
+networkPolicy:
+  enabled: true
+  # Empty ingress denies Pod-to-Pod access when the CNI enforces NetworkPolicy.
+  # kubectl port-forward remains the intended access path.
+  ingress: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+terminationGracePeriodSeconds: 30

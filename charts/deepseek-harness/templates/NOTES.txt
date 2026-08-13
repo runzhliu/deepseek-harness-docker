@@ -1,0 +1,15 @@
+DeepSeek Harness is running as a single-replica StatefulSet.
+
+Keep this terminal open:
+
+  kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ include "deepseek-harness.fullname" . }} 3080:{{ .Values.service.port }}
+
+Then open http://127.0.0.1:3080.
+
+The Web API has no authentication and can execute code. Do not change the
+headless Service to NodePort/LoadBalancer or add an Ingress without a reviewed
+authentication and TLS boundary.
+
+The dsh-home PVC is retained when the Helm release is removed. Delete it only
+when you intentionally want to erase stored configuration, credentials, and
+sessions.

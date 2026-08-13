@@ -1,0 +1,27 @@
+apiVersion: v2
+name: deepseek-harness
+description: Community Helm chart for a single-user DeepSeek Harness Web instance
+type: application
+version: 0.1.0
+appVersion: "0.1.0-rc.6"
+kubeVersion: ">=1.27.0-0"
+home: https://github.com/runzhliu/deepseek-harness-docker
+keywords:
+  - deepseek
+  - agent
+  - harness
+  - ai
+maintainers:
+  - name: runzhliu
+    url: https://github.com/runzhliu
+sources:
+  - https://github.com/runzhliu/deepseek-harness-docker
+  - https://github.com/deepseek-ai/deepseek-harness
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/images: |
+    - name: deepseek-harness
+      image: runzhliu/deepseek-harness:0.1.0-rc.6
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial single-replica StatefulSet deployment.

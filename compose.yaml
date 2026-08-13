@@ -1,0 +1,37 @@
+services:
+  deepseek-harness:
+    build:
+      context: .
+      args:
+        DSH_VERSION: ${DSH_VERSION:-0.1.0-rc.6}
+    image: runzhliu/deepseek-harness:${DSH_VERSION:-0.1.0-rc.6}
+    ports:
+      - "127.0.0.1:${DSH_PORT:-3080}:3080"
+    environment:
+      DSH_TELEMETRY_DISABLED: "1"
+      HOME: /workspace
+    volumes:
+      - dsh-home:/home/node/.dsh
+      - ${DSH_WORKSPACE:-.}:/workspace
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3080/').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 3s
+      start_period: 20s
+      retries: 3
+
+volumes:
+  dsh-home:
