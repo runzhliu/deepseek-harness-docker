@@ -64,6 +64,7 @@ run_browser() {
       --window-size="${desktop_width},${desktop_height}" \
       --no-first-run \
       --no-default-browser-check \
+      --hide-crash-restore-bubble \
       "${CHROME_START_URL:-about:blank}" &
     browser_pid=$!
     wait "${browser_pid}"

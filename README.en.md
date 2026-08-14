@@ -126,6 +126,10 @@ The default image is [`runzhliu/deepseek-harness:0.1.0-rc.6`](https://hub.docker
 
 The image includes Debian Chromium, CJK fonts, an Xvfb/Openbox desktop, and noVNC. The public `@runzhliu/dsh-browser-desktop` plugin uses Harness's `sidebar.footer.action` and `shell.overlay` extension points to add an always-visible **Open Browser** action. It embeds the interactive desktop in the Web UI and also offers a separate-window fallback at <http://127.0.0.1:6080/vnc.html?autoconnect=1>. The panel starts at roughly 68% of the page, moves by dragging its title bar, resizes from its bottom-right corner, and supports maximize/restore. The plugin also registers a `browser_open` Agent tool: asking “open https://example.com in the browser” creates and activates a Chromium tab and automatically expands the embedded panel. Chromium restarts automatically after an unexpected exit or window close, while its profile persists at `/home/node/.dsh/chrome-profile`.
 
+![Movable and resizable Chromium browser embedded in the Harness Web UI](assets/browser-desktop-webui.png)
+
+_Captured from the running stack: the browser panel is inside Harness and displays the public DeepSeek Harness GitHub repository._
+
 This follows the visible-desktop idea from [`docker-antigravity`](https://github.com/runzhliu/docker-antigravity) without adopting its amd64 base or Selkies. Debian's native packages keep the image usable on both Apple Silicon and x86 Linux. Port 6080 is loopback-only like 3080; noVNC has no authentication here and must never be exposed to a LAN or the public Internet.
 
 ```bash
