@@ -1,0 +1,8 @@
+- insert:
+    - id: workspace-browser
+      name: '@runzhliu/dsh-workspace-browser'
+      config:
+        root: '/workspace'
+        maxEntries: 2000
+        maxPreviewBytes: 524288
+        maxWriteBytes: 1048576

@@ -7,3 +7,5 @@
 !plugins/
 !plugins/dsh-browser-desktop/
 !plugins/dsh-browser-desktop/**
+!plugins/dsh-workspace-browser/
+!plugins/dsh-workspace-browser/**

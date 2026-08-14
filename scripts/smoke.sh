@@ -82,14 +82,21 @@ docker run --detach \
   --volume "${volume}:/home/node/.dsh" \
   "${image}" >/dev/null
 
+docker exec "${container}" sh -lc 'printf "WORKSPACE_BROWSER_OK\n" > /workspace/smoke.txt'
+
 port="$(docker port "${container}" 3080/tcp | awk -F: 'NR == 1 { print $NF }')"
 for attempt in $(seq 1 30); do
   if curl --fail --silent "http://127.0.0.1:${port}/" >/dev/null \
       && docker exec "${container}" node -e \
-        "Promise.all([fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version'), fetch('http://127.0.0.1:3080/browser-desktop/state')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))"; then
+        "Promise.all([fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version'), fetch('http://127.0.0.1:3080/browser-desktop/state'), fetch('http://127.0.0.1:3080/workspace-browser/list?path='), fetch('http://127.0.0.1:3080/workspace-browser/file?path=smoke.txt')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))"; then
     if ! curl --fail --silent "http://127.0.0.1:${port}/" \
       | grep --quiet '"id":"@runzhliu/dsh-browser-desktop"'; then
       echo "Harness boot manifest did not include the browser desktop client plugin" >&2
+      exit 1
+    fi
+    if ! curl --fail --silent "http://127.0.0.1:${port}/" \
+      | grep --quiet '"id":"@runzhliu/dsh-workspace-browser"'; then
+      echo "Harness boot manifest did not include the workspace browser client plugin" >&2
       exit 1
     fi
     if ! docker exec "${container}" node -e '
@@ -118,7 +125,59 @@ for attempt in $(seq 1 30); do
       echo "browser_open transport did not open a Chromium tab" >&2
       exit 1
     fi
-    echo "smoke test passed for ${image} (Harness and noVNC desktop) on 127.0.0.1:${port}"
+    if ! docker exec "${container}" node -e '
+      const base = "http://127.0.0.1:3080/workspace-browser"
+      const json = (method, body, headers = {}) => ({
+        method,
+        headers: { "content-type": "application/json", ...headers },
+        body: JSON.stringify(body)
+      })
+      ;(async () => {
+        let response = await fetch(`${base}/entry`, json("POST", { path: "crud-smoke", type: "directory" }))
+        if (response.status !== 201) process.exit(1)
+        response = await fetch(`${base}/entry`, json("POST", { path: "crud-smoke/file.txt", type: "file", content: "created\n" }))
+        if (response.status !== 201) process.exit(1)
+
+        let preview = await fetch(`${base}/file?path=crud-smoke%2Ffile.txt`).then(r => r.json())
+        if (preview.content !== "created\n") process.exit(1)
+        response = await fetch(`${base}/file`, json("PUT", {
+          path: "crud-smoke/file.txt",
+          content: "updated\n",
+          expectedMtimeMs: preview.mtimeMs
+        }))
+        if (!response.ok) process.exit(1)
+        response = await fetch(`${base}/entry`, json("PATCH", {
+          path: "crud-smoke/file.txt",
+          destinationPath: "crud-smoke/renamed.txt"
+        }))
+        if (!response.ok) process.exit(1)
+
+        const listing = await fetch(`${base}/list?path=crud-smoke`).then(r => r.json())
+        preview = await fetch(`${base}/file?path=crud-smoke%2Frenamed.txt`).then(r => r.json())
+        if (!listing.entries.some(entry => entry.name === "renamed.txt")) process.exit(1)
+        if (preview.content !== "updated\n") process.exit(1)
+
+        response = await fetch(`${base}/entry`, json("DELETE", { path: "crud-smoke/renamed.txt" }))
+        if (!response.ok) process.exit(1)
+        response = await fetch(`${base}/entry`, json("DELETE", { path: "crud-smoke" }))
+        if (!response.ok) process.exit(1)
+
+        const escaped = await fetch(`${base}/file?path=..%2Fetc%2Fpasswd`)
+        if (escaped.status !== 400) process.exit(1)
+        const crossOrigin = await fetch(`${base}/entry`, json("POST", {
+          path: "forbidden.txt",
+          type: "file"
+        }, { origin: "https://example.invalid" }))
+        if (crossOrigin.status !== 403) process.exit(1)
+      })().catch(error => {
+        console.error(error)
+        process.exit(1)
+      })
+    '; then
+      echo "workspace browser CRUD or workspace boundary check failed" >&2
+      exit 1
+    fi
+    echo "smoke test passed for ${image} (Harness, browser desktop, and workspace browser) on 127.0.0.1:${port}"
     exit 0
   fi
   if ! docker container inspect "${container}" >/dev/null 2>&1; then

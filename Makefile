@@ -43,7 +43,12 @@ helm-check:
 plugin-check:
 	node --check plugins/dsh-browser-desktop/index.js
 	node --check plugins/dsh-browser-desktop/client.js
+	node --check plugins/dsh-workspace-browser/index.js
+	node --check plugins/dsh-workspace-browser/client.js
+	node --check plugins/dsh-workspace-browser/workspace.js
+	node --test plugins/dsh-workspace-browser/workspace.test.js
 	npm --cache "$${TMPDIR:-/tmp}/dsh-browser-plugin-npm-cache" pack --dry-run --json ./plugins/dsh-browser-desktop >/dev/null
+	npm --cache "$${TMPDIR:-/tmp}/dsh-workspace-plugin-npm-cache" pack --dry-run --json ./plugins/dsh-workspace-browser >/dev/null
 
 verify: compose-check helm-check plugin-check
 
