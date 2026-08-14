@@ -7,8 +7,11 @@ services:
     image: runzhliu/deepseek-harness:${DSH_VERSION:-0.1.0-rc.6}
     ports:
       - "127.0.0.1:${DSH_PORT:-3080}:3080"
+      - "127.0.0.1:${DSH_DESKTOP_PORT:-6080}:6080"
     environment:
       DSH_TELEMETRY_DISABLED: "1"
+      DSH_DESKTOP_ENABLED: "1"
+      DSH_DESKTOP_PUBLIC_PORT: ${DSH_DESKTOP_PORT:-6080}
       HOME: /workspace
     volumes:
       - dsh-home:/home/node/.dsh
@@ -16,6 +19,10 @@ services:
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=512m
+    # Chromium uses /dev/shm for renderer processes. This mirrors the useful
+    # runtime setting from docker-antigravity without adopting its amd64-only
+    # desktop base image.
+    shm_size: "1gb"
     cap_drop:
       - ALL
     security_opt:
@@ -27,7 +34,7 @@ services:
         - CMD
         - node
         - -e
-        - "fetch('http://127.0.0.1:3080/').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+        - "Promise.all([fetch('http://127.0.0.1:3080/'), fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))"
       interval: 15s
       timeout: 3s
       start_period: 20s

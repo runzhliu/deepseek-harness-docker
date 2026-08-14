@@ -9,5 +9,8 @@ Before opening a pull request:
 3. Run `make verify`, `make build`, and `make smoke`.
 4. Test native dependencies on both `linux/amd64` and `linux/arm64` when changing Node, Debian, npm, or DSH versions.
 5. Update both `README.md` and `README.en.md` when behavior or commands change.
+6. Keep `plugins/dsh-browser-desktop` publishable on its own: run `make plugin-check`, avoid container-only imports, and document any new companion-service requirement.
+
+The public image and plugin must not contain private provider endpoints, credentials, company-internal skills, or personal workspace mounts. Keep machine-specific Compose additions in the git-ignored `compose.local.yaml`.
 
 Please report upstream Harness defects to the upstream channel described by its contribution guide. Issues specific to the Dockerfile, Compose file, Helm chart, or this documentation belong in this project.

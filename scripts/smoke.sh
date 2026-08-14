@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 image="${1:-runzhliu/deepseek-harness:0.1.0-rc.6}"
 expected_version="${2:-0.1.0-rc.6}"
+expected_pnpm_version="${3:-10.15.1}"
 suffix="${RANDOM}-$$"
 container="deepseek-harness-smoke-${suffix}"
 volume="deepseek-harness-smoke-home-${suffix}"
@@ -16,6 +17,12 @@ trap cleanup EXIT INT TERM
 actual_version="$(docker run --rm "${image}" --version)"
 if [[ "${actual_version}" != "${expected_version}" ]]; then
   echo "expected dsh ${expected_version}, got ${actual_version}" >&2
+  exit 1
+fi
+
+actual_pnpm_version="$(docker run --rm --entrypoint pnpm "${image}" --version)"
+if [[ "${actual_pnpm_version}" != "${expected_pnpm_version}" ]]; then
+  echo "expected pnpm ${expected_pnpm_version}, got ${actual_pnpm_version}" >&2
   exit 1
 fi
 
@@ -37,6 +44,30 @@ docker run --rm --entrypoint node "${image}" -e '
   })
 '
 
+chromium_version="$(docker run --rm --entrypoint chromium-docker "${image}" --version)"
+if [[ "${chromium_version}" != Chromium* ]]; then
+  echo "expected Chromium in the runtime image, got ${chromium_version}" >&2
+  exit 1
+fi
+
+browser_dom="$(docker run --rm \
+  --entrypoint chromium-docker \
+  --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=512m \
+  --tmpfs /workspace:rw,nosuid,nodev,size=512m,uid=1000,gid=1000 \
+  --shm-size 1g \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
+  "${image}" \
+  --headless=new \
+  --dump-dom \
+  'data:text/html,<main>DSH_BROWSER_OK</main>' \
+  2>/dev/null)"
+if [[ "${browser_dom}" != *"DSH_BROWSER_OK"* ]]; then
+  echo "Chromium did not render a page under the hardened runtime settings" >&2
+  exit 1
+fi
+
 docker volume create "${volume}" >/dev/null
 docker run --detach \
   --name "${container}" \
@@ -44,6 +75,7 @@ docker run --detach \
   --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=512m \
   --tmpfs /workspace:rw,nosuid,nodev,size=512m,uid=1000,gid=1000 \
+  --shm-size 1g \
   --cap-drop ALL \
   --security-opt no-new-privileges:true \
   --pids-limit 512 \
@@ -52,8 +84,41 @@ docker run --detach \
 
 port="$(docker port "${container}" 3080/tcp | awk -F: 'NR == 1 { print $NF }')"
 for attempt in $(seq 1 30); do
-  if curl --fail --silent "http://127.0.0.1:${port}/" >/dev/null; then
-    echo "smoke test passed for ${image} on 127.0.0.1:${port}"
+  if curl --fail --silent "http://127.0.0.1:${port}/" >/dev/null \
+      && docker exec "${container}" node -e \
+        "Promise.all([fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version'), fetch('http://127.0.0.1:3080/browser-desktop/state')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))"; then
+    if ! curl --fail --silent "http://127.0.0.1:${port}/" \
+      | grep --quiet '"id":"@runzhliu/dsh-browser-desktop"'; then
+      echo "Harness boot manifest did not include the browser desktop client plugin" >&2
+      exit 1
+    fi
+    if ! docker exec "${container}" node -e '
+      fetch("http://127.0.0.1:3080/browser-desktop/state")
+        .then(response => response.json())
+        .then(state => {
+          if (state.desktop.port !== 6080 || !state.desktop.path.startsWith("/vnc.html")) process.exit(1)
+        })
+        .catch(() => process.exit(1))
+    '; then
+      echo "browser desktop state did not expose its noVNC endpoint" >&2
+      exit 1
+    fi
+    if ! docker exec "${container}" node -e '
+      fetch("http://127.0.0.1:3080/browser-desktop/open", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url: "http://127.0.0.1:3080" }),
+      })
+        .then(response => response.json())
+        .then(result => {
+          if (result.status !== "opened" || result.url !== "http://127.0.0.1:3080/") process.exit(1)
+        })
+        .catch(() => process.exit(1))
+    '; then
+      echo "browser_open transport did not open a Chromium tab" >&2
+      exit 1
+    fi
+    echo "smoke test passed for ${image} (Harness and noVNC desktop) on 127.0.0.1:${port}"
     exit 0
   fi
   if ! docker container inspect "${container}" >/dev/null 2>&1; then

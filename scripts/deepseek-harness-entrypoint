@@ -1,0 +1,162 @@
+#!/bin/sh
+set -u
+
+dsh_pid=""
+desktop_pids=""
+
+install_browser_plugin() {
+  plugin_scope="${DSH_HOME}/profiles/web/node_modules/@runzhliu"
+  plugin_link="${plugin_scope}/dsh-browser-desktop"
+  plugin_source=/opt/deepseek-harness/plugins/dsh-browser-desktop
+
+  mkdir -p "${plugin_scope}"
+  if [ -L "${plugin_link}" ]; then
+    rm -f "${plugin_link}"
+  elif [ -e "${plugin_link}" ]; then
+    echo "browser desktop plugin path already exists; leaving it unchanged: ${plugin_link}" >&2
+    return 0
+  fi
+  ln -s "${plugin_source}" "${plugin_link}"
+}
+
+stop_children() {
+  trap - INT TERM HUP
+  if [ -n "${dsh_pid}" ]; then
+    kill -TERM "${dsh_pid}" 2>/dev/null || true
+  fi
+  for child_pid in ${desktop_pids}; do
+    kill -TERM "${child_pid}" 2>/dev/null || true
+  done
+  if [ -n "${dsh_pid}" ]; then
+    wait "${dsh_pid}" 2>/dev/null || true
+  fi
+  for child_pid in ${desktop_pids}; do
+    wait "${child_pid}" 2>/dev/null || true
+  done
+}
+
+handle_signal() {
+  stop_children
+  exit 143
+}
+
+run_browser() {
+  browser_pid=""
+
+  stop_browser() {
+    trap - INT TERM HUP
+    if [ -n "${browser_pid}" ]; then
+      kill -TERM "${browser_pid}" 2>/dev/null || true
+      wait "${browser_pid}" 2>/dev/null || true
+    fi
+    exit 0
+  }
+
+  trap stop_browser INT TERM HUP
+
+  while :; do
+    chromium-docker \
+      --user-data-dir="${CHROME_USER_DATA_DIR}" \
+      --password-store=basic \
+      --remote-debugging-address=127.0.0.1 \
+      --remote-debugging-port=9222 \
+      --window-position=0,0 \
+      --window-size="${desktop_width},${desktop_height}" \
+      --no-first-run \
+      --no-default-browser-check \
+      --hide-crash-restore-bubble \
+      "${CHROME_START_URL:-about:blank}" &
+    browser_pid=$!
+    wait "${browser_pid}"
+    browser_status=$?
+    browser_pid=""
+    echo "Chromium exited with status ${browser_status}; restarting in one second" >&2
+
+    sleep 1 &
+    browser_pid=$!
+    wait "${browser_pid}" 2>/dev/null || true
+    browser_pid=""
+  done
+}
+
+start_desktop() {
+  desktop_width="${DSH_DESKTOP_WIDTH:-1440}"
+  desktop_height="${DSH_DESKTOP_HEIGHT:-900}"
+  desktop_depth="${DSH_DESKTOP_DEPTH:-24}"
+  desktop_logs=/tmp/dsh-desktop
+
+  mkdir -p "${desktop_logs}" "${XDG_RUNTIME_DIR}" "${CHROME_USER_DATA_DIR}"
+  chmod 0700 "${XDG_RUNTIME_DIR}"
+
+  # A container killed during a browser write can leave Chromium singleton
+  # locks behind in the persistent profile.
+  rm -f \
+    "${CHROME_USER_DATA_DIR}/SingletonCookie" \
+    "${CHROME_USER_DATA_DIR}/SingletonLock" \
+    "${CHROME_USER_DATA_DIR}/SingletonSocket"
+
+  Xvfb "${DISPLAY}" \
+    -screen 0 "${desktop_width}x${desktop_height}x${desktop_depth}" \
+    -ac -nolisten tcp >"${desktop_logs}/xvfb.log" 2>&1 &
+  xvfb_pid=$!
+  desktop_pids="${xvfb_pid}"
+
+  display_attempt=0
+  until xdpyinfo -display "${DISPLAY}" >/dev/null 2>&1; do
+    if ! kill -0 "${xvfb_pid}" 2>/dev/null; then
+      echo "Xvfb exited before the virtual display became ready" >&2
+      cat "${desktop_logs}/xvfb.log" >&2
+      return 1
+    fi
+    display_attempt=$((display_attempt + 1))
+    if [ "${display_attempt}" -ge 50 ]; then
+      echo "timed out waiting for virtual display ${DISPLAY}" >&2
+      return 1
+    fi
+    sleep 0.1
+  done
+
+  openbox >"${desktop_logs}/openbox.log" 2>&1 &
+  openbox_pid=$!
+  desktop_pids="${desktop_pids} ${openbox_pid}"
+
+  x11vnc \
+    -display "${DISPLAY}" \
+    -forever -shared -repeat -noxdamage \
+    -rfbport 5900 -localhost -nopw \
+    >"${desktop_logs}/x11vnc.log" 2>&1 &
+  x11vnc_pid=$!
+  desktop_pids="${desktop_pids} ${x11vnc_pid}"
+
+  websockify \
+    --web=/usr/share/novnc \
+    6080 127.0.0.1:5900 \
+    >"${desktop_logs}/novnc.log" 2>&1 &
+  novnc_pid=$!
+  desktop_pids="${desktop_pids} ${novnc_pid}"
+
+  run_browser >"${desktop_logs}/chromium.log" 2>&1 &
+  browser_supervisor_pid=$!
+  desktop_pids="${desktop_pids} ${browser_supervisor_pid}"
+}
+
+trap handle_signal INT TERM HUP
+
+install_browser_plugin
+
+if [ "${1:-}" = "web" ] && [ "${DSH_DESKTOP_ENABLED:-1}" = "1" ]; then
+  start_desktop || {
+    stop_children
+    exit 1
+  }
+fi
+
+node --expose-internals \
+  /usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin.js \
+  "$@" &
+dsh_pid=$!
+
+wait "${dsh_pid}"
+exit_code=$?
+stop_children
+exit "${exit_code}"

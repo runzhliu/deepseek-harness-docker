@@ -99,6 +99,7 @@ Profiles, model settings, credentials, sessions, and Workspace indexes are state
 This image handles the container boundaries that a one-line image misses:
 
 - pins and verifies the exact DSH version during build;
+- pins pnpm so `dsh plugin add` can manage community plugins at runtime;
 - runs as a non-root user behind `tini`;
 - persists configuration, credentials, sessions, and storage under `/home/node/.dsh`;
 - makes `/workspace` the writable interactive home used by the Web directory browser;
@@ -117,9 +118,40 @@ DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
 docker compose ps
 ```
 
-Open <http://127.0.0.1:3080> and configure a model and credentials in Settings. The named `dsh-home` volume survives container recreation.
+Open <http://127.0.0.1:3080> and configure a model and credentials in Settings. The **Browser** action in the sidebar opens an interactive container Chromium directly inside the Harness Web UI. The named `dsh-home` volume preserves both Harness state and the browser profile across container recreation.
 
 The default image is [`runzhliu/deepseek-harness:0.1.0-rc.6`](https://hub.docker.com/r/runzhliu/deepseek-harness). Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
+
+### Browser inside the Web UI
+
+The image includes Debian Chromium, CJK fonts, an Xvfb/Openbox desktop, and noVNC. The public `@runzhliu/dsh-browser-desktop` plugin uses Harness's `sidebar.footer.action` and `shell.overlay` extension points to add an always-visible **Open Browser** action. It embeds the interactive desktop in the Web UI and also offers a separate-window fallback at <http://127.0.0.1:6080/vnc.html?autoconnect=1>. The panel starts at roughly 68% of the page, moves by dragging its title bar, resizes from its bottom-right corner, and supports maximize/restore. The plugin also registers a `browser_open` Agent tool: asking “open https://example.com in the browser” creates and activates a Chromium tab and automatically expands the embedded panel. Chromium restarts automatically after an unexpected exit or window close, while its profile persists at `/home/node/.dsh/chrome-profile`.
+
+![Movable and resizable Chromium browser embedded in the Harness Web UI](assets/browser-desktop-webui.png)
+
+_Captured from the running stack: the browser panel is inside Harness and displays the public DeepSeek Harness GitHub repository._
+
+This follows the visible-desktop idea from [`docker-antigravity`](https://github.com/runzhliu/docker-antigravity) without adopting its amd64 base or Selkies. Debian's native packages keep the image usable on both Apple Silicon and x86 Linux. Port 6080 is loopback-only like 3080; noVNC has no authentication here and must never be exposed to a LAN or the public Internet.
+
+```bash
+docker compose exec deepseek-harness chromium-docker --version
+docker compose exec deepseek-harness \
+  chromium-docker --headless=new --dump-dom https://example.com
+```
+
+Compose gives Chromium a 1GB `/dev/shm`. The launcher adds `--no-sandbox` only to the browser process so it can run under the existing `cap_drop: ALL` and `no-new-privileges` policy without weakening the whole container. Agents and scripts can still use `chromium-docker --headless=new` for non-interactive rendering.
+
+### Install the browser plugin separately
+
+The plugin is a standalone DSH bundle under [`plugins/dsh-browser-desktop`](plugins/dsh-browser-desktop/README.md). Test its package locally with:
+
+```bash
+npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
+dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.0.tgz
+```
+
+After npm publication, install it with `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`. The npm package supplies only the Harness host/Web integration; it does not install Chromium, Xvfb, or noVNC. This repository's image is the complete reference runtime. DeepSeek Harness currently discovers community plugins through npm/GitHub and the `dsh-plugin` GitHub topic rather than a curated marketplace submission queue.
+
+This public branch packages no company-internal models, credentials, skills, or personal workspace mounts. Configure models in Harness Settings and keep extra credentials or private extensions in runtime Secrets, the ignored `.env`, or a machine-local `compose.local.yaml`.
 
 Inspect logs or stop the service:
 
@@ -145,6 +177,8 @@ docker volume create dsh-home
 docker run --rm \
   --name deepseek-harness \
   --publish 127.0.0.1:3080:3080 \
+  --publish 127.0.0.1:6080:6080 \
+  --shm-size 1g \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
   runzhliu/deepseek-harness:0.1.0-rc.6
@@ -275,6 +309,7 @@ The last command must print `/workspace`. An `EACCES` under `/workspace` instead
 | `Dockerfile` | Pinned, non-root DSH runtime with Web as the default command |
 | `web.cordis.patch.yml` | Docker-bridge-only Web listener override |
 | `compose.yaml` | Persistent, loopback-only, hardened local deployment |
+| `plugins/dsh-browser-desktop/` | Independently publishable DSH browser desktop bundle |
 | `charts/deepseek-harness/` | StatefulSet, PVC, headless Service, and NetworkPolicy |
 | `scripts/smoke.sh` | CLI, config, native PTY, and HTTP startup checks |
 | `.github/workflows/ci.yml` | Compose/Helm validation and two-platform image smoke tests |
