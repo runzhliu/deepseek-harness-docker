@@ -1,3 +1,9 @@
 *
 !Dockerfile
 !web.cordis.patch.yml
+!scripts/
+!scripts/chromium-docker
+!scripts/deepseek-harness-entrypoint
+!plugins/
+!plugins/dsh-browser-desktop/
+!plugins/dsh-browser-desktop/**

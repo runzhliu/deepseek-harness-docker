@@ -1,6 +1,13 @@
 # Docker publishes a container port only when the process listens beyond the
 # container's loopback interface. Keep the host-side publication on 127.0.0.1:
 # DeepSeek Harness has no authentication and its Web API can execute code.
+- insert:
+    - id: browser-desktop
+      name: '@runzhliu/dsh-browser-desktop'
+      config:
+        cdpBaseUrl: 'http://127.0.0.1:9222'
+        desktopPort: !!js Number(process.env.DSH_DESKTOP_PUBLIC_PORT ?? 6080)
+
 - id: webserver
   name: '@deepseek-ai/dsh-host-webserver'
   config:

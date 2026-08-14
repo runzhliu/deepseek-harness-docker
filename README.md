@@ -99,6 +99,7 @@ Harness 的 profile、模型设置、凭据、会话和 Workspace 索引都具�
 这个镜像处理了最容易漏掉的四个容器边界：
 
 - 固定 DSH 版本，并在构建时校验实际 CLI 版本；
+- 固定 pnpm 版本，使 `dsh plugin add` 能在运行时管理社区插件；
 - 使用非 root 用户和 `tini`，正确处理 Agent 启动的子进程与退出信号；
 - 把配置、凭据、会话和存储统一持久化到 `/home/node/.dsh`；
 - 把容器用户的交互主目录指向 `/workspace`，让 Web 目录选择器的新建操作落在可写工作区；
@@ -116,9 +117,36 @@ DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
 docker compose ps
 ```
 
-浏览器打开 <http://127.0.0.1:3080>，在设置页配置模型和凭据。配置写入命名卷 `dsh-home`，重建容器后仍会保留。
+浏览器打开 <http://127.0.0.1:3080>，在设置页配置模型和凭据。侧边栏的“浏览器”按钮会在 Harness WebUI 内直接打开可交互的容器 Chromium；配置和浏览器 Profile 写入命名卷 `dsh-home`，重建容器后仍会保留。
 
 默认镜像为 Docker Hub 上的 [`runzhliu/deepseek-harness:0.1.0-rc.6`](https://hub.docker.com/r/runzhliu/deepseek-harness)。Compose 同时保留 `build` 配置，方便审查并从本目录复现镜像；如需本地构建，执行 `docker compose build --pull` 后再启动。
+
+### WebUI 内置浏览器
+
+镜像内置 Debian Chromium、中文字体、Xvfb/Openbox 桌面和 noVNC。公开插件 `@runzhliu/dsh-browser-desktop` 通过 Harness 的 `sidebar.footer.action` 与 `shell.overlay` 扩展点提供始终可见的“打开浏览器”入口，点击后直接在 WebUI 内嵌可交互桌面，也可以选择新窗口打开 <http://127.0.0.1:6080/vnc.html?autoconnect=1>。内嵌面板默认占页面约 68%，可拖动标题栏移动、拖动右下角缩放，并支持最大化/还原。插件同时注册 `browser_open` Agent 工具；在对话中说“用浏览器打开 https://example.com”会创建并激活 Chromium 标签页，然后自动展开内嵌面板。浏览器意外退出或关闭后会自动重启，Profile 持久化到 `/home/node/.dsh/chrome-profile`。
+
+该实现参考了 [`docker-antigravity`](https://github.com/runzhliu/docker-antigravity) 的可视桌面思路，但没有采用其 `amd64` 基础镜像和 Selkies，而是使用 Debian 原生架构软件包，因此 Apple Silicon 与 x86 Linux 均可运行。6080 与 3080 一样只绑定宿主机回环地址；noVNC 当前没有认证，不能暴露到局域网或公网。
+
+```bash
+docker compose exec deepseek-harness chromium-docker --version
+docker compose exec deepseek-harness \
+  chromium-docker --headless=new --dump-dom https://example.com
+```
+
+Compose 为 Chromium 配置了 1GB `/dev/shm`。启动器只对浏览器进程附加 `--no-sandbox`，以适配容器现有的 `cap_drop: ALL` 和 `no-new-privileges` 策略，不会放宽整个容器的权限。Agent 与脚本仍可通过 `chromium-docker --headless=new` 做无头渲染。
+
+### 独立安装浏览器插件
+
+插件已经按 DSH bundle 规范拆到 [`plugins/dsh-browser-desktop`](plugins/dsh-browser-desktop/README.md)，可独立打包：
+
+```bash
+npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
+dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.0.tgz
+```
+
+发布到 npm 后可直接执行 `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`。该 npm 包只负责 Harness Host/WebUI 集成，不会自行安装 Chromium、Xvfb 或 noVNC；本仓库 Docker 镜像是完整的参考运行时。DeepSeek Harness 当前通过 npm/GitHub 和 `dsh-plugin` GitHub topic 发现社区插件，并没有单独的审核型插件市场提交流程。
+
+本公开分支不打包任何公司内部模型、凭据、Skill 或个人工作区挂载。模型在 Harness 设置页配置；额外凭据和私有扩展应放在运行时 Secret、被忽略的 `.env` 或本机 `compose.local.yaml` 中。
 
 查看日志和停止服务：
 
@@ -144,6 +172,8 @@ docker volume create dsh-home
 docker run --rm \
   --name deepseek-harness \
   --publish 127.0.0.1:3080:3080 \
+  --publish 127.0.0.1:6080:6080 \
+  --shm-size 1g \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
   runzhliu/deepseek-harness:0.1.0-rc.6
@@ -274,6 +304,7 @@ docker compose exec deepseek-harness node -e "console.log(require('node:os').hom
 | `Dockerfile` | 固定版本的非 root DSH 运行时，默认启动 Web UI |
 | `web.cordis.patch.yml` | 只用于 Docker bridge 网络的 Web 监听覆盖 |
 | `compose.yaml` | 持久化、回环端口和收紧后的运行时配置 |
+| `plugins/dsh-browser-desktop/` | 可独立发布的 DSH 浏览器桌面 bundle |
 | `charts/deepseek-harness/` | 单副本 StatefulSet、PVC、Service 和 NetworkPolicy |
 | `scripts/smoke.sh` | CLI、配置、原生 PTY 和 HTTP 启动验证 |
 | `.github/workflows/ci.yml` | Compose/Helm 校验和双架构镜像 Smoke Test |

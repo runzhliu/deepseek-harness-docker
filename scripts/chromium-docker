@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+# The Harness container deliberately drops every Linux capability and enables
+# no-new-privileges. Chromium's setuid/user-namespace sandbox cannot initialize
+# under that policy, so keep the exception scoped to the already isolated
+# browser process instead of weakening the container.
+exec /usr/bin/chromium --no-sandbox "$@"
