@@ -118,7 +118,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
 docker compose ps
 ```
 
-Open <http://127.0.0.1:3080> and configure a model and credentials in Settings. The **Browser** action in the sidebar opens an interactive container Chromium directly inside the Harness Web UI. The named `dsh-home` volume preserves both Harness state and the browser profile across container recreation.
+Open <http://127.0.0.1:3080> and configure a model and credentials in Settings. The **Browser** action opens an interactive container Chromium directly inside the Harness Web UI. The **Files** action opens a workspace file manager that can view, create, edit, rename, and delete files and directories under `/workspace`. The named `dsh-home` volume preserves both Harness state and the browser profile across container recreation.
 
 The default image is [`runzhliu/deepseek-harness:0.1.0-rc.6`](https://hub.docker.com/r/runzhliu/deepseek-harness). Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
 
@@ -150,6 +150,21 @@ dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.0.tgz
 ```
 
 After npm publication, install it with `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`. The npm package supplies only the Harness host/Web integration; it does not install Chromium, Xvfb, or noVNC. This repository's image is the complete reference runtime. DeepSeek Harness currently discovers community plugins through npm/GitHub and the `dsh-plugin` GitHub topic rather than a curated marketplace submission queue.
+
+### Workspace file manager
+
+The image also bundles the standalone [`@runzhliu/dsh-workspace-browser`](plugins/dsh-workspace-browser/README.md) plugin. It uses the same `sidebar.footer.action` and `shell.overlay` extension points to provide directory navigation, breadcrumbs, size/mtime metadata, bounded text previews up to 512 KiB, file/directory creation, text editing, rename, and deletion. The editor supports `Ctrl/Cmd+S` and checks the file's open-time mtime when saving to avoid silently overwriting external changes.
+
+Every requested path must be relative to `/workspace` and pass a `realpath` boundary check. Parent traversal, symbolic-link mutation, and symbolic links escaping the workspace are rejected. Mutation endpoints accept only same-origin JSON, writes default to a 1 MiB limit, and the Web UI explicitly confirms recursive deletion of non-empty directories.
+
+Package it independently with:
+
+```bash
+npm pack ./plugins/dsh-workspace-browser --pack-destination /tmp
+dsh plugin --profile web add /tmp/runzhliu-dsh-workspace-browser-0.1.0.tgz
+```
+
+This file manager has real write and recursive-delete access; it is not a multi-tenant file service. A user who can access Harness may also have Shell or Agent tool access, so keep DSH behind a trusted local, Tailnet, or authenticated gateway boundary and use version control or backups for recovery.
 
 This public branch packages no company-internal models, credentials, skills, or personal workspace mounts. Configure models in Harness Settings and keep extra credentials or private extensions in runtime Secrets, the ignored `.env`, or a machine-local `compose.local.yaml`.
 
@@ -310,6 +325,7 @@ The last command must print `/workspace`. An `EACCES` under `/workspace` instead
 | `web.cordis.patch.yml` | Docker-bridge-only Web listener override |
 | `compose.yaml` | Persistent, loopback-only, hardened local deployment |
 | `plugins/dsh-browser-desktop/` | Independently publishable DSH browser desktop bundle |
+| `plugins/dsh-workspace-browser/` | CRUD file manager constrained to the workspace root |
 | `charts/deepseek-harness/` | StatefulSet, PVC, headless Service, and NetworkPolicy |
 | `scripts/smoke.sh` | CLI, config, native PTY, and HTTP startup checks |
 | `.github/workflows/ci.yml` | Compose/Helm validation and two-platform image smoke tests |

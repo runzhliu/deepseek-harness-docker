@@ -7,6 +7,13 @@
       config:
         cdpBaseUrl: 'http://127.0.0.1:9222'
         desktopPort: !!js Number(process.env.DSH_DESKTOP_PUBLIC_PORT ?? 6080)
+    - id: workspace-browser
+      name: '@runzhliu/dsh-workspace-browser'
+      config:
+        root: !!js process.env.DSH_WORKSPACE_ROOT ?? '/workspace'
+        maxEntries: !!js Number(process.env.DSH_WORKSPACE_MAX_ENTRIES ?? 2000)
+        maxPreviewBytes: !!js Number(process.env.DSH_WORKSPACE_MAX_PREVIEW_BYTES ?? 524288)
+        maxWriteBytes: !!js Number(process.env.DSH_WORKSPACE_MAX_WRITE_BYTES ?? 1048576)
 
 - id: webserver
   name: '@deepseek-ai/dsh-host-webserver'

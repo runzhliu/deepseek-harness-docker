@@ -19,6 +19,21 @@ install_browser_plugin() {
   ln -s "${plugin_source}" "${plugin_link}"
 }
 
+install_workspace_plugin() {
+  plugin_scope="${DSH_HOME}/profiles/web/node_modules/@runzhliu"
+  plugin_link="${plugin_scope}/dsh-workspace-browser"
+  plugin_source=/opt/deepseek-harness/plugins/dsh-workspace-browser
+
+  mkdir -p "${plugin_scope}"
+  if [ -L "${plugin_link}" ]; then
+    rm -f "${plugin_link}"
+  elif [ -e "${plugin_link}" ]; then
+    echo "workspace browser plugin path already exists; leaving it unchanged: ${plugin_link}" >&2
+    return 0
+  fi
+  ln -s "${plugin_source}" "${plugin_link}"
+}
+
 stop_children() {
   trap - INT TERM HUP
   if [ -n "${dsh_pid}" ]; then
@@ -143,6 +158,7 @@ start_desktop() {
 trap handle_signal INT TERM HUP
 
 install_browser_plugin
+install_workspace_plugin
 
 if [ "${1:-}" = "web" ] && [ "${DSH_DESKTOP_ENABLED:-1}" = "1" ]; then
   start_desktop || {

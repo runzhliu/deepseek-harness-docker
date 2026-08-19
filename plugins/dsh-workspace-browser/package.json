@@ -1,0 +1,68 @@
+{
+  "name": "@runzhliu/dsh-workspace-browser",
+  "version": "0.1.0",
+  "description": "Workspace file manager with safe CRUD operations for the DeepSeek Harness Web UI.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./index.js",
+  "files": [
+    "client.js",
+    "cordis.patch.yml",
+    "index.js",
+    "workspace.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/runzhliu/deepseek-harness-docker.git",
+    "directory": "plugins/dsh-workspace-browser"
+  },
+  "homepage": "https://github.com/runzhliu/deepseek-harness-docker/tree/main/plugins/dsh-workspace-browser#readme",
+  "bugs": {
+    "url": "https://github.com/runzhliu/deepseek-harness-docker/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "workspace",
+    "file-browser",
+    "file-manager",
+    "editor",
+    "webui"
+  ],
+  "engines": {
+    "node": ">=22.19"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-layout": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-sidebar": "^0.1.0-rc.6",
+    "react": "^18.2.0"
+  }
+}

@@ -67,16 +67,22 @@ COPY --from=installer /usr/local/lib/node_modules/pnpm /usr/local/lib/node_modul
 COPY scripts/chromium-docker /usr/local/bin/chromium-docker
 COPY scripts/deepseek-harness-entrypoint /usr/local/bin/deepseek-harness-entrypoint
 COPY plugins/dsh-browser-desktop /opt/deepseek-harness/plugins/dsh-browser-desktop
+COPY plugins/dsh-workspace-browser /opt/deepseek-harness/plugins/dsh-workspace-browser
 
 RUN chmod 0755 /usr/local/bin/chromium-docker \
         /usr/local/bin/deepseek-harness-entrypoint \
     && mkdir -p \
       /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@runzhliu \
       /opt/deepseek-harness/plugins/dsh-browser-desktop/node_modules/@deepseek-ai \
+      /opt/deepseek-harness/plugins/dsh-workspace-browser/node_modules/@deepseek-ai \
     && ln -s /opt/deepseek-harness/plugins/dsh-browser-desktop \
       /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@runzhliu/dsh-browser-desktop \
     && ln -s /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/schemastery \
       /opt/deepseek-harness/plugins/dsh-browser-desktop/node_modules/@deepseek-ai/schemastery \
+    && ln -s /opt/deepseek-harness/plugins/dsh-workspace-browser \
+      /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@runzhliu/dsh-workspace-browser \
+    && ln -s /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/schemastery \
+      /opt/deepseek-harness/plugins/dsh-workspace-browser/node_modules/@deepseek-ai/schemastery \
     && ln -s ../lib/node_modules/@deepseek-ai/dsh/lib/bin.js /usr/local/bin/dsh \
     && ln -s ../lib/node_modules/pnpm/bin/pnpm.cjs /usr/local/bin/pnpm \
     && ln -s ../lib/node_modules/pnpm/bin/pnpx.cjs /usr/local/bin/pnpx \

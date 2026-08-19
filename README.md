@@ -117,7 +117,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
 docker compose ps
 ```
 
-浏览器打开 <http://127.0.0.1:3080>，在设置页配置模型和凭据。侧边栏的“浏览器”按钮会在 Harness WebUI 内直接打开可交互的容器 Chromium；配置和浏览器 Profile 写入命名卷 `dsh-home`，重建容器后仍会保留。
+浏览器打开 <http://127.0.0.1:3080>，在设置页配置模型和凭据。侧边栏的“浏览器”按钮会在 Harness WebUI 内直接打开可交互的容器 Chromium；“文件”按钮会打开工作区文件管理器，可查看、新建、编辑、重命名和删除 `/workspace` 内的文件与目录。配置和浏览器 Profile 写入命名卷 `dsh-home`，重建容器后仍会保留。
 
 默认镜像为 Docker Hub 上的 [`runzhliu/deepseek-harness:0.1.0-rc.6`](https://hub.docker.com/r/runzhliu/deepseek-harness)。Compose 同时保留 `build` 配置，方便审查并从本目录复现镜像；如需本地构建，执行 `docker compose build --pull` 后再启动。
 
@@ -149,6 +149,21 @@ dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.0.tgz
 ```
 
 发布到 npm 后可直接执行 `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`。该 npm 包只负责 Harness Host/WebUI 集成，不会自行安装 Chromium、Xvfb 或 noVNC；本仓库 Docker 镜像是完整的参考运行时。DeepSeek Harness 当前通过 npm/GitHub 和 `dsh-plugin` GitHub topic 发现社区插件，并没有单独的审核型插件市场提交流程。
+
+### 工作区文件管理器
+
+镜像还内置独立插件 [`@runzhliu/dsh-workspace-browser`](plugins/dsh-workspace-browser/README.md)。它通过相同的 `sidebar.footer.action` 与 `shell.overlay` 扩展点增加“文件”入口，提供目录导航、面包屑、大小/修改时间、最多 512 KiB 的文本预览，以及新建文件/目录、文本编辑保存、重命名和删除。编辑器支持 `Ctrl/Cmd+S`，保存时会校验打开文件时的修改时间，避免静默覆盖外部变更。
+
+所有请求路径必须相对 `/workspace` 并经过 `realpath` 边界校验；`..` 路径穿越、修改符号链接和指向工作区外部的符号链接都会被拒绝。修改接口只接受同源 JSON 请求，单次写入默认上限为 1 MiB；删除非空目录前 WebUI 会明确提示并确认递归删除。
+
+插件也可以独立打包：
+
+```bash
+npm pack ./plugins/dsh-workspace-browser --pack-destination /tmp
+dsh plugin --profile web add /tmp/runzhliu-dsh-workspace-browser-0.1.0.tgz
+```
+
+该文件管理器具备实际写入和递归删除能力，不构成多租户文件服务。能访问 Harness 的用户通常也能调用 Shell 或 Agent 工具，因此仍需把 DSH 放在可信的本机、Tailnet 或认证网关后面，并用版本控制或备份保证可恢复性。
 
 本公开分支不打包任何公司内部模型、凭据、Skill 或个人工作区挂载。模型在 Harness 设置页配置；额外凭据和私有扩展应放在运行时 Secret、被忽略的 `.env` 或本机 `compose.local.yaml` 中。
 
@@ -309,6 +324,7 @@ docker compose exec deepseek-harness node -e "console.log(require('node:os').hom
 | `web.cordis.patch.yml` | 只用于 Docker bridge 网络的 Web 监听覆盖 |
 | `compose.yaml` | 持久化、回环端口和收紧后的运行时配置 |
 | `plugins/dsh-browser-desktop/` | 可独立发布的 DSH 浏览器桌面 bundle |
+| `plugins/dsh-workspace-browser/` | 受工作区边界约束、支持 CRUD 的文件管理器 bundle |
 | `charts/deepseek-harness/` | 单副本 StatefulSet、PVC、Service 和 NetworkPolicy |
 | `scripts/smoke.sh` | CLI、配置、原生 PTY 和 HTTP 启动验证 |
 | `.github/workflows/ci.yml` | Compose/Helm 校验和双架构镜像 Smoke Test |
