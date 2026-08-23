@@ -11,8 +11,6 @@ window.__ModuleLoader__.load({
       browserFrame: zh ? '容器 Chromium 桌面' : 'Container Chromium desktop',
       close: zh ? '关闭' : 'Close',
       maximize: zh ? '最大化' : 'Maximize',
-      open: zh ? '打开浏览器' : 'Open browser',
-      openHere: zh ? '在当前页面打开容器浏览器' : 'Open the container browser here',
       openNew: zh ? '新窗口打开' : 'Open in new window',
       openTitle: zh ? '打开容器浏览器' : 'Open container browser',
       resize: zh ? '调整浏览器窗口大小' : 'Resize browser window',
@@ -286,39 +284,7 @@ window.__ModuleLoader__.load({
         setMaximized(true)
       }
 
-      if (!visible) {
-        return React.createElement(
-          'button',
-          {
-            type: 'button',
-            title: messages.openHere,
-            'aria-label': messages.openHere,
-            onClick: () => setOpened(true),
-            style: {
-              position: 'absolute',
-              top: '14px',
-              right: '16px',
-              zIndex: 90,
-              pointerEvents: 'auto',
-              height: '38px',
-              padding: '0 14px',
-              border: '1px solid var(--dsw-alias-border-l2)',
-              borderRadius: '19px',
-              background: 'var(--dsw-alias-bg-base)',
-              color: 'var(--dsw-alias-label-primary)',
-              boxShadow: '0 4px 18px rgba(0,0,0,.14)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '7px',
-              fontSize: '14px',
-              fontWeight: 500
-            }
-          },
-          React.createElement('span', { style: { fontSize: '17px', lineHeight: 1 } }, '🌐'),
-          React.createElement('span', null, messages.open)
-        )
-      }
+      if (!visible) return null
 
       return React.createElement(
         'section',
