@@ -2,16 +2,16 @@
 
 English | [简体中文](README.md)
 
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek_Harness-0.1.0--rc.6-4f46e5)](https://www.npmjs.com/package/@deepseek-ai/dsh)
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek_Harness-0.1.1--rc.2-4f46e5)](https://www.npmjs.com/package/@deepseek-ai/dsh)
 [![Docker Image](https://img.shields.io/badge/docker.io-runzhliu%2Fdeepseek--harness-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/runzhliu/deepseek-harness)
 [![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A production-minded community container project for the official DeepSeek Harness `@deepseek-ai/dsh` package. It provides a multi-stage Dockerfile, a hardened Compose setup, and a single-replica StatefulSet Helm chart without forking or rebuilding the upstream monorepo.
 
-> Current baseline: `@deepseek-ai/dsh@0.1.0-rc.6`. DeepSeek Harness is still a release candidate. Re-run the build and smoke tests before every version upgrade.
+> Current baseline: `@deepseek-ai/dsh@0.1.1-rc.2`. DeepSeek Harness is still a release candidate. Re-run the build and smoke tests before every version upgrade.
 
-`0.1.0-rc.6` maps directly to the latest official `@deepseek-ai/dsh` artifact in the npm Registry at build time; it is not a project-defined version. The public upstream `master` still identified itself as `rc.5` at that point. This project packages the installable npm distribution instead of building source, and intentionally does not publish a drifting Docker `latest` tag.
+`0.1.1-rc.2` maps directly to the official `@deepseek-ai/dsh` artifact in the npm Registry and its matching GitHub Release; it is not a project-defined version. This project packages the installable npm distribution instead of building source, and intentionally does not publish a drifting Docker `latest` tag.
 
 📖 Further reading: [DeepSeek Harness GitHub repository deep dive](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) · [Docker, Compose, and Helm deployment guide](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/) (Chinese)
 
@@ -120,7 +120,7 @@ docker compose ps
 
 Open <http://127.0.0.1:3080> and configure a model and credentials in Settings. The **Browser** action in the sidebar opens an interactive container Chromium directly inside the Harness Web UI. The named `dsh-home` volume preserves both Harness state and the browser profile across container recreation.
 
-The default image is [`runzhliu/deepseek-harness:0.1.0-rc.6`](https://hub.docker.com/r/runzhliu/deepseek-harness). Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
+The default image is [`runzhliu/deepseek-harness:0.1.1-rc.2`](https://hub.docker.com/r/runzhliu/deepseek-harness). Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
 
 ### Browser inside the Web UI
 
@@ -146,7 +146,7 @@ The plugin is a standalone DSH bundle under [`plugins/dsh-browser-desktop`](plug
 
 ```bash
 npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
-dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.0.tgz
+dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.1.tgz
 ```
 
 After npm publication, install it with `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`. The npm package supplies only the Harness host/Web integration; it does not install Chromium, Xvfb, or noVNC. This repository's image is the complete reference runtime. DeepSeek Harness currently discovers community plugins through npm/GitHub and the `dsh-plugin` GitHub topic rather than a curated marketplace submission queue.
@@ -167,7 +167,7 @@ docker compose down
 Build:
 
 ```bash
-docker build -t runzhliu/deepseek-harness:0.1.0-rc.6 .
+docker build -t runzhliu/deepseek-harness:0.1.1-rc.2 .
 ```
 
 Run the Web UI:
@@ -181,7 +181,7 @@ docker run --rm \
   --shm-size 1g \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.0-rc.6
+  runzhliu/deepseek-harness:0.1.1-rc.2
 ```
 
 Do not shorten the publication to `-p 3080:3080`, and do not place this service behind a public Ingress.
@@ -195,7 +195,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.0-rc.6 \
+  runzhliu/deepseek-harness:0.1.1-rc.2 \
   --profile headless "summarize this repository"
 ```
 
@@ -212,7 +212,7 @@ helm upgrade --install deepseek-harness charts/deepseek-harness \
   --namespace deepseek-harness \
   --create-namespace \
   --set image.repository=runzhliu/deepseek-harness \
-  --set image.tag=0.1.0-rc.6
+  --set image.tag=0.1.1-rc.2
 ```
 
 Kind or Minikube can pull the default `runzhliu/deepseek-harness` image directly, or you can load a local image under the same name first.
@@ -246,15 +246,17 @@ The build argument pins the package:
 
 ```bash
 docker build \
-  --build-arg DSH_VERSION=0.1.0-rc.6 \
-  -t runzhliu/deepseek-harness:0.1.0-rc.6 .
+  --build-arg DSH_VERSION=0.1.1-rc.2 \
+  -t runzhliu/deepseek-harness:0.1.1-rc.2 .
 ```
 
 Compose uses the same variable:
 
 ```bash
-DSH_VERSION=0.1.0-rc.6 docker compose build --pull
+DSH_VERSION=0.1.1-rc.2 docker compose build --pull
 ```
+
+Maintainers can run `make push` to build and publish the `linux/amd64` and `linux/arm64` manifests under the same versioned tag. The target does not create a `latest` tag.
 
 Do not install an unbounded `latest` tag. Release-candidate behavior changes quickly, and exact versions make bugs reproducible.
 
@@ -274,9 +276,9 @@ See [SECURITY.md](SECURITY.md) before changing any network or privilege setting.
 Run at least these checks for every DSH upgrade:
 
 ```bash
-docker run --rm runzhliu/deepseek-harness:0.1.0-rc.6 --version
+docker run --rm runzhliu/deepseek-harness:0.1.1-rc.2 --version
 
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.0-rc.6 \
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.1-rc.2 \
   web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config
 
 docker compose up -d
@@ -288,7 +290,7 @@ helm lint --strict charts/deepseek-harness
 helm template deepseek-harness charts/deepseek-harness >/dev/null
 ```
 
-Acceptance criteria: the CLI reports the pinned version; the dumped `webserver.config.host` is `0.0.0.0`; the home page returns 2xx; Compose reaches `healthy`; logs contain no plugin/config errors; and Helm renders both persistent and ephemeral-storage variants. Build both `linux/amd64` and `linux/arm64` and actually spawn a PTY before publishing because terminal and sandbox dependencies include native code. The common entry points are `make verify`, `make build`, and `make smoke`.
+Acceptance criteria: the CLI reports the pinned version; the dumped `webserver.config.host` is `0.0.0.0`; the home page returns 2xx; Compose reaches `healthy`; logs contain no plugin/config errors; the container does not try to hand off to a host browser; and Helm renders both persistent and ephemeral-storage variants. Build both `linux/amd64` and `linux/arm64` and actually spawn a PTY before publishing because terminal and sandbox dependencies include native code. The common entry points are `make verify`, `make build`, and `make smoke`.
 
 ## Troubleshooting
 

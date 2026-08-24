@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## 0.1.1 - 2026-08-24
+
+- Upgrade the official runtime to `@deepseek-ai/dsh@0.1.1-rc.2`.
+- Disable the upstream automatic browser handoff so the container-managed Chromium desktop remains the single browser lifecycle owner.
+- Declare browser desktop plugin compatibility with both the original `0.1.0-rc.6` baseline and the new `0.1.1-rc.2` release candidate.
+- Keep the Node.js 24 base, pnpm runtime, hardened Compose deployment, and dual-architecture image layout unchanged after native ARM64 validation.
+
 ## 0.1.0 - 2026-08-13
 
 - Package the official `@deepseek-ai/dsh@0.1.0-rc.6` npm distribution.

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-image="${1:-runzhliu/deepseek-harness:0.1.0-rc.6}"
-expected_version="${2:-0.1.0-rc.6}"
+image="${1:-runzhliu/deepseek-harness:0.1.1-rc.2}"
+expected_version="${2:-0.1.1-rc.2}"
 expected_pnpm_version="${3:-10.15.1}"
 suffix="${RANDOM}-$$"
 container="deepseek-harness-smoke-${suffix}"
@@ -116,6 +116,10 @@ for attempt in $(seq 1 30); do
         .catch(() => process.exit(1))
     '; then
       echo "browser_open transport did not open a Chromium tab" >&2
+      exit 1
+    fi
+    if docker logs "${container}" 2>&1 | grep --quiet 'opening the default browser'; then
+      echo "dsh web attempted to open a host browser; the container command must include --no-open" >&2
       exit 1
     fi
     echo "smoke test passed for ${image} (Harness and noVNC desktop) on 127.0.0.1:${port}"
