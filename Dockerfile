@@ -62,6 +62,116 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /usr/local/lib/node_modules/@deepseek-ai
 
+# dsh misdetects Docker Desktop's WSL2 kernel as WSL and spawns
+# wslpath/powershell.exe (absent in the container) to open native paths.
+# Fake wslpath echoes the target path; fake powershell.exe hands it to wish
+# on the VNC display (:99, viewable through noVNC), so "Open configuration
+# file" and host.openPath open the editor instead of failing with ENOENT.
+RUN cat > /usr/local/bin/wslpath <<'SHIM'
+#!/bin/sh
+# Fake wslpath: dsh calls `wslpath -w <path>`; echo the path unchanged.
+out=""
+for arg in "$@"; do
+  case "$arg" in
+    -w|-u|-m|--*) ;;
+    *) out="$arg" ;;
+  esac
+done
+printf '%s\n' "${out:-/}"
+exit 0
+SHIM
+RUN cat > /usr/local/bin/powershell.exe <<'SHIM'
+#!/bin/sh
+# Fake powershell.exe: dsh runs
+#   powershell.exe -NoProfile -Command "Invoke-Item -LiteralPath '<path>'"
+# Extract the path and open it with wish on the VNC desktop, then exit 0 so
+# dsh reports the open as successful.
+command_text=""
+for arg in "$@"; do
+  case "$arg" in
+    -NoProfile|-Command) ;;
+    *) command_text="$arg" ;;
+  esac
+done
+path=""
+if [ -n "$command_text" ]; then
+  path=$(printf '%s' "$command_text" \
+    | sed -n "s/.*-LiteralPath[[:space:]]*'\([^']*\)'[[:space:]]*$/\1/p" \
+    | sed "s/''/'/g")
+fi
+if [ -z "$path" ] || [ ! -e "$path" ]; then exit 0; fi
+DISPLAY="${DISPLAY:-:99}" /usr/bin/wish /usr/local/bin/dsh-editor.tcl "$path" >/dev/null 2>&1 &
+exit 0
+SHIM
+RUN cat > /usr/local/bin/dsh-editor.tcl <<'SHIM'
+#!/usr/bin/wish
+# VNC desktop mini editor, opened by the fake powershell.exe above.
+# File mode: edit and Save (Ctrl+S). Directory mode: double-click to descend.
+set target [lindex $argv 0]
+if {$target eq ""} { exit }
+
+if {[file isdirectory $target]} {
+  wm title . "Pick: $target"
+  wm geometry . 680x520
+  listbox .lb -width 90 -height 30 -yscrollcommand {.vs set}
+  scrollbar .vs -command {.lb yview}
+  pack .lb -side left -fill both -expand true
+  pack .vs -side right -fill y
+  foreach f [lsort [glob -nocomplain -directory $target *]] {
+    .lb insert end [file tail $f]
+  }
+  bind .lb <Double-Button-1> {
+    set sel [lindex [.lb curselection] 0]
+    if {$sel ne ""} {
+      exec wish [info script] [file join $target [.lb get $sel]] &
+    }
+  }
+  return
+}
+
+wm title . "Edit: $target"
+wm geometry . 900x640
+frame .bar
+button .bar.save -text "Save (Ctrl+S)" -command saveFile
+button .bar.close -text "Close (Ctrl+W)" -command exit
+label .bar.path -text $target -anchor w
+pack .bar.save .bar.close -side left -padx 3 -pady 3
+pack .bar.path -side left -fill x -expand true -padx 6
+pack .bar -side top -fill x
+
+text .txt -wrap word -undo true -yscrollcommand {.vs set} -font {TkFixedFont 11}
+scrollbar .vs -command {.txt yview}
+pack .txt -side left -fill both -expand true
+pack .vs -side right -fill y
+
+if {[catch {set fd [open $target r]; fconfigure $fd -encoding utf-8; set content [read $fd]; close $fd} err]} {
+  tk_messageBox -message "Open failed: $err" -type ok -icon warning
+  exit
+}
+.txt insert 1.0 $content
+focus .txt
+
+proc saveFile {} {
+  global target
+  if {[catch {
+    set fd [open $target w]
+    fconfigure $fd -encoding utf-8
+    puts -nonewline $fd [.txt get 1.0 end-1c]
+    close $fd
+  } err]} {
+    tk_messageBox -message "Save failed: $err" -type ok -icon error
+    return
+  }
+  .bar.save configure -text "Saved ✓"
+  after 1200 { .bar.save configure -text "Save (Ctrl+S)" }
+}
+bind .txt <Control-s> saveFile
+bind .txt <Control-w> exit
+bind . <Control-s> saveFile
+bind . <Control-w> exit
+SHIM
+RUN chmod 0755 /usr/local/bin/wslpath /usr/local/bin/powershell.exe /usr/local/bin/dsh-editor.tcl
+
 COPY --from=installer /usr/local/lib/node_modules/@deepseek-ai/dsh /usr/local/lib/node_modules/@deepseek-ai/dsh
 COPY --from=installer /usr/local/lib/node_modules/pnpm /usr/local/lib/node_modules/pnpm
 COPY scripts/chromium-docker /usr/local/bin/chromium-docker
