@@ -148,7 +148,30 @@ npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
 dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.1.tgz
 ```
 
-发布到 npm 后可直接执行 `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`。该 npm 包只负责 Harness Host/WebUI 集成，不会自行安装 Chromium、Xvfb 或 noVNC；本仓库 Docker 镜像是完整的参考运行时。DeepSeek Harness 当前通过 npm/GitHub 和 `dsh-plugin` GitHub topic 发现社区插件，并没有单独的审核型插件市场提交流程。
+发布到 npm 后可直接执行 `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`。该 npm 包只负责 Harness Host/WebUI 集成，不会自行安装 Chromium、Xvfb 或 noVNC；本仓库 Docker 镜像是完整的参考运行时。官方 DSH 通过 npm/GitHub 和 `dsh-plugin` GitHub topic 发现社区插件。
+
+### 可选的社区插件市场
+
+默认镜像、默认 Compose 和 Helm Chart **不包含也不加载插件市场**，它们只跟随官方 `@deepseek-ai/dsh` 发行物。需要图形化浏览和安装社区插件时，可以显式选择独立的 [`dshmarket`](https://github.com/dsh-market/dsh-market) 变体：
+
+```bash
+docker compose -f compose.yaml -f compose.market.yaml pull
+DSH_WORKSPACE=/absolute/path/to/your/project \
+  docker compose -f compose.yaml -f compose.market.yaml up -d --no-build
+```
+
+该变体使用明确区分的 `runzhliu/deepseek-harness:0.1.1-rc.2-market.1` 标签，固定 `dshmarket@1.21.0`，不会替换默认 DSH 标签或 `latest`。它属于社区可选集成，不是 DeepSeek 官方组件，也不代表本项目对市场条目的审核或背书。
+
+市场自身在构建期固定并打入可选镜像；通过市场安装的插件会写入持久化的 `dsh-home` 卷。安装过程需要容器能够访问 npm/GitHub，第三方包的构建脚本仍应在审查后单独授权。市场内的一键重启已禁用，变更需要通过 `docker compose restart` 或 Kubernetes rollout 进入新进程。
+
+本地验证可选变体：
+
+```bash
+make market-build
+make market-smoke
+```
+
+Helm 仍默认官方 DSH 镜像；只有明确设置 `--set image.tag=0.1.1-rc.2-market.1` 时才使用市场变体。
 
 本公开分支不打包任何公司内部模型、凭据、Skill 或个人工作区挂载。模型在 Harness 设置页配置；额外凭据和私有扩展应放在运行时 Secret、被忽略的 `.env` 或本机 `compose.local.yaml` 中。
 
@@ -262,6 +285,8 @@ DSH_VERSION=0.1.1-rc.2 docker compose build --pull
 
 维护者可用 `make push` 构建并推送同一个版本标签下的 `linux/amd64` 与 `linux/arm64` manifest。该命令不会创建 `latest` 标签。
 
+可选市场变体使用独立的 `make market-push`，只发布带 `-market.1` 后缀的双架构标签，不改变默认镜像。
+
 不要默认安装 `latest`。RC 版本正在快速变化，固定版本才能让问题可复现。
 
 ## 安全边界
@@ -289,7 +314,7 @@ docker compose ps
 docker compose logs --no-color deepseek-harness
 ```
 
-通过标准包括：CLI 版本等于构建版本；dump 后的 `webserver.config.host` 为 `0.0.0.0`；首页返回 2xx；容器进入 healthy；日志没有配置或插件加载错误；容器不会尝试调用宿主默认浏览器。真正发布镜像前还要分别在 `linux/amd64` 和 `linux/arm64` 上构建并实际 spawn PTY，因为终端与沙箱相关依赖包含原生模块。仓库提供 `make verify`、`make build` 和 `make smoke` 作为统一入口。
+通过标准包括：CLI 版本等于构建版本；dump 后的 `webserver.config.host` 为 `0.0.0.0`；首页返回 2xx；容器进入 healthy；日志没有配置或插件加载错误；容器不会尝试调用宿主默认浏览器。真正发布镜像前还要分别在 `linux/amd64` 和 `linux/arm64` 上构建并实际 spawn PTY，因为终端与沙箱相关依赖包含原生模块。仓库提供 `make verify`、`make build` 和 `make smoke` 作为默认入口；可选市场另用 `make market-build` 和 `make market-smoke`，并额外验证默认镜像中不存在市场包。
 
 ## 常见问题
 
@@ -308,8 +333,11 @@ docker compose exec deepseek-harness node -e "console.log(require('node:os').hom
 | 文件 | 用途 |
 | --- | --- |
 | `Dockerfile` | 固定版本的非 root DSH 运行时，默认启动 Web UI |
+| `Dockerfile.market` | 从默认镜像派生、固定第三方市场版本的可选镜像 |
 | `web.cordis.patch.yml` | 只用于 Docker bridge 网络的 Web 监听覆盖 |
 | `compose.yaml` | 持久化、回环端口和收紧后的运行时配置 |
+| `compose.market.yaml` | 显式选择第三方社区市场镜像的可选 Compose overlay |
+| `web.market.cordis.patch.yml` | 只由可选市场派生镜像使用的 profile 配置 |
 | `plugins/dsh-browser-desktop/` | 可独立发布的 DSH 浏览器桌面 bundle |
 | `charts/deepseek-harness/` | 单副本 StatefulSet、PVC、Service 和 NetworkPolicy |
 | `scripts/smoke.sh` | CLI、配置、原生 PTY 和 HTTP 启动验证 |

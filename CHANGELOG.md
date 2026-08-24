@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## Unreleased
+
+- Add an explicitly optional `Dockerfile.market` derived image and Compose overlay that pin the third-party `dshmarket@1.21.0` package.
+- Keep the default Docker target, Compose stack, Helm chart, and DSH Web patch free of the community market.
+- Test the default official-DSH integration separately from the optional market variant, including hardened runtime checks and disabled market-owned restarts.
+
 ## 0.1.1 - 2026-08-24
 
 - Upgrade the official runtime to `@deepseek-ai/dsh@0.1.1-rc.2`.

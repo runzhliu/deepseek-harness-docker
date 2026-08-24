@@ -48,4 +48,19 @@ jobs:
           tags: deepseek-harness:ci-${{ matrix.suffix }}
           cache-from: type=gha,scope=${{ matrix.suffix }}
           cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
-      - run: ./scripts/smoke.sh deepseek-harness:ci-${{ matrix.suffix }} 0.1.1-rc.2
+      - run: ./scripts/smoke.sh deepseek-harness:ci-${{ matrix.suffix }} 0.1.1-rc.2 10.15.1
+
+  optional-market:
+    name: Optional market smoke (linux/amd64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --tag deepseek-harness:ci-market-base .
+      - run: >-
+          docker build
+          --file Dockerfile.market
+          --build-arg BASE_IMAGE=deepseek-harness:ci-market-base
+          --tag deepseek-harness:ci-market-amd64
+          .
+      - run: ./scripts/smoke.sh deepseek-harness:ci-market-amd64 0.1.1-rc.2 10.15.1 1.21.0

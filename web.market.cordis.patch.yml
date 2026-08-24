@@ -1,0 +1,19 @@
+# Keep the official Web patch intact and add the optional package as one more
+# profile row. The image entrypoint supplies its profile-local package link.
+- insert:
+    - id: browser-desktop
+      name: '@runzhliu/dsh-browser-desktop'
+      config:
+        cdpBaseUrl: 'http://127.0.0.1:9222'
+        desktopPort: !!js Number(process.env.DSH_DESKTOP_PUBLIC_PORT ?? 6080)
+    - id: dsh-market
+      name: dshmarket
+      config:
+        # The container entrypoint and orchestrator own the DSH lifecycle.
+        allowRestart: false
+
+- id: webserver
+  name: '@deepseek-ai/dsh-host-webserver'
+  config:
+    host: '0.0.0.0'
+    port: !!js ctx.webStartup.port ?? 3080

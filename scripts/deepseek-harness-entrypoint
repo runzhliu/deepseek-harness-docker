@@ -144,7 +144,8 @@ trap handle_signal INT TERM HUP
 
 install_browser_plugin
 
-if [ "${1:-}" = "web" ] && [ "${DSH_DESKTOP_ENABLED:-1}" = "1" ]; then
+if { [ "${1:-}" = "web" ] || { [ "${1:-}" = "--profile" ] && [ "${2:-}" = "web" ]; }; } \
+    && [ "${DSH_DESKTOP_ENABLED:-1}" = "1" ]; then
   start_desktop || {
     stop_children
     exit 1

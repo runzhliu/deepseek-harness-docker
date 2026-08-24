@@ -149,7 +149,30 @@ npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
 dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.1.tgz
 ```
 
-After npm publication, install it with `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`. The npm package supplies only the Harness host/Web integration; it does not install Chromium, Xvfb, or noVNC. This repository's image is the complete reference runtime. DeepSeek Harness currently discovers community plugins through npm/GitHub and the `dsh-plugin` GitHub topic rather than a curated marketplace submission queue.
+After npm publication, install it with `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`. The npm package supplies only the Harness host/Web integration; it does not install Chromium, Xvfb, or noVNC. This repository's image is the complete reference runtime. Official DSH discovers community plugins through npm/GitHub and the `dsh-plugin` GitHub topic.
+
+### Optional community plugin market
+
+The default image, Compose stack, and Helm chart **do not contain or load a plugin market**; they follow only the official `@deepseek-ai/dsh` distribution. Explicitly select the separate [`dshmarket`](https://github.com/dsh-market/dsh-market) variant when you want a visual community-plugin browser and installer:
+
+```bash
+docker compose -f compose.yaml -f compose.market.yaml pull
+DSH_WORKSPACE=/absolute/path/to/your/project \
+  docker compose -f compose.yaml -f compose.market.yaml up -d --no-build
+```
+
+The variant has the unambiguous `runzhliu/deepseek-harness:0.1.1-rc.2-market.1` tag and pins `dshmarket@1.21.0`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
+
+The market package itself is pinned and copied at build time. Plugins installed through it persist in the `dsh-home` volume. Installation needs container egress to npm/GitHub, and third-party build scripts should remain blocked until separately reviewed and approved. One-click market restart is disabled; apply lifecycle changes with `docker compose restart` or a Kubernetes rollout.
+
+Build and test the optional variant locally with:
+
+```bash
+make market-build
+make market-smoke
+```
+
+Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.1-rc.2-market.1`.
 
 This public branch packages no company-internal models, credentials, skills, or personal workspace mounts. Configure models in Harness Settings and keep extra credentials or private extensions in runtime Secrets, the ignored `.env`, or a machine-local `compose.local.yaml`.
 
@@ -258,6 +281,8 @@ DSH_VERSION=0.1.1-rc.2 docker compose build --pull
 
 Maintainers can run `make push` to build and publish the `linux/amd64` and `linux/arm64` manifests under the same versioned tag. The target does not create a `latest` tag.
 
+The optional market variant has a separate `make market-push` target. It publishes only the dual-architecture tag carrying the `-market.1` suffix and never changes the default image.
+
 Do not install an unbounded `latest` tag. Release-candidate behavior changes quickly, and exact versions make bugs reproducible.
 
 ## Security boundary
@@ -290,7 +315,7 @@ helm lint --strict charts/deepseek-harness
 helm template deepseek-harness charts/deepseek-harness >/dev/null
 ```
 
-Acceptance criteria: the CLI reports the pinned version; the dumped `webserver.config.host` is `0.0.0.0`; the home page returns 2xx; Compose reaches `healthy`; logs contain no plugin/config errors; the container does not try to hand off to a host browser; and Helm renders both persistent and ephemeral-storage variants. Build both `linux/amd64` and `linux/arm64` and actually spawn a PTY before publishing because terminal and sandbox dependencies include native code. The common entry points are `make verify`, `make build`, and `make smoke`.
+Acceptance criteria: the CLI reports the pinned version; the dumped `webserver.config.host` is `0.0.0.0`; the home page returns 2xx; Compose reaches `healthy`; logs contain no plugin/config errors; the container does not try to hand off to a host browser; and Helm renders both persistent and ephemeral-storage variants. Build both `linux/amd64` and `linux/arm64` and actually spawn a PTY before publishing because terminal and sandbox dependencies include native code. The default entry points are `make verify`, `make build`, and `make smoke`; the optional market uses `make market-build` and `make market-smoke`, which also prove that the market package is absent from the default image.
 
 ## Troubleshooting
 
@@ -309,8 +334,11 @@ The last command must print `/workspace`. An `EACCES` under `/workspace` instead
 | Path | Purpose |
 | --- | --- |
 | `Dockerfile` | Pinned, non-root DSH runtime with Web as the default command |
+| `Dockerfile.market` | Optional derivative that pins a third-party market version on top of the default image |
 | `web.cordis.patch.yml` | Docker-bridge-only Web listener override |
 | `compose.yaml` | Persistent, loopback-only, hardened local deployment |
+| `compose.market.yaml` | Optional Compose overlay that explicitly selects the third-party community market image |
+| `web.market.cordis.patch.yml` | Profile configuration used only by the optional market derivative |
 | `plugins/dsh-browser-desktop/` | Independently publishable DSH browser desktop bundle |
 | `charts/deepseek-harness/` | StatefulSet, PVC, headless Service, and NetworkPolicy |
 | `scripts/smoke.sh` | CLI, config, native PTY, and HTTP startup checks |

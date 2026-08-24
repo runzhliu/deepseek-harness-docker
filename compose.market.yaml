@@ -1,0 +1,9 @@
+services:
+  deepseek-harness:
+    build:
+      dockerfile: Dockerfile.market
+      args:
+        BASE_IMAGE: runzhliu/deepseek-harness:${DSH_VERSION:-0.1.1-rc.2}
+        DSH_MARKET_VERSION: ${DSH_MARKET_VERSION:-1.21.0}
+        MARKET_IMAGE_VERSION: ${MARKET_IMAGE_VERSION:-0.1.1-rc.2-market.1}
+    image: runzhliu/deepseek-harness:${MARKET_IMAGE_VERSION:-0.1.1-rc.2-market.1}
