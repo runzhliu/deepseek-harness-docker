@@ -4,6 +4,7 @@ set -Eeuo pipefail
 image="${1:-runzhliu/deepseek-harness:0.1.1-rc.2}"
 expected_version="${2:-0.1.1-rc.2}"
 expected_pnpm_version="${3:-10.15.1}"
+expected_market_version="${4:-}"
 suffix="${RANDOM}-$$"
 container="deepseek-harness-smoke-${suffix}"
 volume="deepseek-harness-smoke-home-${suffix}"
@@ -26,9 +27,35 @@ if [[ "${actual_pnpm_version}" != "${expected_pnpm_version}" ]]; then
   exit 1
 fi
 
-config="$(docker run --rm "${image}" web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config)"
+if [[ -n "${expected_market_version}" ]]; then
+  actual_market_version="$(docker run --rm --entrypoint node "${image}" -p \
+    'require("/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dshmarket/package.json").version')"
+  if [[ "${actual_market_version}" != "${expected_market_version}" ]]; then
+    echo "expected dshmarket ${expected_market_version}, got ${actual_market_version}" >&2
+    exit 1
+  fi
+elif ! docker run --rm --entrypoint sh "${image}" -c \
+  'test ! -e /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dshmarket'; then
+  echo "the default DSH image unexpectedly contains the optional community market" >&2
+  exit 1
+fi
+
+if [[ -n "${expected_market_version}" ]]; then
+  config="$(docker run --rm "${image}" --profile web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config)"
+else
+  config="$(docker run --rm "${image}" web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config)"
+fi
 if [[ "${config}" != *"host: 0.0.0.0"* && "${config}" != *"host: '0.0.0.0'"* ]]; then
   echo "container Web patch did not set host to 0.0.0.0" >&2
+  exit 1
+fi
+if [[ -n "${expected_market_version}" ]]; then
+  if [[ "${config}" != *"name: dshmarket"* ]]; then
+    echo "optional market image did not load dshmarket" >&2
+    exit 1
+  fi
+elif [[ "${config}" == *"name: dshmarket"* ]]; then
+  echo "the default DSH Web patch unexpectedly loads the community market" >&2
   exit 1
 fi
 
@@ -83,10 +110,20 @@ docker run --detach \
   "${image}" >/dev/null
 
 port="$(docker port "${container}" 3080/tcp | awk -F: 'NR == 1 { print $NF }')"
+
+market_is_ready() {
+  if [[ -z "${expected_market_version}" ]]; then
+    return 0
+  fi
+  docker exec "${container}" node -e \
+    "fetch('http://127.0.0.1:3080/dsh-market/status').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+}
+
 for attempt in $(seq 1 30); do
   if curl --fail --silent "http://127.0.0.1:${port}/" >/dev/null \
       && docker exec "${container}" node -e \
-        "Promise.all([fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version'), fetch('http://127.0.0.1:3080/browser-desktop/state')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))"; then
+        "Promise.all([fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version'), fetch('http://127.0.0.1:3080/browser-desktop/state')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))" \
+      && market_is_ready; then
     if ! curl --fail --silent "http://127.0.0.1:${port}/" \
       | grep --quiet '"id":"@runzhliu/dsh-browser-desktop"'; then
       echo "Harness boot manifest did not include the browser desktop client plugin" >&2
@@ -102,6 +139,24 @@ for attempt in $(seq 1 30); do
     '; then
       echo "browser desktop state did not expose its noVNC endpoint" >&2
       exit 1
+    fi
+    if [[ -n "${expected_market_version}" ]]; then
+      if ! curl --fail --silent "http://127.0.0.1:${port}/" \
+        | grep --quiet 'dshmarket'; then
+        echo "Harness boot manifest did not include the plugin market client" >&2
+        exit 1
+      fi
+      if ! docker exec "${container}" node -e "
+        fetch('http://127.0.0.1:3080/dsh-market/status')
+          .then(response => response.json())
+          .then(status => {
+            if (status.version !== '${expected_market_version}' || status.restart !== false) process.exit(1)
+          })
+          .catch(() => process.exit(1))
+      "; then
+        echo "plugin market status did not report the pinned version with self-restart disabled" >&2
+        exit 1
+      fi
     fi
     if ! docker exec "${container}" node -e '
       fetch("http://127.0.0.1:3080/browser-desktop/open", {
@@ -122,7 +177,12 @@ for attempt in $(seq 1 30); do
       echo "dsh web attempted to open a host browser; the container command must include --no-open" >&2
       exit 1
     fi
-    echo "smoke test passed for ${image} (Harness and noVNC desktop) on 127.0.0.1:${port}"
+    if [[ -n "${expected_market_version}" ]]; then
+      features="Harness, optional plugin market, and noVNC desktop"
+    else
+      features="official Harness integration and noVNC desktop"
+    fi
+    echo "smoke test passed for ${image} (${features}) on 127.0.0.1:${port}"
     exit 0
   fi
   if ! docker container inspect "${container}" >/dev/null 2>&1; then

@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+plugin_root="${DSH_HOME}/profiles/web/node_modules"
+plugin_link="${plugin_root}/dshmarket"
+plugin_source=/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dshmarket
+
+mkdir -p "${plugin_root}"
+if [ -L "${plugin_link}" ]; then
+  rm -f "${plugin_link}"
+elif [ -e "${plugin_link}" ]; then
+  echo "plugin market path already exists; leaving it unchanged: ${plugin_link}" >&2
+  exec /usr/local/bin/deepseek-harness-entrypoint "$@"
+fi
+ln -s "${plugin_source}" "${plugin_link}"
+
+exec /usr/local/bin/deepseek-harness-entrypoint "$@"

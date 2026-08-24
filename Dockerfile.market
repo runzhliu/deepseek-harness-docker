@@ -1,0 +1,53 @@
+# syntax=docker/dockerfile:1.7
+
+ARG NODE_IMAGE=node:24-bookworm-slim
+ARG BASE_IMAGE=runzhliu/deepseek-harness:0.1.1-rc.2
+FROM ${NODE_IMAGE} AS market-installer
+
+ARG DSH_MARKET_VERSION=1.21.0
+
+# Resolve the optional package in isolation. Installing with DSH itself as
+# npm's prefix could prune bundles that DSH owns outside ordinary dependencies.
+RUN mkdir -p /opt/dshmarket \
+    && npm pack --pack-destination /tmp "dshmarket@${DSH_MARKET_VERSION}" \
+    && tar --extract --gzip \
+      --file "/tmp/dshmarket-${DSH_MARKET_VERSION}.tgz" \
+      --strip-components=1 \
+      --directory /opt/dshmarket \
+    && npm install \
+      --prefix /opt/dshmarket \
+      --package-lock=false \
+      --omit=dev \
+      --no-audit \
+      --no-fund \
+      --ignore-scripts \
+      --legacy-peer-deps \
+    && test "$(node -p 'require("/opt/dshmarket/package.json").version')" = "${DSH_MARKET_VERSION}" \
+    && test -f /opt/dshmarket/LICENSE \
+    && rm -f "/tmp/dshmarket-${DSH_MARKET_VERSION}.tgz" \
+    && npm cache clean --force
+
+FROM ${BASE_IMAGE}
+
+ARG DSH_MARKET_VERSION=1.21.0
+ARG MARKET_IMAGE_VERSION=0.1.1-rc.2-market.1
+
+LABEL org.opencontainers.image.version="${MARKET_IMAGE_VERSION}" \
+      io.github.runzhliu.deepseek-harness.variant="community-market" \
+      io.github.runzhliu.deepseek-harness.dshmarket-version="${DSH_MARKET_VERSION}"
+
+COPY --from=market-installer /opt/dshmarket /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dshmarket
+COPY --chown=node:node web.market.cordis.patch.yml /opt/deepseek-harness/web.cordis.patch.yml
+COPY scripts/deepseek-harness-entrypoint /usr/local/bin/deepseek-harness-entrypoint
+COPY scripts/deepseek-harness-market-entrypoint /usr/local/bin/deepseek-harness-market-entrypoint
+
+USER root
+RUN chmod 0755 \
+      /usr/local/bin/deepseek-harness-entrypoint \
+      /usr/local/bin/deepseek-harness-market-entrypoint \
+    && test "$(node -p 'require("/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dshmarket/package.json").version')" = "${DSH_MARKET_VERSION}" \
+    && node -e "import('/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dshmarket/lib/index.js')"
+USER node
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/deepseek-harness-market-entrypoint"]
+CMD ["--profile", "web", "--patch", "/opt/deepseek-harness/web.cordis.patch.yml", "--no-open"]

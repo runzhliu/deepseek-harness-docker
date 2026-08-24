@@ -48,7 +48,7 @@ This plugin controls a real browser and its noVNC service has no authentication 
 
 ## Discovery and publishing
 
-DeepSeek Harness currently discovers community plugins through npm/GitHub rather than a curated submission queue. Before publishing, follow the official [bundle publishing guide](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.md), run `npm pack --dry-run`, publish the scoped package with public access, and add the GitHub topic `dsh-plugin` to the repository.
+Official DeepSeek Harness discovers community plugins through npm/GitHub and the `dsh-plugin` topic. The parent container repository also documents an explicitly optional third-party `dshmarket` image variant, but that market is neither an official DeepSeek service nor a substitute for publishing a normal DSH bundle. Before publishing, follow the official [bundle publishing guide](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.md), run `npm pack --dry-run`, publish the scoped package with public access, and add the GitHub topic `dsh-plugin` to the repository.
 
 ## License
 
