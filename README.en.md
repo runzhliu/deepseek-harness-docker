@@ -163,7 +163,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
 
 The variant has the unambiguous `runzhliu/deepseek-harness:0.1.1-rc.2-market.1` tag and pins `dshmarket@1.21.0`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
 
-The market package itself is pinned and copied at build time. Plugins installed through it persist in the `dsh-home` volume. Installation needs container egress to npm/GitHub, and third-party build scripts should remain blocked until separately reviewed and approved. One-click market restart is disabled; apply lifecycle changes with `docker compose restart` or a Kubernetes rollout.
+The market package itself is pinned and copied at build time. Plugins installed through it and the pnpm store persist in the `dsh-home` volume. Installation needs container egress to npm/GitHub, and third-party build scripts should remain blocked until separately reviewed and approved. One-click market restart is disabled; apply lifecycle changes with `docker compose restart` or a Kubernetes rollout.
 
 Build and test the optional variant locally with:
 
@@ -173,6 +173,19 @@ make market-smoke
 ```
 
 Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.1-rc.2-market.1`.
+
+A reused `dsh-home` previously managed by another pnpm major can fail installation with `ERR_PNPM_UNEXPECTED_STORE`. Stop DSH and run the explicit one-time migration:
+
+```bash
+docker compose -f compose.yaml -f compose.market.yaml stop deepseek-harness
+docker compose -f compose.yaml -f compose.market.yaml run --rm --no-deps \
+  --entrypoint dsh-market-repair-store deepseek-harness
+docker compose -f compose.yaml -f compose.market.yaml up -d --no-build
+```
+
+The migration relinks only dependencies declared by the existing `package.json`, pins the store under `/home/node/.dsh/pnpm-store`, and passes `--ignore-scripts`. It retains the previous `node_modules` under `/home/node/.dsh/backups/pnpm-store-*`; remove that backup yourself only after verifying the plugins.
+
+On startup, the optional entrypoint also repairs an existing non-writable regular `profiles/web/cordis.patch.yml` by replacing it with a byte-equivalent copy owned by the runtime user. This handles volumes previously written under another UID without recursively changing ownership; symbolic links and non-regular files are left untouched with a warning.
 
 This public branch packages no company-internal models, credentials, skills, or personal workspace mounts. Configure models in Harness Settings and keep extra credentials or private extensions in runtime Secrets, the ignored `.env`, or a machine-local `compose.local.yaml`.
 

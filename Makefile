@@ -62,6 +62,10 @@ helm-check:
 plugin-check:
 	node --check plugins/dsh-browser-desktop/index.js
 	node --check plugins/dsh-browser-desktop/client.js
+	node --check scripts/dsh-market-repair-store
+	sh -n scripts/deepseek-harness-entrypoint
+	sh -n scripts/deepseek-harness-market-entrypoint
+	bash -n scripts/smoke.sh
 	npm --cache "$${TMPDIR:-/tmp}/dsh-browser-plugin-npm-cache" pack --dry-run --json ./plugins/dsh-browser-desktop >/dev/null
 
 verify: compose-check helm-check plugin-check

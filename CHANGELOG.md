@@ -7,6 +7,8 @@ All notable changes to this project are documented here.
 - Add an explicitly optional `Dockerfile.market` derived image and Compose overlay that pin the third-party `dshmarket@1.21.0` package.
 - Keep the default Docker target, Compose stack, Helm chart, and DSH Web patch free of the community market.
 - Test the default official-DSH integration separately from the optional market variant, including hardened runtime checks and disabled market-owned restarts.
+- Keep the optional variant's pnpm store in `dsh-home` and provide an explicit, backed-up migration for profiles created by a different pnpm major.
+- Repair only a non-writable regular `cordis.patch.yml` with a byte-equivalent, current-user-owned copy so plugin toggles work after reusing volumes created under another UID.
 
 ## 0.1.1 - 2026-08-24
 

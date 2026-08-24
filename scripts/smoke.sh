@@ -96,6 +96,20 @@ if [[ "${browser_dom}" != *"DSH_BROWSER_OK"* ]]; then
 fi
 
 docker volume create "${volume}" >/dev/null
+if [[ -n "${expected_market_version}" ]]; then
+  docker run --rm \
+    --user root \
+    --volume "${volume}:/home/node/.dsh" \
+    --entrypoint sh \
+    "${image}" -c '
+      mkdir -p /home/node/.dsh/profiles/web
+      printf "[]\n" >/home/node/.dsh/profiles/web/cordis.patch.yml
+      chown 123456:0 /home/node/.dsh/profiles/web/cordis.patch.yml
+      chmod 0644 /home/node/.dsh/profiles/web/cordis.patch.yml
+      chown -R 1000:1000 /home/node/.dsh
+      chown 123456:0 /home/node/.dsh/profiles/web/cordis.patch.yml
+    '
+fi
 docker run --detach \
   --name "${container}" \
   --publish 127.0.0.1::3080 \
@@ -155,6 +169,54 @@ for attempt in $(seq 1 30); do
           .catch(() => process.exit(1))
       "; then
         echo "plugin market status did not report the pinned version with self-restart disabled" >&2
+        exit 1
+      fi
+      market_store="$(docker exec "${container}" pnpm store path)"
+      if [[ "${market_store}" != /home/node/.dsh/pnpm-store/v* ]]; then
+        echo "optional market image did not use its persistent pnpm store: ${market_store}" >&2
+        exit 1
+      fi
+      if ! docker exec "${container}" dsh-market-repair-store --check >/dev/null; then
+        echo "fresh optional market profile unexpectedly needs a pnpm store migration" >&2
+        exit 1
+      fi
+      if ! docker exec "${container}" sh -c 'test -w "$DSH_HOME/profiles/web/cordis.patch.yml"'; then
+        echo "optional market entrypoint did not repair a read-only profile patch" >&2
+        exit 1
+      fi
+      docker exec \
+        --env DSH_HOME=/tmp/dsh-market-repair-test \
+        --env npm_config_store_dir=/tmp/dsh-market-repair-store \
+        "${container}" node -e '
+          const fs = require("node:fs")
+          const root = process.env.DSH_HOME
+          const modules = `${root}/profiles/web/node_modules`
+          fs.rmSync(root, { recursive: true, force: true })
+          fs.mkdirSync(modules, { recursive: true })
+          fs.mkdirSync(`${root}/local-package`)
+          fs.writeFileSync(`${root}/local-package/package.json`, "{\"name\":\"local-package\",\"version\":\"1.0.0\"}\n")
+          fs.writeFileSync(`${root}/profiles/web/package.json`, "{\"name\":\"market-repair-smoke\",\"private\":true,\"dependencies\":{\"local-package\":\"file:../../local-package\"}}\n")
+          fs.writeFileSync(`${modules}/.modules.yaml`, "storeDir: /tmp/old-pnpm-store/v11\n")
+          fs.mkdirSync(`${root}/unmanaged-plugin`)
+          fs.symlinkSync(`${root}/unmanaged-plugin`, `${modules}/unmanaged-plugin`)
+        '
+      docker exec \
+        --env DSH_HOME=/tmp/dsh-market-repair-test \
+        --env npm_config_store_dir=/tmp/dsh-market-repair-store \
+        "${container}" dsh-market-repair-store >/dev/null
+      if ! docker exec \
+        --env DSH_HOME=/tmp/dsh-market-repair-test \
+        "${container}" node -e '
+          const fs = require("node:fs")
+          const root = process.env.DSH_HOME
+          const metadata = fs.readFileSync(`${root}/profiles/web/node_modules/.modules.yaml`, "utf8")
+          const backups = fs.readdirSync(`${root}/backups`)
+          if (!metadata.includes("/tmp/dsh-market-repair-store/v10")) process.exit(1)
+          if (fs.readlinkSync(`${root}/profiles/web/node_modules/unmanaged-plugin`) !== `${root}/unmanaged-plugin`) process.exit(1)
+          if (!fs.existsSync(`${root}/profiles/web/node_modules/local-package/package.json`)) process.exit(1)
+          if (backups.length !== 1 || !fs.existsSync(`${root}/backups/${backups[0]}/node_modules/.modules.yaml`)) process.exit(1)
+        '; then
+        echo "optional market pnpm store migration did not preserve its backup and external plugin link" >&2
         exit 1
       fi
     fi
