@@ -1,6 +1,6 @@
 image:
   repository: runzhliu/deepseek-harness
-  tag: 0.1.0-rc.6
+  tag: 0.1.1-rc.2
   pullPolicy: IfNotPresent
   pullSecrets: []
 
@@ -34,6 +34,7 @@ args:
   - web
   - --patch
   - /opt/deepseek-harness/web.cordis.patch.yml
+  - --no-open
 
 podAnnotations: {}
 podLabels: {}

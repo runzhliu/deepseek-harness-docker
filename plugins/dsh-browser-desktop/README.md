@@ -21,7 +21,7 @@ For local package testing:
 
 ```bash
 npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
-dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.0.tgz
+dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.1.tgz
 ```
 
 The package declares a DSH bundle patch, so `dsh plugin` adds the host and Web client halves together. Restart the Web profile after installation.

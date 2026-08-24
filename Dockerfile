@@ -3,7 +3,7 @@
 ARG NODE_IMAGE=node:24-bookworm-slim
 FROM ${NODE_IMAGE} AS installer
 
-ARG DSH_VERSION=0.1.0-rc.6
+ARG DSH_VERSION=0.1.1-rc.2
 ARG PNPM_VERSION=10.15.1
 
 # node-pty publishes prebuilds for only some Linux architectures. Keep a
@@ -25,7 +25,7 @@ RUN apt-get update \
 
 FROM ${NODE_IMAGE}
 
-ARG DSH_VERSION=0.1.0-rc.6
+ARG DSH_VERSION=0.1.1-rc.2
 ARG PNPM_VERSION=10.15.1
 
 LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
@@ -229,4 +229,4 @@ EXPOSE 3080 6080
 # internal-module access flag to the dsh process instead of exporting it via
 # NODE_OPTIONS to every child process the agent starts.
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/deepseek-harness-entrypoint"]
-CMD ["web", "--patch", "/opt/deepseek-harness/web.cordis.patch.yml"]
+CMD ["web", "--patch", "/opt/deepseek-harness/web.cordis.patch.yml", "--no-open"]

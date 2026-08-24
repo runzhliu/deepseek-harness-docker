@@ -48,4 +48,4 @@ jobs:
           tags: deepseek-harness:ci-${{ matrix.suffix }}
           cache-from: type=gha,scope=${{ matrix.suffix }}
           cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
-      - run: ./scripts/smoke.sh deepseek-harness:ci-${{ matrix.suffix }} 0.1.0-rc.6
+      - run: ./scripts/smoke.sh deepseek-harness:ci-${{ matrix.suffix }} 0.1.1-rc.2

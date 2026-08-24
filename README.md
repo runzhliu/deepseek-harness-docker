@@ -2,16 +2,16 @@
 
 [English](README.en.md) | 简体中文
 
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek_Harness-0.1.0--rc.6-4f46e5)](https://www.npmjs.com/package/@deepseek-ai/dsh)
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek_Harness-0.1.1--rc.2-4f46e5)](https://www.npmjs.com/package/@deepseek-ai/dsh)
 [![Docker Image](https://img.shields.io/badge/docker.io-runzhliu%2Fdeepseek--harness-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/runzhliu/deepseek-harness)
 [![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 这是一个可直接构建的 DeepSeek Harness 社区容器方案，默认运行官方 `@deepseek-ai/dsh` 的 Web UI。它不构建或修改 DeepSeek Harness 源码，只把官方 npm 发行物装入一个精简、非 root 的 Node.js 24 运行时。
 
-> 当前基线：`@deepseek-ai/dsh@0.1.0-rc.6`。DeepSeek Harness 仍处于 RC 阶段；升级前应重新完成本文的构建和 Smoke Test。
+> 当前基线：`@deepseek-ai/dsh@0.1.1-rc.2`。DeepSeek Harness 仍处于 RC 阶段；升级前应重新完成本文的构建和 Smoke Test。
 
-`0.1.0-rc.6` 直接对应构建时官方 npm Registry 的 `@deepseek-ai/dsh` 最新发行物，并非本项目自定义版本。上游公开 `master` 当时仍标记 `rc.5`；本项目封装 npm 成品而不从源码构建，因此以可安装的官方发行物为基线，并故意不发布漂移的 Docker `latest` 标签。
+`0.1.1-rc.2` 直接对应官方 npm Registry 与 GitHub Release 的 `@deepseek-ai/dsh` 发行物，并非本项目自定义版本。本项目封装 npm 成品而不从源码构建，因此以可安装的官方发行物为基线，并故意不发布漂移的 Docker `latest` 标签。
 
 📖 延伸阅读：[DeepSeek Harness GitHub 仓库深度解析](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) · [Docker、Compose 与 Helm 部署实战](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/)
 
@@ -119,7 +119,7 @@ docker compose ps
 
 浏览器打开 <http://127.0.0.1:3080>，在设置页配置模型和凭据。侧边栏的“浏览器”按钮会在 Harness WebUI 内直接打开可交互的容器 Chromium；配置和浏览器 Profile 写入命名卷 `dsh-home`，重建容器后仍会保留。
 
-默认镜像为 Docker Hub 上的 [`runzhliu/deepseek-harness:0.1.0-rc.6`](https://hub.docker.com/r/runzhliu/deepseek-harness)。Compose 同时保留 `build` 配置，方便审查并从本目录复现镜像；如需本地构建，执行 `docker compose build --pull` 后再启动。
+默认镜像为 Docker Hub 上的 [`runzhliu/deepseek-harness:0.1.1-rc.2`](https://hub.docker.com/r/runzhliu/deepseek-harness)。Compose 同时保留 `build` 配置，方便审查并从本目录复现镜像；如需本地构建，执行 `docker compose build --pull` 后再启动。
 
 ### WebUI 内置浏览器
 
@@ -145,7 +145,7 @@ Compose 为 Chromium 配置了 1GB `/dev/shm`。启动器只对浏览器进程�
 
 ```bash
 npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
-dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.0.tgz
+dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.1.tgz
 ```
 
 发布到 npm 后可直接执行 `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`。该 npm 包只负责 Harness Host/WebUI 集成，不会自行安装 Chromium、Xvfb 或 noVNC；本仓库 Docker 镜像是完整的参考运行时。DeepSeek Harness 当前通过 npm/GitHub 和 `dsh-plugin` GitHub topic 发现社区插件，并没有单独的审核型插件市场提交流程。
@@ -166,7 +166,7 @@ docker compose down
 构建镜像：
 
 ```bash
-docker build -t runzhliu/deepseek-harness:0.1.0-rc.6 .
+docker build -t runzhliu/deepseek-harness:0.1.1-rc.2 .
 ```
 
 启动 Web UI：
@@ -180,7 +180,7 @@ docker run --rm \
   --shm-size 1g \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.0-rc.6
+  runzhliu/deepseek-harness:0.1.1-rc.2
 ```
 
 不要把端口参数改成 `-p 3080:3080`，也不要把它部署到公开 Ingress。那会把一个没有认证、具备代码执行能力的接口暴露给网络。
@@ -194,7 +194,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.0-rc.6 \
+  runzhliu/deepseek-harness:0.1.1-rc.2 \
   --profile headless "summarize this repository"
 ```
 
@@ -211,7 +211,7 @@ helm upgrade --install deepseek-harness charts/deepseek-harness \
   --namespace deepseek-harness \
   --create-namespace \
   --set image.repository=runzhliu/deepseek-harness \
-  --set image.tag=0.1.0-rc.6
+  --set image.tag=0.1.1-rc.2
 ```
 
 本机开发集群也可以直接拉取默认的 `runzhliu/deepseek-harness`，或先用 `kind load docker-image` / `minikube image load` 导入同名本地镜像。
@@ -250,15 +250,17 @@ kubectl -n deepseek-harness get pvc
 
 ```bash
 docker build \
-  --build-arg DSH_VERSION=0.1.0-rc.6 \
-  -t runzhliu/deepseek-harness:0.1.0-rc.6 .
+  --build-arg DSH_VERSION=0.1.1-rc.2 \
+  -t runzhliu/deepseek-harness:0.1.1-rc.2 .
 ```
 
 Compose 可以使用同一个变量：
 
 ```bash
-DSH_VERSION=0.1.0-rc.6 docker compose build --pull
+DSH_VERSION=0.1.1-rc.2 docker compose build --pull
 ```
+
+维护者可用 `make push` 构建并推送同一个版本标签下的 `linux/amd64` 与 `linux/arm64` manifest。该命令不会创建 `latest` 标签。
 
 不要默认安装 `latest`。RC 版本正在快速变化，固定版本才能让问题可复现。
 
@@ -276,9 +278,9 @@ DSH_VERSION=0.1.0-rc.6 docker compose build --pull
 每次升级至少完成以下检查：
 
 ```bash
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.0-rc.6 --version
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.1-rc.2 --version
 
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.0-rc.6 \
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.1-rc.2 \
   web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config
 
 docker compose up -d
@@ -287,7 +289,7 @@ docker compose ps
 docker compose logs --no-color deepseek-harness
 ```
 
-通过标准包括：CLI 版本等于构建版本；dump 后的 `webserver.config.host` 为 `0.0.0.0`；首页返回 2xx；容器进入 healthy；日志没有配置或插件加载错误。真正发布镜像前还要分别在 `linux/amd64` 和 `linux/arm64` 上构建并实际 spawn PTY，因为终端与沙箱相关依赖包含原生模块。仓库提供 `make verify`、`make build` 和 `make smoke` 作为统一入口。
+通过标准包括：CLI 版本等于构建版本；dump 后的 `webserver.config.host` 为 `0.0.0.0`；首页返回 2xx；容器进入 healthy；日志没有配置或插件加载错误；容器不会尝试调用宿主默认浏览器。真正发布镜像前还要分别在 `linux/amd64` 和 `linux/arm64` 上构建并实际 spawn PTY，因为终端与沙箱相关依赖包含原生模块。仓库提供 `make verify`、`make build` 和 `make smoke` 作为统一入口。
 
 ## 常见问题
 

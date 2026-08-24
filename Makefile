@@ -1,12 +1,13 @@
 IMAGE ?= runzhliu/deepseek-harness
-VERSION ?= 0.1.0-rc.6
+VERSION ?= 0.1.1-rc.2
 PLATFORMS ?= linux/amd64,linux/arm64
 
-.PHONY: help build multiarch-build pull up down logs compose-check helm-check plugin-check verify smoke inspect
+.PHONY: help build multiarch-build push pull up down logs compose-check helm-check plugin-check verify smoke inspect
 
 help:
 	@echo "build            Build the local platform image"
 	@echo "multiarch-build  Build both release platforms without pushing"
+	@echo "push             Build and push the versioned multi-platform image"
 	@echo "pull             Pull the published image"
 	@echo "up/down/logs     Manage the Compose service"
 	@echo "verify           Validate Compose and Helm rendering"
@@ -19,6 +20,9 @@ build:
 
 multiarch-build:
 	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(VERSION) --tag $(IMAGE):$(VERSION) .
+
+push:
+	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(VERSION) --tag $(IMAGE):$(VERSION) --push .
 
 pull:
 	docker pull $(IMAGE):$(VERSION)

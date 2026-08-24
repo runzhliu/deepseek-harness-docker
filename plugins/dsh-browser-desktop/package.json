@@ -1,6 +1,6 @@
 {
   "name": "@runzhliu/dsh-browser-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Movable, resizable Chromium desktop embedded in the DeepSeek Harness Web UI through noVNC.",
   "license": "MIT",
   "type": "module",
@@ -59,9 +59,9 @@
     "@deepseek-ai/schemastery": "^3.18.1"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-client-ui-layout": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-client-ui-sidebar": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6 || ^0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-layout": "^0.1.0-rc.6 || ^0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-sidebar": "^0.1.0-rc.6 || ^0.1.1-rc.2",
     "react": "^18.2.0"
   }
 }
