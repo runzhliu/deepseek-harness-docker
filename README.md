@@ -162,7 +162,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
 
 该变体使用明确区分的 `runzhliu/deepseek-harness:0.1.1-rc.2-market.1` 标签，固定 `dshmarket@1.21.0`，不会替换默认 DSH 标签或 `latest`。它属于社区可选集成，不是 DeepSeek 官方组件，也不代表本项目对市场条目的审核或背书。
 
-市场自身在构建期固定并打入可选镜像；通过市场安装的插件会写入持久化的 `dsh-home` 卷。安装过程需要容器能够访问 npm/GitHub，第三方包的构建脚本仍应在审查后单独授权。市场内的一键重启已禁用，变更需要通过 `docker compose restart` 或 Kubernetes rollout 进入新进程。
+市场自身在构建期固定并打入可选镜像；通过市场安装的插件和 pnpm store 会写入持久化的 `dsh-home` 卷。安装过程需要容器能够访问 npm/GitHub，第三方包的构建脚本仍应在审查后单独授权。市场内的一键重启已禁用，变更需要通过 `docker compose restart` 或 Kubernetes rollout 进入新进程。
 
 本地验证可选变体：
 
@@ -172,6 +172,19 @@ make market-smoke
 ```
 
 Helm 仍默认官方 DSH 镜像；只有明确设置 `--set image.tag=0.1.1-rc.2-market.1` 时才使用市场变体。
+
+如果复用的 `dsh-home` 曾被另一个 pnpm 主版本处理，安装时可能看到 `ERR_PNPM_UNEXPECTED_STORE`。先停止 DSH，再显式执行一次迁移：
+
+```bash
+docker compose -f compose.yaml -f compose.market.yaml stop deepseek-harness
+docker compose -f compose.yaml -f compose.market.yaml run --rm --no-deps \
+  --entrypoint dsh-market-repair-store deepseek-harness
+docker compose -f compose.yaml -f compose.market.yaml up -d --no-build
+```
+
+迁移只按现有 `package.json` 重新链接依赖，固定使用 `/home/node/.dsh/pnpm-store`，并传入 `--ignore-scripts`。旧的 `node_modules` 会保留在 `/home/node/.dsh/backups/pnpm-store-*`，确认插件正常后再自行清理。
+
+可选镜像启动时还会检查已有的 `profiles/web/cordis.patch.yml`：如果它是普通文件但因旧 UID 不可写，入口脚本会用内容完全相同、归当前运行用户所有的副本替换它，从而恢复插件开关；不会递归修改整个卷，符号链接或非普通文件只会给出警告。
 
 本公开分支不打包任何公司内部模型、凭据、Skill 或个人工作区挂载。模型在 Harness 设置页配置；额外凭据和私有扩展应放在运行时 Secret、被忽略的 `.env` 或本机 `compose.local.yaml` 中。
 

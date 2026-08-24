@@ -2,6 +2,8 @@
 .DS_Store
 *.log
 .bash_history
+.dsh-doctor/
+.local/
 
 # Machine-local Compose mounts and private extensions are never published.
 compose.local.yaml

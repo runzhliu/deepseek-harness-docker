@@ -40,14 +40,18 @@ COPY --from=market-installer /opt/dshmarket /usr/local/lib/node_modules/@deepsee
 COPY --chown=node:node web.market.cordis.patch.yml /opt/deepseek-harness/web.cordis.patch.yml
 COPY scripts/deepseek-harness-entrypoint /usr/local/bin/deepseek-harness-entrypoint
 COPY scripts/deepseek-harness-market-entrypoint /usr/local/bin/deepseek-harness-market-entrypoint
+COPY scripts/dsh-market-repair-store /usr/local/bin/dsh-market-repair-store
 
 USER root
 RUN chmod 0755 \
       /usr/local/bin/deepseek-harness-entrypoint \
       /usr/local/bin/deepseek-harness-market-entrypoint \
+      /usr/local/bin/dsh-market-repair-store \
     && test "$(node -p 'require("/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dshmarket/package.json").version')" = "${DSH_MARKET_VERSION}" \
     && node -e "import('/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dshmarket/lib/index.js')"
 USER node
+
+ENV npm_config_store_dir=/home/node/.dsh/pnpm-store
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/deepseek-harness-market-entrypoint"]
 CMD ["--profile", "web", "--patch", "/opt/deepseek-harness/web.cordis.patch.yml", "--no-open"]

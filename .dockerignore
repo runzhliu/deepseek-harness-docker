@@ -7,6 +7,7 @@
 !scripts/chromium-docker
 !scripts/deepseek-harness-entrypoint
 !scripts/deepseek-harness-market-entrypoint
+!scripts/dsh-market-repair-store
 !plugins/
 !plugins/dsh-browser-desktop/
 !plugins/dsh-browser-desktop/**

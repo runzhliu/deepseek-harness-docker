@@ -1,9 +1,43 @@
 #!/bin/sh
 set -eu
 
-plugin_root="${DSH_HOME}/profiles/web/node_modules"
+profile="${DSH_PROFILE:-web}"
+case "${profile}" in
+  ''|.|..|*[!A-Za-z0-9._-]*)
+    echo "invalid DSH_PROFILE: ${profile}" >&2
+    exit 1
+    ;;
+esac
+
+profile_root="${DSH_HOME}/profiles/${profile}"
+profile_patch="${profile_root}/cordis.patch.yml"
+plugin_root="${profile_root}/node_modules"
 plugin_link="${plugin_root}/dshmarket"
 plugin_source=/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dshmarket
+
+repair_profile_patch_owner() {
+  if [ ! -e "${profile_patch}" ] || [ -w "${profile_patch}" ]; then
+    return 0
+  fi
+  if [ -L "${profile_patch}" ] || [ ! -f "${profile_patch}" ] || [ ! -w "${profile_root}" ]; then
+    echo "plugin toggles need a writable regular file: ${profile_patch}" >&2
+    return 0
+  fi
+
+  repair_path="${profile_root}/.cordis.patch.yml.repair.$$"
+  umask 077
+  if cp -- "${profile_patch}" "${repair_path}" \
+      && chmod 0644 "${repair_path}" \
+      && cmp -s -- "${profile_patch}" "${repair_path}" \
+      && mv -f -- "${repair_path}" "${profile_patch}"; then
+    echo "replaced a read-only profile patch with an equivalent writable copy: ${profile_patch}" >&2
+  else
+    rm -f -- "${repair_path}"
+    echo "could not make the profile patch writable: ${profile_patch}" >&2
+  fi
+}
+
+repair_profile_patch_owner
 
 mkdir -p "${plugin_root}"
 if [ -L "${plugin_link}" ]; then
@@ -13,5 +47,9 @@ elif [ -e "${plugin_link}" ]; then
   exec /usr/local/bin/deepseek-harness-entrypoint "$@"
 fi
 ln -s "${plugin_source}" "${plugin_link}"
+
+if ! dsh-market-repair-store --check >/dev/null; then
+  echo "plugin installs need a one-time pnpm store migration; run dsh-market-repair-store while DSH is stopped" >&2
+fi
 
 exec /usr/local/bin/deepseek-harness-entrypoint "$@"

@@ -1,0 +1,167 @@
+#!/usr/bin/env node
+
+import {
+  copyFileSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  readlinkSync,
+  renameSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
+import { dirname, join } from 'node:path'
+import { spawnSync } from 'node:child_process'
+
+const checkOnly = process.argv.includes('--check')
+const dshHome = process.env.DSH_HOME ?? '/home/node/.dsh'
+const profile = process.env.DSH_PROFILE ?? 'web'
+
+if (!/^[A-Za-z0-9._-]+$/.test(profile) || profile === '.' || profile === '..') {
+  throw new Error(`invalid DSH_PROFILE: ${JSON.stringify(profile)}`)
+}
+
+const profileDir = join(dshHome, 'profiles', profile)
+const modulesDir = join(profileDir, 'node_modules')
+const modulesYaml = join(modulesDir, '.modules.yaml')
+const storeRoot = process.env.npm_config_store_dir ?? join(dshHome, 'pnpm-store')
+
+function pathExists(path) {
+  try {
+    lstatSync(path)
+    return true
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false
+    throw error
+  }
+}
+
+function modulesStore(path) {
+  const source = readFileSync(path, 'utf8')
+  try {
+    const value = JSON.parse(source).storeDir
+    return typeof value === 'string' ? value : null
+  } catch {
+    const match = /^\s*storeDir:\s*(.*?)\s*$/m.exec(source)
+    if (match === null) return null
+    const value = match[1]
+    if (value.startsWith('"') && value.endsWith('"')) {
+      return JSON.parse(value)
+    }
+    if (value.startsWith("'") && value.endsWith("'")) {
+      return value.slice(1, -1).replaceAll("''", "'")
+    }
+    return value
+  }
+}
+
+function pnpmStorePath() {
+  const result = spawnSync('pnpm', ['--store-dir', storeRoot, 'store', 'path'], {
+    encoding: 'utf8',
+    env: { ...process.env, npm_config_store_dir: storeRoot },
+  })
+  if (result.status !== 0) {
+    process.stderr.write(result.stderr)
+    throw new Error('could not resolve the pnpm store path')
+  }
+  return result.stdout.trim()
+}
+
+function topLevelSymlinks(root) {
+  if (!existsSync(root)) return []
+  const links = []
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (entry.name.startsWith('.')) continue
+    const first = join(root, entry.name)
+    if (entry.isSymbolicLink()) {
+      links.push({ path: first, target: readlinkSync(first) })
+      continue
+    }
+    if (!entry.name.startsWith('@') || !entry.isDirectory()) continue
+    for (const child of readdirSync(first, { withFileTypes: true })) {
+      const second = join(first, child.name)
+      if (child.isSymbolicLink()) {
+        links.push({ path: second, target: readlinkSync(second) })
+      }
+    }
+  }
+  return links
+}
+
+if (!existsSync(modulesYaml)) {
+  console.log(`profile ${profile} has no pnpm store metadata; no migration is needed`)
+  process.exit(0)
+}
+
+const linkedStore = modulesStore(modulesYaml)
+const wantedStore = pnpmStorePath()
+if (linkedStore === wantedStore) {
+  console.log(`profile ${profile} already uses ${wantedStore}`)
+  process.exit(0)
+}
+
+console.error(`profile ${profile} uses ${linkedStore ?? 'an unknown store'}`)
+console.error(`the optional market image uses ${wantedStore}`)
+if (checkOnly) process.exit(2)
+
+const timestamp = new Date().toISOString().replaceAll(/[:.]/g, '-')
+const backupDir = join(dshHome, 'backups', `pnpm-store-${profile}-${timestamp}`)
+const backupModules = join(backupDir, 'node_modules')
+const metadata = ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml']
+const originalFiles = new Map()
+const links = topLevelSymlinks(modulesDir)
+
+mkdirSync(backupDir, { recursive: true, mode: 0o700 })
+for (const name of metadata) {
+  const source = join(profileDir, name)
+  const present = existsSync(source)
+  originalFiles.set(name, present)
+  if (present) copyFileSync(source, join(backupDir, name))
+}
+writeFileSync(join(backupDir, 'top-level-symlinks.json'), `${JSON.stringify(links, null, 2)}\n`, { mode: 0o600 })
+renameSync(modulesDir, backupModules)
+
+const install = spawnSync(
+  'pnpm',
+  ['install', '--force', '--store-dir', storeRoot, '--ignore-scripts', '--no-frozen-lockfile'],
+  {
+    cwd: profileDir,
+    env: { ...process.env, CI: 'true', npm_config_store_dir: storeRoot },
+    stdio: 'inherit',
+  },
+)
+
+if (install.status !== 0) {
+  if (existsSync(modulesDir)) rmSync(modulesDir, { recursive: true, force: true })
+  renameSync(backupModules, modulesDir)
+  for (const name of metadata) {
+    const target = join(profileDir, name)
+    if (originalFiles.get(name)) {
+      copyFileSync(join(backupDir, name), target)
+    } else if (existsSync(target)) {
+      rmSync(target)
+    }
+  }
+  throw new Error(`pnpm store migration failed; the original profile was restored from ${backupDir}`)
+}
+
+for (const link of links) {
+  if (pathExists(link.path)) continue
+  mkdirSync(dirname(link.path), { recursive: true })
+  symlinkSync(link.target, link.path)
+}
+
+const migratedStore = existsSync(modulesYaml) ? modulesStore(modulesYaml) : null
+if (migratedStore !== null && migratedStore !== wantedStore) {
+  throw new Error(`pnpm reported success but recorded ${migratedStore ?? 'no store'} instead of ${wantedStore}`)
+}
+
+if (migratedStore === null) {
+  console.log(`profile ${profile} has no pnpm-managed dependencies after migration`)
+} else {
+  console.log(`migrated profile ${profile} to ${wantedStore}`)
+}
+console.log(`the previous node_modules remains available at ${backupModules}`)
