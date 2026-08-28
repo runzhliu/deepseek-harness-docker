@@ -1,14 +1,15 @@
 # syntax=docker/dockerfile:1.7
 
-ARG NODE_IMAGE=node:24-bookworm-slim
+ARG NODE_IMAGE=node:24-trixie
 FROM ${NODE_IMAGE} AS installer
 
 ARG DSH_VERSION=0.1.1-rc.2
 ARG PNPM_VERSION=10.15.1
 
-# node-pty publishes prebuilds for only some Linux architectures. Keep a
-# compiler in this stage so linux/arm64 can fall back to node-gyp without
-# carrying build-essential into the runtime image.
+# node-pty publishes prebuilds for only some Linux architectures. Keep the
+# installer requirements explicit so linux/arm64 can fall back to node-gyp,
+# even if a maintainer experiments with another NODE_IMAGE. The default
+# non-slim runtime separately retains its development toolchain on purpose.
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
       build-essential \
@@ -25,6 +26,7 @@ RUN apt-get update \
 
 FROM ${NODE_IMAGE}
 
+ARG NODE_IMAGE
 ARG DSH_VERSION=0.1.1-rc.2
 ARG PNPM_VERSION=10.15.1
 
@@ -34,31 +36,44 @@ LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
       org.opencontainers.image.url="https://github.com/runzhliu/deepseek-harness-docker" \
       org.opencontainers.image.documentation="https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.version="${DSH_VERSION}"
+      org.opencontainers.image.version="${DSH_VERSION}" \
+      io.github.runzhliu.deepseek-harness.base-image="${NODE_IMAGE}" \
+      io.github.runzhliu.deepseek-harness.debian-codename="trixie"
 
-# Keep the runtime useful to a coding agent without shipping a compiler
-# toolchain. Chromium is installed from Debian so both linux/amd64 and
-# linux/arm64 stay native; the reference linuxserver/chrome base is amd64-only.
-# Noto CJK keeps Chinese pages and screenshots readable.
+# Use Node's official non-slim Trixie variant intentionally: its buildpack-deps
+# base provides the compiler and common development utilities a coding agent or
+# native plugin may need at runtime, while glibc 2.41 accepts newer binaries
+# than Bookworm's glibc 2.36. Install the remaining user-facing CLI tools
+# explicitly so their availability is covered by the smoke test. Chromium is
+# installed from Debian so linux/amd64 and linux/arm64 stay native; Noto CJK
+# keeps Chinese pages and screenshots readable.
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
       ca-certificates \
       chromium \
+      curl \
+      file \
       fonts-liberation \
       fonts-noto-cjk \
       git \
+      jq \
+      less \
       novnc \
       openbox \
       openssh-client \
       procps \
       python3 \
       ripgrep \
+      rsync \
       tini \
+      unzip \
       websockify \
+      wget \
       x11-utils \
       x11vnc \
       xterm \
       xvfb \
+      zip \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /usr/local/lib/node_modules/@deepseek-ai
 
