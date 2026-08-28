@@ -70,14 +70,16 @@ flowchart TB
 
 | 难点 | 上游行为 | 本项目决策 |
 | --- | --- | --- |
-| Node 版本 | 要求 Node 22.19+ 或 24+ | 固定 Node 24 slim |
-| 原生依赖 | `node-pty` 在部分架构没有 prebuild | 多阶段构建，builder 带 `node-gyp` 工具链，runtime 不带编译器 |
+| Node / glibc | 要求 Node 22.19+ 或 24+；部分用户二进制需要较新 glibc | 固定官方 `node:24-trixie` 非 slim，Debian 13 / glibc 2.41 |
+| 原生依赖与 Agent 工具 | `node-pty` 或第三方插件可能需要本机构建；Agent 需要常见开发命令 | 多阶段安装 DSH；runtime 有意保留 buildpack-deps 工具链，并补齐 `jq`、`less`、`ripgrep`、`rsync`、`zip` 等命令 |
 | Web 监听 | CLI 主动拒绝 `--host 0.0.0.0` | 使用 Cordis overlay；宿主端口只能绑定 `127.0.0.1` |
 | Web 安全 | 当前无 TLS、认证和 Origin 策略，可触发代码执行 | 不提供 Ingress/LoadBalancer；Compose 回环发布；Helm 默认拒绝 Pod 入站 |
 | HMR | 启动后挂载配置 watcher，需要 Node internals | 仅给 DSH 主进程传 `--expose-internals`，不通过 `NODE_OPTIONS` 传播给 Agent 子进程 |
 | 目录选择器 | 浏览模式以 `os.homedir()` 为首页 | 将 `HOME` 指向可写 `/workspace`，避免只读 `/home/node` 的 EROFS |
 | 信号和子进程 | Agent 会创建 shell/PTY 子进程 | 使用 `tini` 转发信号和回收孤儿进程 |
 | 权限 | 工具需要工作区写入，但不应获得宿主权限 | UID 1000、只读根文件系统、drop ALL、no-new-privileges、最小挂载 |
+
+默认基础镜像选择非 slim 是面向 coding agent 的明确取舍，而不是追求最小体积。Debian 13 Trixie 将 glibc 从 Bookworm 的 2.36 提升到 2.41，能运行更多按新系统构建的二进制；官方 Node 非 slim 变体基于 `buildpack-deps`，自带编译器、`make`、`git`、`curl`、`file`、`unzip`、`wget`、`xz` 等开发工具，本项目再显式安装 `jq`、`less`、`ripgrep`、`rsync` 和 `zip`。代价是基础镜像压缩体积比 slim 大约增加 330 MB；Smoke Test 会同时检查 Trixie、glibc 2.41 和完整命令清单，避免后续升级意外退化。
 
 这里最需要强调的是 Web 监听：Docker bridge 端口转发要求容器进程监听非 loopback 地址，但 Harness 的 CLI 正是为了防止未认证 RCE 被误暴露而禁止 `--host 0.0.0.0`。本项目只在容器内部用官方 patch 机制改监听地址，并把安全责任收回到部署边界：Compose 只发布 `127.0.0.1`，Kubernetes 只建议 `kubectl port-forward`。如果把它改成 `-p 3080:3080`、NodePort、LoadBalancer 或公开 Ingress，就破坏了这个安全模型。
 

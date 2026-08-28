@@ -70,14 +70,16 @@ User code lives separately at `/workspace`. Compose combines a named `dsh-home` 
 
 | Problem | Upstream behavior | Project decision |
 | --- | --- | --- |
-| Node version | Requires Node 22.19+ or 24+ | Pin Node 24 slim |
-| Native dependency | `node-pty` lacks prebuilds for some architectures | Compile in a builder stage; keep compilers out of the runtime image |
+| Node / glibc | Requires Node 22.19+ or 24+; some user binaries require a newer glibc | Pin the official non-slim `node:24-trixie`, Debian 13 with glibc 2.41 |
+| Native dependencies and Agent tools | `node-pty` or third-party plugins may need native builds; the Agent needs common development commands | Install DSH in a separate stage; intentionally retain the buildpack-deps toolchain at runtime and add `jq`, `less`, `ripgrep`, `rsync`, `zip`, and related tools |
 | Web bind | The CLI intentionally rejects `--host 0.0.0.0` | Use a Cordis overlay and publish only to host `127.0.0.1` |
 | Web security | No TLS, authentication, or origin policy; tools can execute code | No Ingress/LoadBalancer; loopback-only Compose; deny Pod ingress by default |
 | HMR | A config watcher needs Node internals after boot | Pass `--expose-internals` only to the DSH process, never through inherited `NODE_OPTIONS` |
 | Directory browser | Starts at `os.homedir()` | Point `HOME` at writable `/workspace` instead of read-only `/home/node` |
 | Child processes | Agents can create shell and PTY subprocesses | Use `tini` for signal forwarding and orphan reaping |
 | Least privilege | The workspace must be writable without exposing the host | UID 1000, read-only root, drop ALL, no-new-privileges, and minimal mounts |
+
+Choosing the non-slim base is an explicit coding-agent trade-off rather than a smallest-image goal. Debian 13 Trixie raises glibc from Bookworm's 2.36 to 2.41, allowing more binaries built on recent systems to run. The official non-slim Node variant is based on `buildpack-deps` and already includes the compiler, `make`, `git`, `curl`, `file`, `unzip`, `wget`, and `xz`; this project explicitly adds `jq`, `less`, `ripgrep`, `rsync`, and `zip`. The trade-off is roughly 330 MB more compressed base-image data than slim. The smoke test asserts Trixie, glibc 2.41, and the complete command contract so a later upgrade cannot silently regress them.
 
 The Web bind is the most important trade-off. Docker bridge publication requires the process to listen beyond the container loopback interface, while Harness deliberately rejects `--host 0.0.0.0` to prevent accidental exposure of an unauthenticated code-execution surface. The container overlay changes only the internal listener. The deployment boundary then restores the intended posture: Compose binds the host side to `127.0.0.1`, and Kubernetes access uses `kubectl port-forward`. Changing this to `-p 3080:3080`, NodePort, LoadBalancer, or a public Ingress breaks the security model.
 

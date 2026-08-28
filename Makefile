@@ -1,6 +1,7 @@
 IMAGE ?= runzhliu/deepseek-harness
 VERSION ?= 0.1.1-rc.2
 DSH_VERSION ?= $(VERSION)
+NODE_IMAGE ?= node:24-trixie
 DSH_MARKET_VERSION ?= 1.21.0
 MARKET_IMAGE_VERSION ?= $(VERSION)-market.1
 PLATFORMS ?= linux/amd64,linux/arm64
@@ -21,22 +22,22 @@ help:
 	@echo "inspect          Inspect the remote multi-platform manifest"
 
 build:
-	docker build --pull --build-arg DSH_VERSION=$(DSH_VERSION) --tag $(IMAGE):$(VERSION) .
+	docker build --pull --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --tag $(IMAGE):$(VERSION) .
 
 multiarch-build:
-	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(DSH_VERSION) --tag $(IMAGE):$(VERSION) .
+	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --tag $(IMAGE):$(VERSION) .
 
 push:
-	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(DSH_VERSION) --tag $(IMAGE):$(VERSION) --push .
+	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --tag $(IMAGE):$(VERSION) --push .
 
 pull:
 	docker pull $(IMAGE):$(VERSION)
 
 market-build:
-	docker build --pull --file Dockerfile.market --build-arg BASE_IMAGE=$(IMAGE):$(VERSION) --build-arg DSH_MARKET_VERSION=$(DSH_MARKET_VERSION) --build-arg MARKET_IMAGE_VERSION=$(MARKET_IMAGE_VERSION) --tag $(IMAGE):$(MARKET_IMAGE_VERSION) .
+	docker build --pull --file Dockerfile.market --build-arg BASE_IMAGE=$(IMAGE):$(VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg DSH_MARKET_VERSION=$(DSH_MARKET_VERSION) --build-arg MARKET_IMAGE_VERSION=$(MARKET_IMAGE_VERSION) --tag $(IMAGE):$(MARKET_IMAGE_VERSION) .
 
 market-push:
-	docker buildx build --platform $(PLATFORMS) --file Dockerfile.market --build-arg BASE_IMAGE=$(IMAGE):$(VERSION) --build-arg DSH_MARKET_VERSION=$(DSH_MARKET_VERSION) --build-arg MARKET_IMAGE_VERSION=$(MARKET_IMAGE_VERSION) --tag $(IMAGE):$(MARKET_IMAGE_VERSION) --push .
+	docker buildx build --platform $(PLATFORMS) --file Dockerfile.market --build-arg BASE_IMAGE=$(IMAGE):$(VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg DSH_MARKET_VERSION=$(DSH_MARKET_VERSION) --build-arg MARKET_IMAGE_VERSION=$(MARKET_IMAGE_VERSION) --tag $(IMAGE):$(MARKET_IMAGE_VERSION) --push .
 
 market-pull:
 	docker pull $(IMAGE):$(MARKET_IMAGE_VERSION)

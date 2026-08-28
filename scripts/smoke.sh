@@ -27,6 +27,33 @@ if [[ "${actual_pnpm_version}" != "${expected_pnpm_version}" ]]; then
   exit 1
 fi
 
+actual_node_version="$(docker run --rm --entrypoint node "${image}" --version)"
+if [[ "${actual_node_version}" != v24.* ]]; then
+  echo "expected Node.js 24.x from the upstream image, got ${actual_node_version}" >&2
+  exit 1
+fi
+
+runtime_contract="$(docker run --rm --entrypoint sh "${image}" -ec '
+  . /etc/os-release
+  if [ "${VERSION_CODENAME:-}" != trixie ]; then
+    echo "expected Debian trixie, got ${VERSION_CODENAME:-unknown}" >&2
+    exit 1
+  fi
+  libc_version="$(getconf GNU_LIBC_VERSION)"
+  if [ "${libc_version}" != "glibc 2.41" ]; then
+    echo "expected glibc 2.41, got ${libc_version}" >&2
+    exit 1
+  fi
+  for command_name in bash cc curl file git jq less make python3 rg rsync ssh tar unzip wget xz zip; do
+    if ! command -v "${command_name}" >/dev/null 2>&1; then
+      echo "required coding-agent command is missing: ${command_name}" >&2
+      exit 1
+    fi
+  done
+  printf "debian=%s libc=%s tools=ok\n" "${VERSION_CODENAME}" "${libc_version}"
+')"
+echo "runtime contract passed for ${image} (${runtime_contract})"
+
 if [[ -n "${expected_market_version}" ]]; then
   actual_market_version="$(docker run --rm --entrypoint node "${image}" -p \
     'require("/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dshmarket/package.json").version')"

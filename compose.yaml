@@ -4,6 +4,7 @@ services:
       context: .
       args:
         DSH_VERSION: ${DSH_VERSION:-0.1.1-rc.2}
+        NODE_IMAGE: ${NODE_IMAGE:-node:24-trixie}
     image: runzhliu/deepseek-harness:${DSH_VERSION:-0.1.1-rc.2}
     ports:
       - "127.0.0.1:${DSH_PORT:-3080}:3080"
