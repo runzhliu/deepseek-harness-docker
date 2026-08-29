@@ -6,6 +6,7 @@ English | [简体中文](README.md)
 [![Container Release](https://img.shields.io/github/v/release/runzhliu/deepseek-harness-docker?include_prereleases&sort=semver&label=container%20release)](https://github.com/runzhliu/deepseek-harness-docker/releases)
 [![Docker Image](https://img.shields.io/badge/docker.io-runzhliu%2Fdeepseek--harness-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/runzhliu/deepseek-harness)
 [![GHCR](https://img.shields.io/badge/ghcr.io-runzhliu%2Fdeepseek--harness-2088FF?logo=github&logoColor=white)](https://github.com/users/runzhliu/packages/container/package/deepseek-harness)
+[![Tencent Cloud SkillHub](https://img.shields.io/badge/SkillHub-deepseek--harness--docker-00A4FF)](https://skillhub.cloud.tencent.com/skills/deepseek-harness-docker)
 [![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -18,6 +19,8 @@ A production-minded community container project for the official DeepSeek Harnes
 > Upstream tracking (2026-08-29): the newest official source pre-release is [`dsh-v0.1.2-alpha.1`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.1), but the matching `@deepseek-ai/dsh` package is not yet available from npm. The image therefore remains pinned to the newest installable baseline, `0.1.1-rc.2`. The daily [Upstream DSH version watch](.github/workflows/upstream-dsh.yml) checks both GitHub Releases and npm and opens an upgrade issue once the newest upstream version becomes installable.
 
 📖 Further reading: [DeepSeek Harness GitHub repository deep dive](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) · [Docker, Compose, and Helm deployment guide](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/) (Chinese)
+
+🤖 **Agent Skill:** The root [`SKILL.md`](SKILL.md) is published on Tencent Cloud SkillHub as [`deepseek-harness-docker`](https://skillhub.cloud.tencent.com/skills/deepseek-harness-docker) for installation in clients that support Agent Skills. It guides an Agent through secure Docker Compose/Helm deployment, verification, upgrades, and troubleshooting; it is a deployment-assistance Skill, not a DSH runtime plugin.
 
 ![DeepSeek Harness Web UI running from this image](assets/deepseek-harness-web.png)
 

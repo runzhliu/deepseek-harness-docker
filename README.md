@@ -6,6 +6,7 @@
 [![Container Release](https://img.shields.io/github/v/release/runzhliu/deepseek-harness-docker?include_prereleases&sort=semver&label=container%20release)](https://github.com/runzhliu/deepseek-harness-docker/releases)
 [![Docker Image](https://img.shields.io/badge/docker.io-runzhliu%2Fdeepseek--harness-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/runzhliu/deepseek-harness)
 [![GHCR](https://img.shields.io/badge/ghcr.io-runzhliu%2Fdeepseek--harness-2088FF?logo=github&logoColor=white)](https://github.com/users/runzhliu/packages/container/package/deepseek-harness)
+[![腾讯云 SkillHub](https://img.shields.io/badge/SkillHub-deepseek--harness--docker-00A4FF)](https://skillhub.cloud.tencent.com/skills/deepseek-harness-docker)
 [![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -18,6 +19,8 @@
 > 上游版本跟踪（2026-08-29）：官方最新源码预发布版是 [`dsh-v0.1.2-alpha.1`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.1)，但同版本的 `@deepseek-ai/dsh` 尚未发布到 npm，当前镜像因此继续固定在最新可安装基线 `0.1.1-rc.2`。每日运行的 [Upstream DSH version watch](.github/workflows/upstream-dsh.yml) 会同时检查 GitHub Release 与 npm；最新上游版本可安装后会自动创建升级 Issue。
 
 📖 延伸阅读：[DeepSeek Harness GitHub 仓库深度解析](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) · [Docker、Compose 与 Helm 部署实战](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/)
+
+🤖 **Agent Skill：**根目录的 [`SKILL.md`](SKILL.md) 已作为 [`deepseek-harness-docker`](https://skillhub.cloud.tencent.com/skills/deepseek-harness-docker) 发布到腾讯云 SkillHub，可供支持 Agent Skills 的客户端安装和使用。它指导 Agent 按本项目的安全边界完成 Docker Compose/Helm 部署、验证、升级与排障；这是部署辅助 Skill，不是 DSH 运行时插件。
 
 ![DeepSeek Harness Web UI running from this image](assets/deepseek-harness-web.png)
 
