@@ -11,6 +11,8 @@ Before opening a pull request:
 5. Update both `README.md` and `README.en.md` when behavior or commands change.
 6. Keep `plugins/dsh-browser-desktop` publishable on its own: run `make plugin-check`, avoid container-only imports, and document any new companion-service requirement.
 
+Run `make upstream-check` when reviewing an upstream DSH release. A GitHub tag alone is not sufficient for this project: the same version must exist as an installable `@deepseek-ai/dsh` npm artifact before changing `DSH_VERSION`.
+
 The public image and plugin must not contain private provider endpoints, credentials, company-internal skills, or personal workspace mounts. Keep machine-specific Compose additions in the git-ignored `compose.local.yaml`.
 
 Please report upstream Harness defects to the upstream channel described by its contribution guide. Issues specific to the Dockerfile, Compose file, Helm chart, or this documentation belong in this project.

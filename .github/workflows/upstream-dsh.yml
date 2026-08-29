@@ -1,0 +1,56 @@
+name: Upstream DSH version watch
+
+on:
+  schedule:
+    - cron: "23 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Compare GitHub Release and npm
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check the pinned DSH version
+        id: upstream
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          ./scripts/check-upstream-dsh.sh 0.1.1-rc.2 >upstream-report.txt 2>&1
+          status="$?"
+          echo "status=${status}" >>"${GITHUB_OUTPUT}"
+          exit "${status}"
+      - name: Show the version report
+        if: always()
+        run: cat upstream-report.txt
+      - name: Open an upgrade issue
+        if: steps.upstream.outputs.status == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="chore: upgrade the pinned DSH release"
+          existing="$(gh issue list --state open --search "${title} in:title" --json number --jq length)"
+          if [[ "${existing}" == "0" ]]; then
+            {
+              echo "The scheduled upstream version check found a newer installable DSH release."
+              echo
+              echo '```text'
+              cat upstream-report.txt
+              echo '```'
+              echo
+              echo "Update every pinned version together and run the full multi-architecture smoke tests before publishing."
+            } >upstream-issue.md
+            gh issue create --title "${title}" --body-file upstream-issue.md
+          fi
+      - name: Fail when an upgrade is available
+        if: steps.upstream.outcome == 'failure'
+        run: exit 1

@@ -38,7 +38,10 @@ LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${DSH_VERSION}" \
       io.github.runzhliu.deepseek-harness.base-image="${NODE_IMAGE}" \
-      io.github.runzhliu.deepseek-harness.debian-codename="trixie"
+      io.github.runzhliu.deepseek-harness.debian-codename="trixie" \
+      io.github.runzhliu.deepseek-harness.upstream.repository="https://github.com/deepseek-ai/deepseek-harness" \
+      io.github.runzhliu.deepseek-harness.upstream.release="https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v${DSH_VERSION}" \
+      io.github.runzhliu.deepseek-harness.upstream.npm="@deepseek-ai/dsh@${DSH_VERSION}"
 
 # Use Node's official non-slim Trixie variant intentionally: its buildpack-deps
 # base provides the compiler and common development utilities a coding agent or
