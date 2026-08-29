@@ -1,4 +1,5 @@
 IMAGE ?= runzhliu/deepseek-harness
+GHCR_IMAGE ?= ghcr.io/runzhliu/deepseek-harness
 VERSION ?= 0.1.1-rc.2
 DSH_VERSION ?= $(VERSION)
 NODE_IMAGE ?= node:24-trixie
@@ -6,13 +7,14 @@ DSH_MARKET_VERSION ?= 1.21.0
 MARKET_IMAGE_VERSION ?= $(VERSION)-market.1
 PLATFORMS ?= linux/amd64,linux/arm64
 
-.PHONY: help build multiarch-build push pull market-build market-push market-pull up down logs compose-check helm-check plugin-check verify upstream-check smoke market-smoke inspect market-inspect
+.PHONY: help build multiarch-build push pull ghcr-pull market-build market-push market-pull up down logs compose-check helm-check plugin-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
 
 help:
 	@echo "build            Build the local platform image"
 	@echo "multiarch-build  Build both release platforms without pushing"
 	@echo "push             Build and push the versioned multi-platform image"
 	@echo "pull             Pull the published image"
+	@echo "ghcr-pull        Pull the GHCR mirror of the published image"
 	@echo "market-build     Build the optional community-market image"
 	@echo "market-push      Build and push its versioned multi-platform image"
 	@echo "up/down/logs     Manage the Compose service"
@@ -33,6 +35,9 @@ push:
 
 pull:
 	docker pull $(IMAGE):$(VERSION)
+
+ghcr-pull:
+	docker pull $(GHCR_IMAGE):$(VERSION)
 
 market-build:
 	docker build --pull --file Dockerfile.market --build-arg BASE_IMAGE=$(IMAGE):$(VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg DSH_MARKET_VERSION=$(DSH_MARKET_VERSION) --build-arg MARKET_IMAGE_VERSION=$(MARKET_IMAGE_VERSION) --tag $(IMAGE):$(MARKET_IMAGE_VERSION) .
@@ -84,6 +89,9 @@ market-smoke:
 
 inspect:
 	docker buildx imagetools inspect $(IMAGE):$(VERSION)
+
+ghcr-inspect:
+	docker buildx imagetools inspect $(GHCR_IMAGE):$(VERSION)
 
 market-inspect:
 	docker buildx imagetools inspect $(IMAGE):$(MARKET_IMAGE_VERSION)

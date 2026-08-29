@@ -9,6 +9,7 @@ All notable changes to this project are documented here.
 - Extend the image smoke test to reject a non-Trixie base, an unexpected glibc version, or any missing required Agent command on both release architectures.
 - Link the pinned DSH version to its exact upstream GitHub Release and npm artifact in the README and image metadata.
 - Add a daily GitHub Release/npm watcher that opens an upgrade issue only after the newest upstream DSH version is installable from npm.
+- Mirror the published Docker Hub multi-platform manifests to `ghcr.io/runzhliu/deepseek-harness`, with digest verification and no rebuild or `latest` tag.
 - Add an explicitly optional `Dockerfile.market` derived image and Compose overlay that pin the third-party `dshmarket@1.21.0` package.
 - Keep the default Docker target, Compose stack, Helm chart, and DSH Web patch free of the community market.
 - Test the default official-DSH integration separately from the optional market variant, including hardened runtime checks and disabled market-owned restarts.
