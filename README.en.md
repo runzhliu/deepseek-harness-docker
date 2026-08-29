@@ -2,7 +2,8 @@
 
 English | [简体中文](README.md)
 
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek_Harness-0.1.1--rc.2-4f46e5)](https://www.npmjs.com/package/@deepseek-ai/dsh)
+[![Upstream DSH](https://img.shields.io/github/v/release/deepseek-ai/deepseek-harness?include_prereleases&sort=semver&label=upstream%20DSH)](https://github.com/deepseek-ai/deepseek-harness/releases)
+[![Container Release](https://img.shields.io/github/v/release/runzhliu/deepseek-harness-docker?include_prereleases&sort=semver&label=container%20release)](https://github.com/runzhliu/deepseek-harness-docker/releases)
 [![Docker Image](https://img.shields.io/badge/docker.io-runzhliu%2Fdeepseek--harness-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/runzhliu/deepseek-harness)
 [![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -11,7 +12,9 @@ A production-minded community container project for the official DeepSeek Harnes
 
 > Current baseline: `@deepseek-ai/dsh@0.1.1-rc.2`. DeepSeek Harness is still a release candidate. Re-run the build and smoke tests before every version upgrade.
 
-`0.1.1-rc.2` maps directly to the official `@deepseek-ai/dsh` artifact in the npm Registry and its matching GitHub Release; it is not a project-defined version. This project packages the installable npm distribution instead of building source, and intentionally does not publish a drifting Docker `latest` tag.
+`0.1.1-rc.2` maps directly to the official [`dsh-v0.1.1-rc.2`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.1-rc.2) Release and [`@deepseek-ai/dsh@0.1.1-rc.2`](https://www.npmjs.com/package/@deepseek-ai/dsh/v/0.1.1-rc.2) in the npm Registry; it is not a project-defined version. This project packages the installable npm distribution instead of building source, and intentionally does not publish a drifting Docker `latest` tag.
+
+> Upstream tracking (2026-08-29): the newest official source pre-release is [`dsh-v0.1.2-alpha.1`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.1), but the matching `@deepseek-ai/dsh` package is not yet available from npm. The image therefore remains pinned to the newest installable baseline, `0.1.1-rc.2`. The daily [Upstream DSH version watch](.github/workflows/upstream-dsh.yml) checks both GitHub Releases and npm and opens an upgrade issue once the newest upstream version becomes installable.
 
 📖 Further reading: [DeepSeek Harness GitHub repository deep dive](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) · [Docker, Compose, and Helm deployment guide](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/) (Chinese)
 

@@ -2,7 +2,8 @@
 
 [English](README.en.md) | 简体中文
 
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek_Harness-0.1.1--rc.2-4f46e5)](https://www.npmjs.com/package/@deepseek-ai/dsh)
+[![Upstream DSH](https://img.shields.io/github/v/release/deepseek-ai/deepseek-harness?include_prereleases&sort=semver&label=upstream%20DSH)](https://github.com/deepseek-ai/deepseek-harness/releases)
+[![Container Release](https://img.shields.io/github/v/release/runzhliu/deepseek-harness-docker?include_prereleases&sort=semver&label=container%20release)](https://github.com/runzhliu/deepseek-harness-docker/releases)
 [![Docker Image](https://img.shields.io/badge/docker.io-runzhliu%2Fdeepseek--harness-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/runzhliu/deepseek-harness)
 [![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -11,7 +12,9 @@
 
 > 当前基线：`@deepseek-ai/dsh@0.1.1-rc.2`。DeepSeek Harness 仍处于 RC 阶段；升级前应重新完成本文的构建和 Smoke Test。
 
-`0.1.1-rc.2` 直接对应官方 npm Registry 与 GitHub Release 的 `@deepseek-ai/dsh` 发行物，并非本项目自定义版本。本项目封装 npm 成品而不从源码构建，因此以可安装的官方发行物为基线，并故意不发布漂移的 Docker `latest` 标签。
+`0.1.1-rc.2` 直接对应官方 [`dsh-v0.1.1-rc.2`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.1-rc.2) Release 与 npm Registry 的 [`@deepseek-ai/dsh@0.1.1-rc.2`](https://www.npmjs.com/package/@deepseek-ai/dsh/v/0.1.1-rc.2)，并非本项目自定义版本。本项目封装 npm 成品而不从源码构建，因此以可安装的官方发行物为基线，并故意不发布漂移的 Docker `latest` 标签。
+
+> 上游版本跟踪（2026-08-29）：官方最新源码预发布版是 [`dsh-v0.1.2-alpha.1`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.1)，但同版本的 `@deepseek-ai/dsh` 尚未发布到 npm，当前镜像因此继续固定在最新可安装基线 `0.1.1-rc.2`。每日运行的 [Upstream DSH version watch](.github/workflows/upstream-dsh.yml) 会同时检查 GitHub Release 与 npm；最新上游版本可安装后会自动创建升级 Issue。
 
 📖 延伸阅读：[DeepSeek Harness GitHub 仓库深度解析](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) · [Docker、Compose 与 Helm 部署实战](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/)
 

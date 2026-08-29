@@ -6,7 +6,7 @@ DSH_MARKET_VERSION ?= 1.21.0
 MARKET_IMAGE_VERSION ?= $(VERSION)-market.1
 PLATFORMS ?= linux/amd64,linux/arm64
 
-.PHONY: help build multiarch-build push pull market-build market-push market-pull up down logs compose-check helm-check plugin-check verify smoke market-smoke inspect market-inspect
+.PHONY: help build multiarch-build push pull market-build market-push market-pull up down logs compose-check helm-check plugin-check verify upstream-check smoke market-smoke inspect market-inspect
 
 help:
 	@echo "build            Build the local platform image"
@@ -18,6 +18,7 @@ help:
 	@echo "up/down/logs     Manage the Compose service"
 	@echo "verify           Validate Compose and Helm rendering"
 	@echo "plugin-check     Validate and dry-pack the browser plugin"
+	@echo "upstream-check   Compare the pinned DSH version with GitHub and npm"
 	@echo "smoke            Exercise CLI, config, PTY, and Web startup"
 	@echo "inspect          Inspect the remote multi-platform manifest"
 
@@ -66,10 +67,14 @@ plugin-check:
 	node --check scripts/dsh-market-repair-store
 	sh -n scripts/deepseek-harness-entrypoint
 	sh -n scripts/deepseek-harness-market-entrypoint
+	bash -n scripts/check-upstream-dsh.sh
 	bash -n scripts/smoke.sh
 	npm --cache "$${TMPDIR:-/tmp}/dsh-browser-plugin-npm-cache" pack --dry-run --json ./plugins/dsh-browser-desktop >/dev/null
 
 verify: compose-check helm-check plugin-check
+
+upstream-check:
+	./scripts/check-upstream-dsh.sh $(DSH_VERSION)
 
 smoke:
 	./scripts/smoke.sh $(IMAGE):$(VERSION) $(DSH_VERSION) 10.15.1
