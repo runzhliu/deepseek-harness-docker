@@ -128,7 +128,9 @@ docker compose ps
 
 浏览器打开 <http://127.0.0.1:3080>，在设置页配置模型和凭据。侧边栏的“浏览器”按钮会在 Harness WebUI 内直接打开可交互的容器 Chromium；配置和浏览器 Profile 写入命名卷 `dsh-home`，重建容器后仍会保留。
 
-默认镜像为 Docker Hub 上的 [`runzhliu/deepseek-harness:0.1.1-rc.2`](https://hub.docker.com/r/runzhliu/deepseek-harness)，同一份多架构制品也发布到 GitHub Container Registry：[`ghcr.io/runzhliu/deepseek-harness:0.1.1-rc.2`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness)。Compose 同时保留 `build` 配置，方便审查并从本目录复现镜像；如需本地构建，执行 `docker compose build --pull` 后再启动。
+未设置 `DSH_WORKSPACE` 时，Compose 使用独立的 `dsh-workspace` 命名卷，避免 Agent 意外修改本仓库。只有准备好明确的项目目录后，才通过 `DSH_WORKSPACE=/absolute/path/to/project` 改用 bind mount。
+
+默认镜像修订版为 Docker Hub 上的 [`runzhliu/deepseek-harness:0.1.1-rc.2-r2`](https://hub.docker.com/r/runzhliu/deepseek-harness)，同一份多架构制品也会发布到 GitHub Container Registry：[`ghcr.io/runzhliu/deepseek-harness:0.1.1-rc.2-r2`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness)。`r2` 是容器修订号，镜像内固定的上游 DSH 仍为 `0.1.1-rc.2`。Compose 同时保留 `build` 配置，方便审查并从本目录复现镜像；如需本地构建，执行 `docker compose build --pull` 后再启动。
 
 需要从 GHCR 拉取时，设置镜像仓库即可，其他 Compose 配置保持不变：
 
@@ -177,7 +179,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
   docker compose -f compose.yaml -f compose.market.yaml up -d --no-build
 ```
 
-该变体使用明确区分的 `runzhliu/deepseek-harness:0.1.1-rc.2-market.1` 标签，固定 `dshmarket@1.21.0`，不会替换默认 DSH 标签或 `latest`。它属于社区可选集成，不是 DeepSeek 官方组件，也不代表本项目对市场条目的审核或背书。
+该变体使用明确区分的 `runzhliu/deepseek-harness:0.1.1-rc.2-r2-market.1` 标签，固定 `dshmarket@1.21.0`，不会替换默认 DSH 标签或 `latest`。它属于社区可选集成，不是 DeepSeek 官方组件，也不代表本项目对市场条目的审核或背书。
 
 市场自身在构建期固定并打入可选镜像；通过市场安装的插件和 pnpm store 会写入持久化的 `dsh-home` 卷。安装过程需要容器能够访问 npm/GitHub，第三方包的构建脚本仍应在审查后单独授权。市场内的一键重启已禁用，变更需要通过 `docker compose restart` 或 Kubernetes rollout 进入新进程。
 
@@ -188,7 +190,7 @@ make market-build
 make market-smoke
 ```
 
-Helm 仍默认官方 DSH 镜像；只有明确设置 `--set image.tag=0.1.1-rc.2-market.1` 时才使用市场变体。
+Helm 仍默认官方 DSH 镜像；只有明确设置 `--set image.tag=0.1.1-rc.2-r2-market.1` 时才使用市场变体。
 
 如果复用的 `dsh-home` 曾被另一个 pnpm 主版本处理，安装时可能看到 `ERR_PNPM_UNEXPECTED_STORE`。先停止 DSH，再显式执行一次迁移：
 
@@ -212,14 +214,14 @@ docker compose logs -f deepseek-harness
 docker compose down
 ```
 
-`docker compose down` 不删除命名卷。只有明确执行 `docker compose down --volumes` 才会删除持久化的配置、凭据和会话。
+`docker compose down` 不删除命名卷。只有明确执行 `docker compose down --volumes` 才会删除持久化的配置、凭据、会话，以及默认 `dsh-workspace` 卷中的全部工作区数据；使用该参数前必须先备份需要保留的内容。
 
 ## 直接使用 Docker
 
 构建镜像：
 
 ```bash
-docker build -t runzhliu/deepseek-harness:0.1.1-rc.2 .
+docker build -t runzhliu/deepseek-harness:0.1.1-rc.2-r2 .
 ```
 
 启动 Web UI：
@@ -233,7 +235,7 @@ docker run --rm \
   --shm-size 1g \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.1-rc.2
+  runzhliu/deepseek-harness:0.1.1-rc.2-r2
 ```
 
 不要把端口参数改成 `-p 3080:3080`，也不要把它部署到公开 Ingress。那会把一个没有认证、具备代码执行能力的接口暴露给网络。
@@ -247,7 +249,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.1-rc.2 \
+  runzhliu/deepseek-harness:0.1.1-rc.2-r2 \
   --profile headless "summarize this repository"
 ```
 
@@ -264,7 +266,7 @@ helm upgrade --install deepseek-harness charts/deepseek-harness \
   --namespace deepseek-harness \
   --create-namespace \
   --set image.repository=runzhliu/deepseek-harness \
-  --set image.tag=0.1.1-rc.2
+  --set image.tag=0.1.1-rc.2-r2
 ```
 
 本机开发集群也可以直接拉取默认的 `runzhliu/deepseek-harness`，或先用 `kind load docker-image` / `minikube image load` 导入同名本地镜像。
@@ -273,10 +275,10 @@ helm upgrade --install deepseek-harness charts/deepseek-harness \
 
 ```bash
 kubectl -n deepseek-harness rollout status statefulset/deepseek-harness
-kubectl -n deepseek-harness port-forward service/deepseek-harness 3080:3080
+kubectl -n deepseek-harness port-forward service/deepseek-harness 3080:3080 6080:6080
 ```
 
-然后打开 <http://127.0.0.1:3080>。不要把这个无认证、可执行代码的接口改成 NodePort、LoadBalancer 或直接接入 Ingress。
+然后打开 <http://127.0.0.1:3080>；内嵌桌面通过同一条命令转发到 <http://127.0.0.1:6080>。不要把这些无认证、可执行代码的接口改成 NodePort、LoadBalancer 或直接接入 Ingress。
 
 如需通过 Secret 注入 provider 环境变量：
 
@@ -304,20 +306,21 @@ kubectl -n deepseek-harness get pvc
 ```bash
 docker build \
   --build-arg DSH_VERSION=0.1.1-rc.2 \
-  -t runzhliu/deepseek-harness:0.1.1-rc.2 .
+  --build-arg IMAGE_VERSION=0.1.1-rc.2-r2 \
+  -t runzhliu/deepseek-harness:0.1.1-rc.2-r2 .
 ```
 
-Compose 可以使用同一个变量：
+Compose 分别使用上游版本和不可变镜像修订版：
 
 ```bash
-DSH_VERSION=0.1.1-rc.2 docker compose build --pull
+DSH_VERSION=0.1.1-rc.2 DSH_IMAGE_VERSION=0.1.1-rc.2-r2 docker compose build --pull
 ```
 
-维护者可用 `make push` 构建并推送同一个版本标签下的 `linux/amd64` 与 `linux/arm64` manifest。该命令不会创建 `latest` 标签。
+维护者可用 `make push` 构建并推送同一个不可变修订标签下的 `linux/amd64` 与 `linux/arm64` manifest。目标标签已经存在时命令会拒绝覆盖，也不会创建 `latest` 标签。
 
 可选市场变体使用独立的 `make market-push`，只发布带 `-market.1` 后缀的双架构标签，不改变默认镜像。
 
-[Mirror Docker Hub images to GHCR](.github/workflows/publish-ghcr.yml) 工作流使用现有 Docker Hub manifest 创建 GHCR 碳拷贝，不重新构建镜像。发布 GitHub Release 时会同步基础标签；维护者也可手动指定版本，并选择同时同步 `-market.1` 变体。同步后会比较源和目标的全部平台 manifest digest，且不会创建 `latest`。
+[Mirror Docker Hub images to GHCR](.github/workflows/publish-ghcr.yml) 工作流使用现有 Docker Hub manifest 创建 GHCR 碳拷贝，不重新构建镜像。发布以 `image-v` 开头的 GitHub Release 时会同步基础标签；维护者也可手动指定版本，并选择同时同步 `-market.1` 变体。同步后会比较源和目标的全部平台 manifest digest，且不会创建 `latest`。
 
 不要默认安装 `latest`。RC 版本正在快速变化，固定版本才能让问题可复现。
 
@@ -335,9 +338,9 @@ DSH_VERSION=0.1.1-rc.2 docker compose build --pull
 每次升级至少完成以下检查：
 
 ```bash
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.1-rc.2 --version
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.1-rc.2-r2 --version
 
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.1-rc.2 \
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.1-rc.2-r2 \
   web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config
 
 docker compose up -d

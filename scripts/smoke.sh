@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-image="${1:-runzhliu/deepseek-harness:0.1.1-rc.2}"
+image="${1:-runzhliu/deepseek-harness:0.1.1-rc.2-r2}"
 expected_version="${2:-0.1.1-rc.2}"
 expected_pnpm_version="${3:-10.15.1}"
 expected_market_version="${4:-}"
@@ -30,6 +30,13 @@ fi
 actual_node_version="$(docker run --rm --entrypoint node "${image}" --version)"
 if [[ "${actual_node_version}" != v24.* ]]; then
   echo "expected Node.js 24.x from the upstream image, got ${actual_node_version}" >&2
+  exit 1
+fi
+
+inherited_node_env="$(docker run --rm --entrypoint node "${image}" -e \
+  'process.stdout.write(process.env.NODE_ENV ?? "")')"
+if [[ -n "${inherited_node_env}" ]]; then
+  echo "the image must not inject NODE_ENV into user commands: ${inherited_node_env}" >&2
   exit 1
 fi
 

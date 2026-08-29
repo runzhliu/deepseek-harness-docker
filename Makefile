@@ -1,13 +1,14 @@
 IMAGE ?= runzhliu/deepseek-harness
 GHCR_IMAGE ?= ghcr.io/runzhliu/deepseek-harness
-VERSION ?= 0.1.1-rc.2
-DSH_VERSION ?= $(VERSION)
+DSH_VERSION ?= 0.1.1-rc.2
+IMAGE_VERSION ?= $(DSH_VERSION)-r2
 NODE_IMAGE ?= node:24-trixie
+PNPM_VERSION ?= 10.15.1
 DSH_MARKET_VERSION ?= 1.21.0
-MARKET_IMAGE_VERSION ?= $(VERSION)-market.1
+MARKET_IMAGE_VERSION ?= $(IMAGE_VERSION)-market.1
 PLATFORMS ?= linux/amd64,linux/arm64
 
-.PHONY: help build multiarch-build push pull ghcr-pull market-build market-push market-pull up down logs compose-check helm-check plugin-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
+.PHONY: help build multiarch-build push pull ghcr-pull market-build market-push market-pull up down logs compose-check helm-check plugin-check version-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
 
 help:
 	@echo "build            Build the local platform image"
@@ -20,30 +21,33 @@ help:
 	@echo "up/down/logs     Manage the Compose service"
 	@echo "verify           Validate Compose and Helm rendering"
 	@echo "plugin-check     Validate and dry-pack the browser plugin"
+	@echo "version-check    Verify pinned versions across build and deployment files"
 	@echo "upstream-check   Compare the pinned DSH version with GitHub and npm"
 	@echo "smoke            Exercise CLI, config, PTY, and Web startup"
 	@echo "inspect          Inspect the remote multi-platform manifest"
 
 build:
-	docker build --pull --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --tag $(IMAGE):$(VERSION) .
+	docker build --pull --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg IMAGE_VERSION=$(IMAGE_VERSION) --build-arg IMAGE_REVISION=$$(git describe --always --dirty) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg PNPM_VERSION=$(PNPM_VERSION) --tag $(IMAGE):$(IMAGE_VERSION) .
 
 multiarch-build:
-	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --tag $(IMAGE):$(VERSION) .
+	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg IMAGE_VERSION=$(IMAGE_VERSION) --build-arg IMAGE_REVISION=$$(git describe --always --dirty) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg PNPM_VERSION=$(PNPM_VERSION) --tag $(IMAGE):$(IMAGE_VERSION) .
 
 push:
-	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --tag $(IMAGE):$(VERSION) --push .
+	@if docker buildx imagetools inspect $(IMAGE):$(IMAGE_VERSION) >/dev/null 2>&1; then echo "refusing to overwrite existing image tag: $(IMAGE):$(IMAGE_VERSION)" >&2; exit 1; fi
+	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg IMAGE_VERSION=$(IMAGE_VERSION) --build-arg IMAGE_REVISION=$$(git describe --always --dirty) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg PNPM_VERSION=$(PNPM_VERSION) --tag $(IMAGE):$(IMAGE_VERSION) --push .
 
 pull:
-	docker pull $(IMAGE):$(VERSION)
+	docker pull $(IMAGE):$(IMAGE_VERSION)
 
 ghcr-pull:
-	docker pull $(GHCR_IMAGE):$(VERSION)
+	docker pull $(GHCR_IMAGE):$(IMAGE_VERSION)
 
 market-build:
-	docker build --pull --file Dockerfile.market --build-arg BASE_IMAGE=$(IMAGE):$(VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg DSH_MARKET_VERSION=$(DSH_MARKET_VERSION) --build-arg MARKET_IMAGE_VERSION=$(MARKET_IMAGE_VERSION) --tag $(IMAGE):$(MARKET_IMAGE_VERSION) .
+	docker build --pull --file Dockerfile.market --build-arg BASE_IMAGE=$(IMAGE):$(IMAGE_VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg DSH_MARKET_VERSION=$(DSH_MARKET_VERSION) --build-arg MARKET_IMAGE_VERSION=$(MARKET_IMAGE_VERSION) --tag $(IMAGE):$(MARKET_IMAGE_VERSION) .
 
 market-push:
-	docker buildx build --platform $(PLATFORMS) --file Dockerfile.market --build-arg BASE_IMAGE=$(IMAGE):$(VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg DSH_MARKET_VERSION=$(DSH_MARKET_VERSION) --build-arg MARKET_IMAGE_VERSION=$(MARKET_IMAGE_VERSION) --tag $(IMAGE):$(MARKET_IMAGE_VERSION) --push .
+	@if docker buildx imagetools inspect $(IMAGE):$(MARKET_IMAGE_VERSION) >/dev/null 2>&1; then echo "refusing to overwrite existing image tag: $(IMAGE):$(MARKET_IMAGE_VERSION)" >&2; exit 1; fi
+	docker buildx build --platform $(PLATFORMS) --file Dockerfile.market --build-arg BASE_IMAGE=$(IMAGE):$(IMAGE_VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg DSH_MARKET_VERSION=$(DSH_MARKET_VERSION) --build-arg MARKET_IMAGE_VERSION=$(MARKET_IMAGE_VERSION) --tag $(IMAGE):$(MARKET_IMAGE_VERSION) --push .
 
 market-pull:
 	docker pull $(IMAGE):$(MARKET_IMAGE_VERSION)
@@ -73,25 +77,29 @@ plugin-check:
 	sh -n scripts/deepseek-harness-entrypoint
 	sh -n scripts/deepseek-harness-market-entrypoint
 	bash -n scripts/check-upstream-dsh.sh
+	bash -n scripts/check-version-consistency.sh
 	bash -n scripts/smoke.sh
 	npm --cache "$${TMPDIR:-/tmp}/dsh-browser-plugin-npm-cache" pack --dry-run --json ./plugins/dsh-browser-desktop >/dev/null
 
-verify: compose-check helm-check plugin-check
+version-check:
+	./scripts/check-version-consistency.sh $(DSH_VERSION) $(IMAGE_VERSION) $(PNPM_VERSION) $(DSH_MARKET_VERSION) $(MARKET_IMAGE_VERSION)
+
+verify: compose-check helm-check plugin-check version-check
 
 upstream-check:
 	./scripts/check-upstream-dsh.sh $(DSH_VERSION)
 
 smoke:
-	./scripts/smoke.sh $(IMAGE):$(VERSION) $(DSH_VERSION) 10.15.1
+	./scripts/smoke.sh $(IMAGE):$(IMAGE_VERSION) $(DSH_VERSION) $(PNPM_VERSION)
 
 market-smoke:
-	./scripts/smoke.sh $(IMAGE):$(MARKET_IMAGE_VERSION) $(DSH_VERSION) 10.15.1 $(DSH_MARKET_VERSION)
+	./scripts/smoke.sh $(IMAGE):$(MARKET_IMAGE_VERSION) $(DSH_VERSION) $(PNPM_VERSION) $(DSH_MARKET_VERSION)
 
 inspect:
-	docker buildx imagetools inspect $(IMAGE):$(VERSION)
+	docker buildx imagetools inspect $(IMAGE):$(IMAGE_VERSION)
 
 ghcr-inspect:
-	docker buildx imagetools inspect $(GHCR_IMAGE):$(VERSION)
+	docker buildx imagetools inspect $(GHCR_IMAGE):$(IMAGE_VERSION)
 
 market-inspect:
 	docker buildx imagetools inspect $(IMAGE):$(MARKET_IMAGE_VERSION)

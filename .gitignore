@@ -4,6 +4,9 @@
 .bash_history
 .dsh-doctor/
 .local/
+.npm/
+Downloads/
+workspace/
 
 # Machine-local Compose mounts and private extensions are never published.
 compose.local.yaml

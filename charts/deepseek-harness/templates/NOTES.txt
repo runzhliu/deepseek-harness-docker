@@ -2,9 +2,10 @@ DeepSeek Harness is running as a single-replica StatefulSet.
 
 Keep this terminal open:
 
-  kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ include "deepseek-harness.fullname" . }} 3080:{{ .Values.service.port }}
+  kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ include "deepseek-harness.fullname" . }} 3080:{{ .Values.service.port }} {{ .Values.service.desktopPort }}:{{ .Values.service.desktopPort }}
 
 Then open http://127.0.0.1:3080.
+The embedded browser desktop is forwarded on http://127.0.0.1:{{ .Values.service.desktopPort }}.
 
 The Web API has no authentication and can execute code. Do not change the
 headless Service to NodePort/LoadBalancer or add an Ingress without a reviewed

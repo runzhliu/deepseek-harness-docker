@@ -1,6 +1,6 @@
 image:
   repository: runzhliu/deepseek-harness
-  tag: 0.1.1-rc.2
+  tag: 0.1.1-rc.2-r2
   pullPolicy: IfNotPresent
   pullSecrets: []
 
@@ -9,6 +9,10 @@ fullnameOverride: ""
 
 service:
   port: 3080
+  desktopPort: 6080
+
+desktop:
+  shmSizeLimit: 1Gi
 
 persistence:
   enabled: true
@@ -57,8 +61,13 @@ securityContext:
 
 resources:
   requests:
-    cpu: 100m
-    memory: 256Mi
+    cpu: 250m
+    memory: 1Gi
+
+startupProbe:
+  periodSeconds: 2
+  timeoutSeconds: 2
+  failureThreshold: 30
 
 livenessProbe:
   initialDelaySeconds: 20

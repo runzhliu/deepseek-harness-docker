@@ -11,5 +11,9 @@ spec:
       port: {{ .Values.service.port }}
       protocol: TCP
       targetPort: http
+    - name: desktop
+      port: {{ .Values.service.desktopPort }}
+      protocol: TCP
+      targetPort: desktop
   selector:
     {{- include "deepseek-harness.selectorLabels" . | nindent 4 }}

@@ -44,6 +44,10 @@ spec:
               value: /home/node/.dsh
             - name: DSH_TELEMETRY_DISABLED
               value: "1"
+            - name: DSH_DESKTOP_ENABLED
+              value: "1"
+            - name: DSH_DESKTOP_PUBLIC_PORT
+              value: {{ .Values.service.desktopPort | quote }}
             - name: HOME
               value: /workspace
             {{- with .Values.extraEnv }}
@@ -63,15 +67,27 @@ spec:
             - name: http
               containerPort: 3080
               protocol: TCP
+            - name: desktop
+              containerPort: 6080
+              protocol: TCP
+          startupProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - "Promise.all([fetch('http://127.0.0.1:3080/'), fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))"
+            {{- toYaml .Values.startupProbe | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /
               port: http
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
-            httpGet:
-              path: /
-              port: http
+            exec:
+              command:
+                - node
+                - -e
+                - "Promise.all([fetch('http://127.0.0.1:3080/'), fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))"
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
@@ -87,11 +103,17 @@ spec:
               {{- end }}
             - name: tmp
               mountPath: /tmp
+            - name: shm
+              mountPath: /dev/shm
       volumes:
         - name: tmp
           emptyDir:
             medium: Memory
             sizeLimit: 512Mi
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: {{ .Values.desktop.shmSizeLimit }}
         - name: workspace
           {{- if .Values.workspace.existingClaim }}
           persistentVolumeClaim:

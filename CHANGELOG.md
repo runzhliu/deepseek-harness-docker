@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Separate the immutable container revision (`0.1.1-rc.2-r2`) from the packaged upstream DSH version (`0.1.1-rc.2`) so runtime changes cannot silently reuse an existing image tag.
+- Stop injecting `NODE_ENV=production` into Agent shells and user projects, and cover the boundary in the image smoke test.
+- Default Compose workspaces to a named volume instead of mounting this repository, while keeping explicit host-project bind mounts supported.
+- Expose the browser desktop through the Helm Service, provide a 1 GiB `/dev/shm`, and align Kubernetes resource requests and readiness checks with the actual desktop runtime.
+- Add a cross-file version consistency check and cover the optional market image on both native release architectures in CI.
 - Change the default builder and runtime base from `node:24-bookworm-slim` to the official non-slim `node:24-trixie`, raising the runtime from glibc 2.36 to 2.41.
 - Keep the buildpack-deps compiler toolchain available to coding-agent and native-plugin workflows, and add an explicit common CLI contract including `jq`, `less`, `ripgrep`, `rsync`, and `zip`.
 - Extend the image smoke test to reject a non-Trixie base, an unexpected glibc version, or any missing required Agent command on both release architectures.

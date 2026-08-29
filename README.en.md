@@ -129,7 +129,9 @@ docker compose ps
 
 Open <http://127.0.0.1:3080> and configure a model and credentials in Settings. The **Browser** action in the sidebar opens an interactive container Chromium directly inside the Harness Web UI. The named `dsh-home` volume preserves both Harness state and the browser profile across container recreation.
 
-The default image is [`runzhliu/deepseek-harness:0.1.1-rc.2`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.1-rc.2`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
+When `DSH_WORKSPACE` is unset, Compose uses a separate `dsh-workspace` named volume so the Agent cannot accidentally modify this repository. Set `DSH_WORKSPACE=/absolute/path/to/project` only after choosing the intended host project.
+
+The default immutable image revision is [`runzhliu/deepseek-harness:0.1.1-rc.2-r2`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.1-rc.2-r2`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). `r2` is the container revision; the packaged upstream DSH version remains `0.1.1-rc.2`. Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
 
 To pull from GHCR without changing the rest of the Compose deployment:
 
@@ -178,7 +180,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
   docker compose -f compose.yaml -f compose.market.yaml up -d --no-build
 ```
 
-The variant has the unambiguous `runzhliu/deepseek-harness:0.1.1-rc.2-market.1` tag and pins `dshmarket@1.21.0`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
+The variant has the unambiguous `runzhliu/deepseek-harness:0.1.1-rc.2-r2-market.1` tag and pins `dshmarket@1.21.0`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
 
 The market package itself is pinned and copied at build time. Plugins installed through it and the pnpm store persist in the `dsh-home` volume. Installation needs container egress to npm/GitHub, and third-party build scripts should remain blocked until separately reviewed and approved. One-click market restart is disabled; apply lifecycle changes with `docker compose restart` or a Kubernetes rollout.
 
@@ -189,7 +191,7 @@ make market-build
 make market-smoke
 ```
 
-Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.1-rc.2-market.1`.
+Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.1-rc.2-r2-market.1`.
 
 A reused `dsh-home` previously managed by another pnpm major can fail installation with `ERR_PNPM_UNEXPECTED_STORE`. Stop DSH and run the explicit one-time migration:
 
@@ -213,14 +215,14 @@ docker compose logs -f deepseek-harness
 docker compose down
 ```
 
-`docker compose down` preserves the named volume. `docker compose down --volumes` intentionally deletes stored configuration, credentials, and sessions.
+`docker compose down` preserves named volumes. `docker compose down --volumes` deletes stored configuration, credentials, sessions, and every workspace file in the default `dsh-workspace` volume; back up anything that must survive before using it.
 
 ## Plain Docker
 
 Build:
 
 ```bash
-docker build -t runzhliu/deepseek-harness:0.1.1-rc.2 .
+docker build -t runzhliu/deepseek-harness:0.1.1-rc.2-r2 .
 ```
 
 Run the Web UI:
@@ -234,7 +236,7 @@ docker run --rm \
   --shm-size 1g \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.1-rc.2
+  runzhliu/deepseek-harness:0.1.1-rc.2-r2
 ```
 
 Do not shorten the publication to `-p 3080:3080`, and do not place this service behind a public Ingress.
@@ -248,7 +250,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.1-rc.2 \
+  runzhliu/deepseek-harness:0.1.1-rc.2-r2 \
   --profile headless "summarize this repository"
 ```
 
@@ -265,7 +267,7 @@ helm upgrade --install deepseek-harness charts/deepseek-harness \
   --namespace deepseek-harness \
   --create-namespace \
   --set image.repository=runzhliu/deepseek-harness \
-  --set image.tag=0.1.1-rc.2
+  --set image.tag=0.1.1-rc.2-r2
 ```
 
 Kind or Minikube can pull the default `runzhliu/deepseek-harness` image directly, or you can load a local image under the same name first.
@@ -274,10 +276,10 @@ Access it through the Kubernetes API server:
 
 ```bash
 kubectl -n deepseek-harness rollout status statefulset/deepseek-harness
-kubectl -n deepseek-harness port-forward service/deepseek-harness 3080:3080
+kubectl -n deepseek-harness port-forward service/deepseek-harness 3080:3080 6080:6080
 ```
 
-Then open <http://127.0.0.1:3080>. Do not convert the unauthenticated code-execution surface into a NodePort, LoadBalancer, or direct Ingress.
+Then open <http://127.0.0.1:3080>; the same command forwards the embedded desktop to <http://127.0.0.1:6080>. Do not convert these unauthenticated code-execution surfaces into a NodePort, LoadBalancer, or direct Ingress.
 
 Create a provider Secret without putting its value in `values.yaml`:
 
@@ -300,20 +302,21 @@ The build argument pins the package:
 ```bash
 docker build \
   --build-arg DSH_VERSION=0.1.1-rc.2 \
-  -t runzhliu/deepseek-harness:0.1.1-rc.2 .
+  --build-arg IMAGE_VERSION=0.1.1-rc.2-r2 \
+  -t runzhliu/deepseek-harness:0.1.1-rc.2-r2 .
 ```
 
-Compose uses the same variable:
+Compose keeps the upstream version and immutable container revision separate:
 
 ```bash
-DSH_VERSION=0.1.1-rc.2 docker compose build --pull
+DSH_VERSION=0.1.1-rc.2 DSH_IMAGE_VERSION=0.1.1-rc.2-r2 docker compose build --pull
 ```
 
-Maintainers can run `make push` to build and publish the `linux/amd64` and `linux/arm64` manifests under the same versioned tag. The target does not create a `latest` tag.
+Maintainers can run `make push` to build and publish the `linux/amd64` and `linux/arm64` manifests under the same immutable revision. The target refuses to overwrite an existing tag and does not create a `latest` tag.
 
 The optional market variant has a separate `make market-push` target. It publishes only the dual-architecture tag carrying the `-market.1` suffix and never changes the default image.
 
-The [Mirror Docker Hub images to GHCR](.github/workflows/publish-ghcr.yml) workflow creates a carbon copy of an existing Docker Hub manifest in GHCR without rebuilding the image. Publishing a GitHub Release mirrors the base tag; maintainers can also dispatch it with an explicit version and include the `-market.1` variant. It compares every source and target platform-manifest digest after the copy and never creates `latest`.
+The [Mirror Docker Hub images to GHCR](.github/workflows/publish-ghcr.yml) workflow creates a carbon copy of an existing Docker Hub manifest in GHCR without rebuilding the image. Publishing a GitHub Release whose tag starts with `image-v` mirrors the base tag; maintainers can also dispatch it with an explicit version and include the `-market.1` variant. It compares every source and target platform-manifest digest after the copy and never creates `latest`.
 
 Do not install an unbounded `latest` tag. Release-candidate behavior changes quickly, and exact versions make bugs reproducible.
 
@@ -333,9 +336,9 @@ See [SECURITY.md](SECURITY.md) before changing any network or privilege setting.
 Run at least these checks for every DSH upgrade:
 
 ```bash
-docker run --rm runzhliu/deepseek-harness:0.1.1-rc.2 --version
+docker run --rm runzhliu/deepseek-harness:0.1.1-rc.2-r2 --version
 
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.1-rc.2 \
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.1-rc.2-r2 \
   web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config
 
 docker compose up -d

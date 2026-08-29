@@ -30,19 +30,6 @@ ARG NODE_IMAGE
 ARG DSH_VERSION=0.1.1-rc.2
 ARG PNPM_VERSION=10.15.1
 
-LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
-      org.opencontainers.image.description="Community container image for the DeepSeek Harness CLI, Web UI, and browser-accessible Chromium desktop" \
-      org.opencontainers.image.source="https://github.com/runzhliu/deepseek-harness-docker" \
-      org.opencontainers.image.url="https://github.com/runzhliu/deepseek-harness-docker" \
-      org.opencontainers.image.documentation="https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/" \
-      org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.version="${DSH_VERSION}" \
-      io.github.runzhliu.deepseek-harness.base-image="${NODE_IMAGE}" \
-      io.github.runzhliu.deepseek-harness.debian-codename="trixie" \
-      io.github.runzhliu.deepseek-harness.upstream.repository="https://github.com/deepseek-ai/deepseek-harness" \
-      io.github.runzhliu.deepseek-harness.upstream.release="https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v${DSH_VERSION}" \
-      io.github.runzhliu.deepseek-harness.upstream.npm="@deepseek-ai/dsh@${DSH_VERSION}"
-
 # Use Node's official non-slim Trixie variant intentionally: its buildpack-deps
 # base provides the compiler and common development utilities a coding agent or
 # native plugin may need at runtime, while glibc 2.41 accepts newer binaries
@@ -221,7 +208,7 @@ RUN chmod 0755 /usr/local/bin/chromium-docker \
 ENV DSH_HOME=/home/node/.dsh \
     DSH_TELEMETRY_DISABLED=1 \
     HOME=/workspace \
-    NODE_ENV=production \
+    NPM_CONFIG_CACHE=/home/node/.dsh/npm-cache \
     DISPLAY=:99 \
     XDG_RUNTIME_DIR=/tmp/runtime-node \
     CHROME_BIN=/usr/local/bin/chromium-docker \
@@ -242,6 +229,25 @@ USER node
 WORKDIR /workspace
 
 EXPOSE 3080 6080
+
+# Keep source metadata after every filesystem-producing instruction so a new
+# commit revision updates only image configuration instead of invalidating the
+# large Debian/Chromium installation layers.
+ARG IMAGE_VERSION=0.1.1-rc.2-r2
+ARG IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
+      org.opencontainers.image.description="Community container image for the DeepSeek Harness CLI, Web UI, and browser-accessible Chromium desktop" \
+      org.opencontainers.image.source="https://github.com/runzhliu/deepseek-harness-docker" \
+      org.opencontainers.image.url="https://github.com/runzhliu/deepseek-harness-docker" \
+      org.opencontainers.image.documentation="https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${IMAGE_VERSION}" \
+      org.opencontainers.image.revision="${IMAGE_REVISION}" \
+      io.github.runzhliu.deepseek-harness.base-image="${NODE_IMAGE}" \
+      io.github.runzhliu.deepseek-harness.debian-codename="trixie" \
+      io.github.runzhliu.deepseek-harness.upstream.repository="https://github.com/deepseek-ai/deepseek-harness" \
+      io.github.runzhliu.deepseek-harness.upstream.release="https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v${DSH_VERSION}" \
+      io.github.runzhliu.deepseek-harness.upstream.npm="@deepseek-ai/dsh@${DSH_VERSION}"
 
 # The CLI mounts a config-only HMR watcher after profile boot. Scope Node's
 # internal-module access flag to the dsh process instead of exporting it via

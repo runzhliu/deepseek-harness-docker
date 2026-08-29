@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: DSH image version already published to Docker Hub
+        description: Immutable container revision already published to Docker Hub
         required: true
-        default: 0.1.1-rc.2
+        default: 0.1.1-rc.2-r2
         type: string
       include_market:
         description: Also mirror the version-market.1 image
@@ -42,11 +42,11 @@ jobs:
           INPUT_INCLUDE_MARKET: ${{ inputs.include_market }}
         run: |
           if [[ "${EVENT_NAME}" == "release" ]]; then
-            if [[ "${RELEASE_TAG}" != dsh-v* ]]; then
-              echo "release tag must start with dsh-v: ${RELEASE_TAG}" >&2
+            if [[ "${RELEASE_TAG}" != image-v* ]]; then
+              echo "release tag must start with image-v: ${RELEASE_TAG}" >&2
               exit 1
             fi
-            version="${RELEASE_TAG#dsh-v}"
+            version="${RELEASE_TAG#image-v}"
             include_market=false
           else
             version="${INPUT_VERSION}"

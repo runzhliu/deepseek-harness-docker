@@ -82,7 +82,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src=/absolute/path/to/project,dst=/workspace \
-  runzhliu/deepseek-harness:0.1.1-rc.2 \
+  runzhliu/deepseek-harness:0.1.1-rc.2-r2 \
   --profile headless "summarize this repository"
 ```
 
@@ -98,7 +98,7 @@ helm upgrade --install deepseek-harness charts/deepseek-harness \
   --namespace deepseek-harness \
   --create-namespace
 kubectl -n deepseek-harness rollout status statefulset/deepseek-harness
-kubectl -n deepseek-harness port-forward service/deepseek-harness 3080:3080
+kubectl -n deepseek-harness port-forward service/deepseek-harness 3080:3080 6080:6080
 ```
 
 Use an existing Secret for provider credentials and an existing PVC when a persistent writable workspace is required. Preserve the chart's private Service and NetworkPolicy defaults.

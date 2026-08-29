@@ -4,8 +4,10 @@ services:
       context: .
       args:
         DSH_VERSION: ${DSH_VERSION:-0.1.1-rc.2}
+        IMAGE_VERSION: ${DSH_IMAGE_VERSION:-0.1.1-rc.2-r2}
         NODE_IMAGE: ${NODE_IMAGE:-node:24-trixie}
-    image: ${DSH_IMAGE_REPOSITORY:-runzhliu/deepseek-harness}:${DSH_VERSION:-0.1.1-rc.2}
+        PNPM_VERSION: ${PNPM_VERSION:-10.15.1}
+    image: ${DSH_IMAGE_REPOSITORY:-runzhliu/deepseek-harness}:${DSH_IMAGE_VERSION:-0.1.1-rc.2-r2}
     ports:
       - "127.0.0.1:${DSH_PORT:-3080}:3080"
       - "127.0.0.1:${DSH_DESKTOP_PORT:-6080}:6080"
@@ -16,7 +18,7 @@ services:
       HOME: /workspace
     volumes:
       - dsh-home:/home/node/.dsh
-      - ${DSH_WORKSPACE:-.}:/workspace
+      - ${DSH_WORKSPACE:-dsh-workspace}:/workspace
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=512m
@@ -43,3 +45,4 @@ services:
 
 volumes:
   dsh-home:
+  dsh-workspace:
