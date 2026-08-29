@@ -5,6 +5,7 @@ English | [简体中文](README.md)
 [![Upstream DSH](https://img.shields.io/github/v/release/deepseek-ai/deepseek-harness?include_prereleases&sort=semver&label=upstream%20DSH)](https://github.com/deepseek-ai/deepseek-harness/releases)
 [![Container Release](https://img.shields.io/github/v/release/runzhliu/deepseek-harness-docker?include_prereleases&sort=semver&label=container%20release)](https://github.com/runzhliu/deepseek-harness-docker/releases)
 [![Docker Image](https://img.shields.io/badge/docker.io-runzhliu%2Fdeepseek--harness-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/runzhliu/deepseek-harness)
+[![GHCR](https://img.shields.io/badge/ghcr.io-runzhliu%2Fdeepseek--harness-2088FF?logo=github&logoColor=white)](https://github.com/users/runzhliu/packages/container/package/deepseek-harness)
 [![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -125,7 +126,15 @@ docker compose ps
 
 Open <http://127.0.0.1:3080> and configure a model and credentials in Settings. The **Browser** action in the sidebar opens an interactive container Chromium directly inside the Harness Web UI. The named `dsh-home` volume preserves both Harness state and the browser profile across container recreation.
 
-The default image is [`runzhliu/deepseek-harness:0.1.1-rc.2`](https://hub.docker.com/r/runzhliu/deepseek-harness). Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
+The default image is [`runzhliu/deepseek-harness:0.1.1-rc.2`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.1-rc.2`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
+
+To pull from GHCR without changing the rest of the Compose deployment:
+
+```bash
+DSH_IMAGE_REPOSITORY=ghcr.io/runzhliu/deepseek-harness docker compose pull
+DSH_IMAGE_REPOSITORY=ghcr.io/runzhliu/deepseek-harness \
+  DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
+```
 
 ### Browser inside the Web UI
 
@@ -300,6 +309,8 @@ DSH_VERSION=0.1.1-rc.2 docker compose build --pull
 Maintainers can run `make push` to build and publish the `linux/amd64` and `linux/arm64` manifests under the same versioned tag. The target does not create a `latest` tag.
 
 The optional market variant has a separate `make market-push` target. It publishes only the dual-architecture tag carrying the `-market.1` suffix and never changes the default image.
+
+The [Mirror Docker Hub images to GHCR](.github/workflows/publish-ghcr.yml) workflow creates a carbon copy of an existing Docker Hub manifest in GHCR without rebuilding the image. Publishing a GitHub Release mirrors the base tag; maintainers can also dispatch it with an explicit version and include the `-market.1` variant. It compares every source and target platform-manifest digest after the copy and never creates `latest`.
 
 Do not install an unbounded `latest` tag. Release-candidate behavior changes quickly, and exact versions make bugs reproducible.
 

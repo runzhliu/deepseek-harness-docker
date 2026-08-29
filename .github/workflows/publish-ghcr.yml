@@ -1,0 +1,125 @@
+name: Mirror Docker Hub images to GHCR
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: DSH image version already published to Docker Hub
+        required: true
+        default: 0.1.1-rc.2
+        type: string
+      include_market:
+        description: Also mirror the version-market.1 image
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ghcr-mirror-${{ github.event_name }}-${{ github.event.release.tag_name || inputs.version }}
+  cancel-in-progress: false
+
+env:
+  SOURCE_IMAGE: docker.io/runzhliu/deepseek-harness
+  TARGET_IMAGE: ghcr.io/runzhliu/deepseek-harness
+
+jobs:
+  mirror:
+    name: Copy multi-platform manifests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Resolve immutable tags
+        id: refs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_INCLUDE_MARKET: ${{ inputs.include_market }}
+        run: |
+          if [[ "${EVENT_NAME}" == "release" ]]; then
+            if [[ "${RELEASE_TAG}" != dsh-v* ]]; then
+              echo "release tag must start with dsh-v: ${RELEASE_TAG}" >&2
+              exit 1
+            fi
+            version="${RELEASE_TAG#dsh-v}"
+            include_market=false
+          else
+            version="${INPUT_VERSION}"
+            include_market="${INPUT_INCLUDE_MARKET}"
+          fi
+
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "invalid immutable image version: ${version}" >&2
+            exit 1
+          fi
+
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
+          echo "include_market=${include_market}" >>"${GITHUB_OUTPUT}"
+      - uses: docker/setup-buildx-action@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify Docker Hub sources
+        env:
+          VERSION: ${{ steps.refs.outputs.version }}
+          INCLUDE_MARKET: ${{ steps.refs.outputs.include_market }}
+        run: |
+          docker buildx imagetools inspect "${SOURCE_IMAGE}:${VERSION}"
+          if [[ "${INCLUDE_MARKET}" == "true" ]]; then
+            docker buildx imagetools inspect "${SOURCE_IMAGE}:${VERSION}-market.1"
+          fi
+      - name: Mirror immutable manifests
+        env:
+          VERSION: ${{ steps.refs.outputs.version }}
+          INCLUDE_MARKET: ${{ steps.refs.outputs.include_market }}
+        run: |
+          docker buildx imagetools create \
+            --progress plain \
+            --tag "${TARGET_IMAGE}:${VERSION}" \
+            "${SOURCE_IMAGE}:${VERSION}"
+          if [[ "${INCLUDE_MARKET}" == "true" ]]; then
+            docker buildx imagetools create \
+              --progress plain \
+              --tag "${TARGET_IMAGE}:${VERSION}-market.1" \
+              "${SOURCE_IMAGE}:${VERSION}-market.1"
+          fi
+      - name: Verify mirrored manifest digests
+        env:
+          VERSION: ${{ steps.refs.outputs.version }}
+          INCLUDE_MARKET: ${{ steps.refs.outputs.include_market }}
+        run: |
+          verify_copy() {
+            local source_ref="$1"
+            local target_ref="$2"
+            local report_name="$3"
+
+            docker buildx imagetools inspect --raw "${source_ref}" \
+              | jq -r '.manifests[] | [.digest, .platform.os, .platform.architecture, (.platform.variant // "")] | @tsv' \
+              | sort >"/tmp/${report_name}-source.tsv"
+            docker buildx imagetools inspect --raw "${target_ref}" \
+              | jq -r '.manifests[] | [.digest, .platform.os, .platform.architecture, (.platform.variant // "")] | @tsv' \
+              | sort >"/tmp/${report_name}-target.tsv"
+
+            diff -u "/tmp/${report_name}-source.tsv" "/tmp/${report_name}-target.tsv"
+            grep -q $'\tlinux\tamd64\t' "/tmp/${report_name}-target.tsv"
+            grep -q $'\tlinux\tarm64\t' "/tmp/${report_name}-target.tsv"
+          }
+
+          verify_copy \
+            "${SOURCE_IMAGE}:${VERSION}" \
+            "${TARGET_IMAGE}:${VERSION}" \
+            base
+          if [[ "${INCLUDE_MARKET}" == "true" ]]; then
+            verify_copy \
+              "${SOURCE_IMAGE}:${VERSION}-market.1" \
+              "${TARGET_IMAGE}:${VERSION}-market.1" \
+              market
+          fi

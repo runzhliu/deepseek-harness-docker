@@ -5,6 +5,7 @@
 [![Upstream DSH](https://img.shields.io/github/v/release/deepseek-ai/deepseek-harness?include_prereleases&sort=semver&label=upstream%20DSH)](https://github.com/deepseek-ai/deepseek-harness/releases)
 [![Container Release](https://img.shields.io/github/v/release/runzhliu/deepseek-harness-docker?include_prereleases&sort=semver&label=container%20release)](https://github.com/runzhliu/deepseek-harness-docker/releases)
 [![Docker Image](https://img.shields.io/badge/docker.io-runzhliu%2Fdeepseek--harness-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/runzhliu/deepseek-harness)
+[![GHCR](https://img.shields.io/badge/ghcr.io-runzhliu%2Fdeepseek--harness-2088FF?logo=github&logoColor=white)](https://github.com/users/runzhliu/packages/container/package/deepseek-harness)
 [![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -124,7 +125,15 @@ docker compose ps
 
 浏览器打开 <http://127.0.0.1:3080>，在设置页配置模型和凭据。侧边栏的“浏览器”按钮会在 Harness WebUI 内直接打开可交互的容器 Chromium；配置和浏览器 Profile 写入命名卷 `dsh-home`，重建容器后仍会保留。
 
-默认镜像为 Docker Hub 上的 [`runzhliu/deepseek-harness:0.1.1-rc.2`](https://hub.docker.com/r/runzhliu/deepseek-harness)。Compose 同时保留 `build` 配置，方便审查并从本目录复现镜像；如需本地构建，执行 `docker compose build --pull` 后再启动。
+默认镜像为 Docker Hub 上的 [`runzhliu/deepseek-harness:0.1.1-rc.2`](https://hub.docker.com/r/runzhliu/deepseek-harness)，同一份多架构制品也发布到 GitHub Container Registry：[`ghcr.io/runzhliu/deepseek-harness:0.1.1-rc.2`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness)。Compose 同时保留 `build` 配置，方便审查并从本目录复现镜像；如需本地构建，执行 `docker compose build --pull` 后再启动。
+
+需要从 GHCR 拉取时，设置镜像仓库即可，其他 Compose 配置保持不变：
+
+```bash
+DSH_IMAGE_REPOSITORY=ghcr.io/runzhliu/deepseek-harness docker compose pull
+DSH_IMAGE_REPOSITORY=ghcr.io/runzhliu/deepseek-harness \
+  DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
+```
 
 ### WebUI 内置浏览器
 
@@ -304,6 +313,8 @@ DSH_VERSION=0.1.1-rc.2 docker compose build --pull
 维护者可用 `make push` 构建并推送同一个版本标签下的 `linux/amd64` 与 `linux/arm64` manifest。该命令不会创建 `latest` 标签。
 
 可选市场变体使用独立的 `make market-push`，只发布带 `-market.1` 后缀的双架构标签，不改变默认镜像。
+
+[Mirror Docker Hub images to GHCR](.github/workflows/publish-ghcr.yml) 工作流使用现有 Docker Hub manifest 创建 GHCR 碳拷贝，不重新构建镜像。发布 GitHub Release 时会同步基础标签；维护者也可手动指定版本，并选择同时同步 `-market.1` 变体。同步后会比较源和目标的全部平台 manifest digest，且不会创建 `latest`。
 
 不要默认安装 `latest`。RC 版本正在快速变化，固定版本才能让问题可复现。
 
