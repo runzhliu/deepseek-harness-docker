@@ -9,7 +9,7 @@ MARKET_IMAGE_VERSION ?= $(IMAGE_VERSION)-market.1
 BROWSER_PLUGIN_VERSION ?= 0.1.2
 PLATFORMS ?= linux/amd64,linux/arm64
 
-.PHONY: help build multiarch-build push pull ghcr-pull market-build market-push market-pull up down logs compose-check helm-check plugin-check version-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
+.PHONY: help build multiarch-build push pull ghcr-pull market-build market-push market-pull up down logs compose-check helm-check plugin-check dockerhub-check version-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
 
 help:
 	@echo "build            Build the local platform image"
@@ -22,6 +22,7 @@ help:
 	@echo "up/down/logs     Manage the Compose service"
 	@echo "verify           Validate Compose and Helm rendering"
 	@echo "plugin-check     Validate and dry-pack the browser plugin"
+	@echo "dockerhub-check  Render and validate the Docker Hub overview"
 	@echo "version-check    Verify pinned versions across build and deployment files"
 	@echo "upstream-check   Compare the pinned DSH version with GitHub and npm"
 	@echo "smoke            Exercise CLI, config, PTY, and Web startup"
@@ -82,10 +83,14 @@ plugin-check:
 	bash -n scripts/smoke.sh
 	npm --cache "$${TMPDIR:-/tmp}/dsh-browser-plugin-npm-cache" pack --dry-run --json ./plugins/dsh-browser-desktop >/dev/null
 
+dockerhub-check:
+	bash -n scripts/render-dockerhub-readme.sh
+	bash scripts/render-dockerhub-readme.sh README.md /dev/null
+
 version-check:
 	./scripts/check-version-consistency.sh $(DSH_VERSION) $(IMAGE_VERSION) $(PNPM_VERSION) $(DSH_MARKET_VERSION) $(MARKET_IMAGE_VERSION) $(BROWSER_PLUGIN_VERSION)
 
-verify: compose-check helm-check plugin-check version-check
+verify: compose-check helm-check plugin-check dockerhub-check version-check
 
 upstream-check:
 	./scripts/check-upstream-dsh.sh $(DSH_VERSION)

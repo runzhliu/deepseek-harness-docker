@@ -1,0 +1,36 @@
+name: Sync Docker Hub overview
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - README.md
+      - scripts/render-dockerhub-readme.sh
+      - .github/workflows/dockerhub-description.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dockerhub-overview
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Publish README and short description
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render the Docker Hub overview
+        run: bash scripts/render-dockerhub-readme.sh README.md README.dockerhub.md
+      - name: Update Docker Hub repository information
+        uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
+        with:
+          username: runzhliu
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: runzhliu/deepseek-harness
+          short-description: Community Docker, Compose, and Helm runtime for DeepSeek Harness on amd64 and arm64.
+          readme-filepath: ./README.dockerhub.md
+          enable-url-completion: true
