@@ -2,8 +2,13 @@
 
 All notable changes to this project are documented here.
 
-## Unreleased
+## 0.1.2 - 2026-09-01
 
+- Upgrade the official runtime to `@deepseek-ai/dsh@0.1.2-alpha.3` and publish the first immutable container revision as `0.1.2-alpha.3-r1`.
+- Upgrade the optional community market to `dshmarket@1.38.1`, the first stable release tested compatible with the new DSH client module system.
+- Update the embedded browser plugin to `0.1.2` and migrate its Web dependency from the removed client runtime package to the new client module system.
+- Adapt Compose, Helm, and smoke-test health checks to DSH's launch-token authentication: anonymous root requests must return `401`, while the token exchange must produce a working signed browser session.
+- Refresh an existing automated upgrade issue when upstream advances again, distinguish npm dist-tags in the report, and close the issue after the pinned version catches up.
 - Separate the immutable container revision (`0.1.1-rc.2-r2`) from the packaged upstream DSH version (`0.1.1-rc.2`) so runtime changes cannot silently reuse an existing image tag.
 - Stop injecting `NODE_ENV=production` into Agent shells and user projects, and cover the boundary in the image smoke test.
 - Default Compose workspaces to a named volume instead of mounting this repository, while keeping explicit host-project bind mounts supported.

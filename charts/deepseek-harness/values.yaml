@@ -1,6 +1,6 @@
 image:
   repository: runzhliu/deepseek-harness
-  tag: 0.1.1-rc.2-r2
+  tag: 0.1.2-alpha.3-r1
   pullPolicy: IfNotPresent
   pullSecrets: []
 

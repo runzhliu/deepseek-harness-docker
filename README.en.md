@@ -12,11 +12,11 @@ English | [简体中文](README.md)
 
 A production-minded community container project for the official DeepSeek Harness `@deepseek-ai/dsh` package. It provides a multi-stage Dockerfile, a hardened Compose setup, and a single-replica StatefulSet Helm chart without forking or rebuilding the upstream monorepo.
 
-> Current baseline: `@deepseek-ai/dsh@0.1.1-rc.2`. DeepSeek Harness is still a release candidate. Re-run the build and smoke tests before every version upgrade.
+> Current baseline: `@deepseek-ai/dsh@0.1.2-alpha.3`. DeepSeek Harness is still a pre-release. Re-run the build and smoke tests before every version upgrade.
 
-`0.1.1-rc.2` maps directly to the official [`dsh-v0.1.1-rc.2`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.1-rc.2) Release and [`@deepseek-ai/dsh@0.1.1-rc.2`](https://www.npmjs.com/package/@deepseek-ai/dsh/v/0.1.1-rc.2) in the npm Registry; it is not a project-defined version. This project packages the installable npm distribution instead of building source, and intentionally does not publish a drifting Docker `latest` tag.
+`0.1.2-alpha.3` maps directly to the official [`dsh-v0.1.2-alpha.3`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.3) Release and [`@deepseek-ai/dsh@0.1.2-alpha.3`](https://www.npmjs.com/package/@deepseek-ai/dsh/v/0.1.2-alpha.3) in the npm Registry; it is not a project-defined version. This project packages the installable npm distribution instead of building source, and intentionally does not publish a drifting Docker `latest` tag.
 
-> Upstream tracking (2026-08-29): the newest official source pre-release is [`dsh-v0.1.2-alpha.1`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.1), but the matching `@deepseek-ai/dsh` package is not yet available from npm. The image therefore remains pinned to the newest installable baseline, `0.1.1-rc.2`. The daily [Upstream DSH version watch](.github/workflows/upstream-dsh.yml) checks both GitHub Releases and npm and opens an upgrade issue once the newest upstream version becomes installable.
+> Upstream tracking (2026-09-01): the current baseline matches the latest official pre-release, [`dsh-v0.1.2-alpha.3`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.3), and the same `@deepseek-ai/dsh` version is installable from npm. The daily [Upstream DSH version watch](.github/workflows/upstream-dsh.yml) checks both GitHub Releases and npm; it creates or refreshes an upgrade issue when a newer release becomes installable and closes that issue after the pin catches up.
 
 📖 Further reading: [DeepSeek Harness GitHub repository deep dive](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) · [Docker, Compose, and Helm deployment guide](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/) (Chinese)
 
@@ -29,9 +29,9 @@ A production-minded community container project for the official DeepSeek Harnes
 | Capability | Status | Evidence |
 | --- | --- | --- |
 | Dockerfile | Ready | `linux/arm64` and `linux/amd64` builds and real native PTY spawning tested |
-| Docker Compose | Ready | HTTP 200, healthy state, loopback publication, and persistence across restart tested |
+| Docker Compose | Ready | Web token/cookie authentication, healthy state, loopback publication, and persistence across restart tested |
 | Helm | Ready | StatefulSet, PVC, headless Service, and NetworkPolicy; `helm lint --strict` passes |
-| Web UI | Local single-user only | No authentication; never expose directly to a LAN or the Internet |
+| Web UI | Local single-user only | Launch token + signed cookie; no TLS and noVNC remains unauthenticated, so never expose directly to a LAN or the Internet |
 | Headless | Ready | Inject provider secrets at runtime; validate model calls and sandboxing in the target environment |
 
 ## Deep dive: understanding DeepSeek Harness
@@ -80,7 +80,7 @@ User code lives separately at `/workspace`. Compose combines a named `dsh-home` 
 | Node / glibc | Requires Node 22.19+ or 24+; some user binaries require a newer glibc | Pin the official non-slim `node:24-trixie`, Debian 13 with glibc 2.41 |
 | Native dependencies and Agent tools | `node-pty` or third-party plugins may need native builds; the Agent needs common development commands | Install DSH in a separate stage; intentionally retain the buildpack-deps toolchain at runtime and add `jq`, `less`, `ripgrep`, `rsync`, `zip`, and related tools |
 | Web bind | The CLI intentionally rejects `--host 0.0.0.0` | Use a Cordis overlay and publish only to host `127.0.0.1` |
-| Web security | No TLS, authentication, or origin policy; tools can execute code | No Ingress/LoadBalancer; loopback-only Compose; deny Pod ingress by default |
+| Web security | Launch-token authentication and Host/Origin checks, but no TLS; noVNC is unauthenticated and tools can execute code | No Ingress/LoadBalancer; loopback-only Compose; deny Pod ingress by default |
 | HMR | A config watcher needs Node internals after boot | Pass `--expose-internals` only to the DSH process, never through inherited `NODE_OPTIONS` |
 | Directory browser | Starts at `os.homedir()` | Point `HOME` at writable `/workspace` instead of read-only `/home/node` |
 | Child processes | Agents can create shell and PTY subprocesses | Use `tini` for signal forwarding and orphan reaping |
@@ -88,7 +88,7 @@ User code lives separately at `/workspace`. Compose combines a named `dsh-home` 
 
 Choosing the non-slim base is an explicit coding-agent trade-off rather than a smallest-image goal. Debian 13 Trixie raises glibc from Bookworm's 2.36 to 2.41, allowing more binaries built on recent systems to run. The official non-slim Node variant is based on `buildpack-deps` and already includes the compiler, `make`, `git`, `curl`, `file`, `unzip`, `wget`, and `xz`; this project explicitly adds `jq`, `less`, `ripgrep`, `rsync`, and `zip`. The trade-off is roughly 330 MB more compressed base-image data than slim. The smoke test asserts Trixie, glibc 2.41, and the complete command contract so a later upgrade cannot silently regress them.
 
-The Web bind is the most important trade-off. Docker bridge publication requires the process to listen beyond the container loopback interface, while Harness deliberately rejects `--host 0.0.0.0` to prevent accidental exposure of an unauthenticated code-execution surface. The container overlay changes only the internal listener. The deployment boundary then restores the intended posture: Compose binds the host side to `127.0.0.1`, and Kubernetes access uses `kubectl port-forward`. Changing this to `-p 3080:3080`, NodePort, LoadBalancer, or a public Ingress breaks the security model.
+The Web bind is the most important trade-off. Docker bridge publication requires the process to listen beyond the container loopback interface, while Harness deliberately rejects `--host 0.0.0.0` to prevent accidental exposure of a code-execution surface. The container overlay changes only the internal listener. The deployment boundary then restores the intended posture: Compose binds the host side to `127.0.0.1`, and Kubernetes access uses `kubectl port-forward`. DSH `0.1.2-alpha.3` adds a launch token, signed cookies, and Host/Origin checks, but there is still no TLS and the bundled noVNC endpoint is unauthenticated. Changing this to `-p 3080:3080`, NodePort, LoadBalancer, or a public Ingress still breaks the security model.
 
 ### Container isolation versus the Harness sandbox
 
@@ -97,11 +97,11 @@ These are complementary layers:
 - Docker or Kubernetes decides which host paths, Linux capabilities, and resources the process can see.
 - Harness decides what Agent tools may do inside that already constrained filesystem.
 
-Linux Landlock, user namespaces, and native helpers depend on the host kernel and container runtime. This project will not hide sandbox failures with `--privileged`, a Docker socket, or extra capabilities. A release check must include a real filesystem and shell tool call in the target environment; an HTTP 200 response proves only that the UI started.
+Linux Landlock, user namespaces, and native helpers depend on the host kernel and container runtime. This project will not hide sandbox failures with `--privileged`, a Docker socket, or extra capabilities. A release check must include a real filesystem and shell tool call in the target environment; a successfully authenticated page proves only that the UI started.
 
 ### Why the Helm chart uses a StatefulSet
 
-Profiles, model settings, credentials, sessions, and Workspace indexes are stateful. The current single-user Web surface is also not designed for uncoordinated horizontal replicas writing the same state. The chart therefore fixes one StatefulSet replica, mounts a stable `dsh-home` PVC, retains that PVC across uninstall, and deliberately avoids pretending that a higher replica count would provide high availability. Multi-replica service deployment should wait for upstream authentication, tenant isolation, and concurrency-safe shared storage.
+Profiles, model settings, credentials, sessions, and Workspace indexes are stateful. The current single-user Web surface is also not designed for uncoordinated horizontal replicas writing the same state. The chart therefore fixes one StatefulSet replica, mounts a stable `dsh-home` PVC, retains that PVC across uninstall, and deliberately avoids pretending that a higher replica count would provide high availability. Multi-replica service deployment should wait for external identity, tenant isolation, and concurrency-safe shared storage.
 
 ## Why not just use `npx` in a container?
 
@@ -115,7 +115,7 @@ This image handles the container boundaries that a one-line image misses:
 - compiles native modules in a disposable builder stage;
 - uses a container-only Cordis bind overlay while keeping host publication on loopback.
 
-DeepSeek Harness Web currently has no TLS, authentication, or origin policy, and its API can initiate code execution. This project supports a **trusted, local, single-user development environment**, not a directly exposed network service.
+DeepSeek Harness Web exchanges a launch token for a signed browser cookie and checks Host/Origin, but it still has no TLS, its API can initiate code execution, and this image's noVNC port is unauthenticated. This project supports a **trusted, local, single-user development environment**, not a directly exposed network service.
 
 ## Quick start with Docker Compose
 
@@ -125,13 +125,14 @@ From this directory:
 docker compose pull
 DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
 docker compose ps
+docker compose logs --no-color deepseek-harness | grep 'dsh web:'
 ```
 
-Open <http://127.0.0.1:3080> and configure a model and credentials in Settings. The **Browser** action in the sidebar opens an interactive container Chromium directly inside the Harness Web UI. The named `dsh-home` volume preserves both Harness state and the browser profile across container recreation.
+Open the complete <http://127.0.0.1:3080> URL carrying `?token=...` after `dsh web:` in the logs. Harness exchanges that process-scoped launch token for a signed cookie and redirects to the clean root path; opening the root without a token returns `401`. Configure a model and credentials in Settings. The **Browser** action in the sidebar opens an interactive container Chromium directly inside the Harness Web UI. The named `dsh-home` volume preserves both Harness state and the browser profile across container recreation.
 
 When `DSH_WORKSPACE` is unset, Compose uses a separate `dsh-workspace` named volume so the Agent cannot accidentally modify this repository. Set `DSH_WORKSPACE=/absolute/path/to/project` only after choosing the intended host project.
 
-The default immutable image revision is [`runzhliu/deepseek-harness:0.1.1-rc.2-r2`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.1-rc.2-r2`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). `r2` is the container revision; the packaged upstream DSH version remains `0.1.1-rc.2`. Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
+The default immutable image revision is [`runzhliu/deepseek-harness:0.1.2-alpha.3-r1`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.2-alpha.3-r1`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). `r1` is the container revision; the packaged upstream DSH version remains `0.1.2-alpha.3`. Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
 
 To pull from GHCR without changing the rest of the Compose deployment:
 
@@ -165,10 +166,10 @@ The plugin is a standalone DSH bundle under [`plugins/dsh-browser-desktop`](plug
 
 ```bash
 npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
-dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.1.tgz
+dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.2.tgz
 ```
 
-After npm publication, install it with `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`. The npm package supplies only the Harness host/Web integration; it does not install Chromium, Xvfb, or noVNC. This repository's image is the complete reference runtime. Official DSH discovers community plugins through npm/GitHub and the `dsh-plugin` GitHub topic.
+Plugin `0.1.2` targets the client module system introduced by DSH `0.1.2-alpha.3`; older DSH `0.1.0`/`0.1.1` release candidates should keep using plugin `0.1.1`. After npm publication, install it with `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`. The npm package supplies only the Harness host/Web integration; it does not install Chromium, Xvfb, or noVNC. This repository's image is the complete reference runtime. Official DSH discovers community plugins through npm/GitHub and the `dsh-plugin` GitHub topic.
 
 ### Optional community plugin market
 
@@ -180,7 +181,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
   docker compose -f compose.yaml -f compose.market.yaml up -d --no-build
 ```
 
-The variant has the unambiguous `runzhliu/deepseek-harness:0.1.1-rc.2-r2-market.1` tag and pins `dshmarket@1.21.0`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
+The variant has the unambiguous `runzhliu/deepseek-harness:0.1.2-alpha.3-r1-market.1` tag and pins `dshmarket@1.38.1`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
 
 The market package itself is pinned and copied at build time. Plugins installed through it and the pnpm store persist in the `dsh-home` volume. Installation needs container egress to npm/GitHub, and third-party build scripts should remain blocked until separately reviewed and approved. One-click market restart is disabled; apply lifecycle changes with `docker compose restart` or a Kubernetes rollout.
 
@@ -191,7 +192,7 @@ make market-build
 make market-smoke
 ```
 
-Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.1-rc.2-r2-market.1`.
+Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.2-alpha.3-r1-market.1`.
 
 A reused `dsh-home` previously managed by another pnpm major can fail installation with `ERR_PNPM_UNEXPECTED_STORE`. Stop DSH and run the explicit one-time migration:
 
@@ -222,7 +223,7 @@ docker compose down
 Build:
 
 ```bash
-docker build -t runzhliu/deepseek-harness:0.1.1-rc.2-r2 .
+docker build -t runzhliu/deepseek-harness:0.1.2-alpha.3-r1 .
 ```
 
 Run the Web UI:
@@ -236,10 +237,10 @@ docker run --rm \
   --shm-size 1g \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.1-rc.2-r2
+  runzhliu/deepseek-harness:0.1.2-alpha.3-r1
 ```
 
-Do not shorten the publication to `-p 3080:3080`, and do not place this service behind a public Ingress.
+The foreground command prints the tokenized startup URL; open that exact URL. Do not shorten the publication to `-p 3080:3080`, and do not place this service behind a public Ingress: Web has no TLS, and noVNC on 6080 has no authentication.
 
 ## Headless mode
 
@@ -250,7 +251,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.1-rc.2-r2 \
+  runzhliu/deepseek-harness:0.1.2-alpha.3-r1 \
   --profile headless "summarize this repository"
 ```
 
@@ -267,7 +268,7 @@ helm upgrade --install deepseek-harness charts/deepseek-harness \
   --namespace deepseek-harness \
   --create-namespace \
   --set image.repository=runzhliu/deepseek-harness \
-  --set image.tag=0.1.1-rc.2-r2
+  --set image.tag=0.1.2-alpha.3-r1
 ```
 
 Kind or Minikube can pull the default `runzhliu/deepseek-harness` image directly, or you can load a local image under the same name first.
@@ -279,7 +280,7 @@ kubectl -n deepseek-harness rollout status statefulset/deepseek-harness
 kubectl -n deepseek-harness port-forward service/deepseek-harness 3080:3080 6080:6080
 ```
 
-Then open <http://127.0.0.1:3080>; the same command forwards the embedded desktop to <http://127.0.0.1:6080>. Do not convert these unauthenticated code-execution surfaces into a NodePort, LoadBalancer, or direct Ingress.
+In another terminal, run `kubectl -n deepseek-harness logs statefulset/deepseek-harness | grep 'dsh web:'`, then open the complete tokenized <http://127.0.0.1:3080> URL from the log line. The same command forwards the embedded desktop to <http://127.0.0.1:6080>. Do not convert the non-TLS Web surface or unauthenticated noVNC endpoint into a NodePort, LoadBalancer, or direct Ingress.
 
 Create a provider Secret without putting its value in `values.yaml`:
 
@@ -301,15 +302,15 @@ The build argument pins the package:
 
 ```bash
 docker build \
-  --build-arg DSH_VERSION=0.1.1-rc.2 \
-  --build-arg IMAGE_VERSION=0.1.1-rc.2-r2 \
-  -t runzhliu/deepseek-harness:0.1.1-rc.2-r2 .
+  --build-arg DSH_VERSION=0.1.2-alpha.3 \
+  --build-arg IMAGE_VERSION=0.1.2-alpha.3-r1 \
+  -t runzhliu/deepseek-harness:0.1.2-alpha.3-r1 .
 ```
 
 Compose keeps the upstream version and immutable container revision separate:
 
 ```bash
-DSH_VERSION=0.1.1-rc.2 DSH_IMAGE_VERSION=0.1.1-rc.2-r2 docker compose build --pull
+DSH_VERSION=0.1.2-alpha.3 DSH_IMAGE_VERSION=0.1.2-alpha.3-r1 docker compose build --pull
 ```
 
 Maintainers can run `make push` to build and publish the `linux/amd64` and `linux/arm64` manifests under the same immutable revision. The target refuses to overwrite an existing tag and does not create a `latest` tag.
@@ -336,13 +337,14 @@ See [SECURITY.md](SECURITY.md) before changing any network or privilege setting.
 Run at least these checks for every DSH upgrade:
 
 ```bash
-docker run --rm runzhliu/deepseek-harness:0.1.1-rc.2-r2 --version
+docker run --rm runzhliu/deepseek-harness:0.1.2-alpha.3-r1 --version
 
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.1-rc.2-r2 \
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.2-alpha.3-r1 \
   web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config
 
 docker compose up -d
-curl --fail http://127.0.0.1:3080/
+test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3080/)" = 401
+make smoke
 docker compose ps
 docker compose logs --no-color deepseek-harness
 
@@ -350,7 +352,7 @@ helm lint --strict charts/deepseek-harness
 helm template deepseek-harness charts/deepseek-harness >/dev/null
 ```
 
-Acceptance criteria: the CLI reports the pinned version; the dumped `webserver.config.host` is `0.0.0.0`; the home page returns 2xx; Compose reaches `healthy`; logs contain no plugin/config errors; the container does not try to hand off to a host browser; and Helm renders both persistent and ephemeral-storage variants. Build both `linux/amd64` and `linux/arm64` and actually spawn a PTY before publishing because terminal and sandbox dependencies include native code. The default entry points are `make verify`, `make build`, and `make smoke`; the optional market uses `make market-build` and `make market-smoke`, which also prove that the market package is absent from the default image.
+Acceptance criteria: the CLI reports the pinned version; the dumped `webserver.config.host` is `0.0.0.0`; the unauthenticated root returns `401`, while the launch token exchanges for a cookie and loads the page; Compose reaches `healthy`; logs contain no plugin/config errors; the container does not try to hand off to a host browser; and Helm renders both persistent and ephemeral-storage variants. Build both `linux/amd64` and `linux/arm64` and actually spawn a PTY before publishing because terminal and sandbox dependencies include native code. The default entry points are `make verify`, `make build`, and `make smoke`; the optional market uses `make market-build` and `make market-smoke`, which also prove that the market package is absent from the default image.
 
 ## Troubleshooting
 

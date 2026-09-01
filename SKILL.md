@@ -82,7 +82,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src=/absolute/path/to/project,dst=/workspace \
-  runzhliu/deepseek-harness:0.1.1-rc.2-r2 \
+  runzhliu/deepseek-harness:0.1.2-alpha.3-r1 \
   --profile headless "summarize this repository"
 ```
 

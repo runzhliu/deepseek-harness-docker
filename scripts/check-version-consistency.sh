@@ -6,6 +6,7 @@ image_version="${2:?missing image version}"
 pnpm_version="${3:?missing pnpm version}"
 market_version="${4:?missing market version}"
 market_image_version="${5:?missing market image version}"
+browser_plugin_version="${6:?missing browser plugin version}"
 
 require_literal() {
   local file="$1"
@@ -36,11 +37,15 @@ require_literal .github/workflows/ci.yml "MARKET_IMAGE_VERSION=${market_image_ve
 require_literal .github/workflows/ci.yml "${dsh_version} ${pnpm_version} ${market_version}"
 require_literal .github/workflows/publish-ghcr.yml "default: ${image_version}"
 require_literal .github/workflows/upstream-dsh.yml "./scripts/check-upstream-dsh.sh ${dsh_version}"
+require_literal plugins/dsh-browser-desktop/package.json "\"version\": \"${browser_plugin_version}\""
+require_literal plugins/dsh-browser-desktop/package.json '"@deepseek-ai/dsh-client-modules"'
 require_literal README.md "runzhliu/deepseek-harness:${image_version}"
 require_literal README.md "runzhliu/deepseek-harness:${market_image_version}"
+require_literal README.md "runzhliu-dsh-browser-desktop-${browser_plugin_version}.tgz"
 require_literal README.en.md "runzhliu/deepseek-harness:${image_version}"
 require_literal README.en.md "runzhliu/deepseek-harness:${market_image_version}"
+require_literal README.en.md "runzhliu-dsh-browser-desktop-${browser_plugin_version}.tgz"
 require_literal SKILL.md "runzhliu/deepseek-harness:${image_version}"
 
-printf 'versions are consistent: image=%s dsh=%s pnpm=%s market=%s\n' \
-  "${image_version}" "${dsh_version}" "${pnpm_version}" "${market_version}"
+printf 'versions are consistent: image=%s dsh=%s pnpm=%s market=%s browser-plugin=%s\n' \
+  "${image_version}" "${dsh_version}" "${pnpm_version}" "${market_version}" "${browser_plugin_version}"

@@ -1,11 +1,12 @@
 IMAGE ?= runzhliu/deepseek-harness
 GHCR_IMAGE ?= ghcr.io/runzhliu/deepseek-harness
-DSH_VERSION ?= 0.1.1-rc.2
-IMAGE_VERSION ?= $(DSH_VERSION)-r2
+DSH_VERSION ?= 0.1.2-alpha.3
+IMAGE_VERSION ?= $(DSH_VERSION)-r1
 NODE_IMAGE ?= node:24-trixie
 PNPM_VERSION ?= 10.15.1
-DSH_MARKET_VERSION ?= 1.21.0
+DSH_MARKET_VERSION ?= 1.38.1
 MARKET_IMAGE_VERSION ?= $(IMAGE_VERSION)-market.1
+BROWSER_PLUGIN_VERSION ?= 0.1.2
 PLATFORMS ?= linux/amd64,linux/arm64
 
 .PHONY: help build multiarch-build push pull ghcr-pull market-build market-push market-pull up down logs compose-check helm-check plugin-check version-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
@@ -82,7 +83,7 @@ plugin-check:
 	npm --cache "$${TMPDIR:-/tmp}/dsh-browser-plugin-npm-cache" pack --dry-run --json ./plugins/dsh-browser-desktop >/dev/null
 
 version-check:
-	./scripts/check-version-consistency.sh $(DSH_VERSION) $(IMAGE_VERSION) $(PNPM_VERSION) $(DSH_MARKET_VERSION) $(MARKET_IMAGE_VERSION)
+	./scripts/check-version-consistency.sh $(DSH_VERSION) $(IMAGE_VERSION) $(PNPM_VERSION) $(DSH_MARKET_VERSION) $(MARKET_IMAGE_VERSION) $(BROWSER_PLUGIN_VERSION)
 
 verify: compose-check helm-check plugin-check version-check
 

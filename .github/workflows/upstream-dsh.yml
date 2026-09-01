@@ -25,31 +25,45 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set +e
-          ./scripts/check-upstream-dsh.sh 0.1.1-rc.2 >upstream-report.txt 2>&1
+          ./scripts/check-upstream-dsh.sh 0.1.2-alpha.3 >upstream-report.txt 2>&1
           status="$?"
           echo "status=${status}" >>"${GITHUB_OUTPUT}"
           exit "${status}"
       - name: Show the version report
         if: always()
         run: cat upstream-report.txt
-      - name: Open an upgrade issue
+      - name: Create or refresh the upgrade issue
         if: steps.upstream.outputs.status == '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           title="chore: upgrade the pinned DSH release"
-          existing="$(gh issue list --state open --search "${title} in:title" --json number --jq length)"
-          if [[ "${existing}" == "0" ]]; then
-            {
-              echo "The scheduled upstream version check found a newer installable DSH release."
-              echo
-              echo '```text'
-              cat upstream-report.txt
-              echo '```'
-              echo
-              echo "Update every pinned version together and run the full multi-architecture smoke tests before publishing."
-            } >upstream-issue.md
+          existing_json="$(gh issue list --state open --limit 100 --json number,title,author)"
+          existing="$(jq -r --arg title "${title}" 'map(select(.title == $title and .author.is_bot)) | first | .number // empty' <<<"${existing_json}")"
+          {
+            echo "The scheduled upstream version check found a newer installable DSH release."
+            echo
+            echo '```text'
+            cat upstream-report.txt
+            echo '```'
+            echo
+            echo "Update every pinned version together and run the full multi-architecture smoke tests before publishing."
+          } >upstream-issue.md
+          if [[ -z "${existing}" ]]; then
             gh issue create --title "${title}" --body-file upstream-issue.md
+          else
+            gh issue edit "${existing}" --body-file upstream-issue.md
+          fi
+      - name: Close the resolved upgrade issue
+        if: steps.upstream.outputs.status == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="chore: upgrade the pinned DSH release"
+          existing_json="$(gh issue list --state open --limit 100 --json number,title,author)"
+          existing="$(jq -r --arg title "${title}" 'map(select(.title == $title and .author.is_bot)) | first | .number // empty' <<<"${existing_json}")"
+          if [[ -n "${existing}" ]]; then
+            gh issue close "${existing}" --comment "Resolved: the pinned DSH version now matches the latest installable upstream release."
           fi
       - name: Fail when an upgrade is available
         if: steps.upstream.outcome == 'failure'

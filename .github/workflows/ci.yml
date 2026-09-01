@@ -49,9 +49,9 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.suffix }}
           cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
           build-args: |
-            IMAGE_VERSION=0.1.1-rc.2-r2
+            IMAGE_VERSION=0.1.2-alpha.3-r1
             IMAGE_REVISION=${{ github.sha }}
-      - run: ./scripts/smoke.sh deepseek-harness:ci-${{ matrix.suffix }} 0.1.1-rc.2 10.15.1
+      - run: ./scripts/smoke.sh deepseek-harness:ci-${{ matrix.suffix }} 0.1.2-alpha.3 10.15.1
 
   optional-market:
     name: Optional market smoke (${{ matrix.platform }})
@@ -69,12 +69,12 @@ jobs:
             runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
-      - run: docker build --build-arg IMAGE_VERSION=0.1.1-rc.2-r2 --build-arg IMAGE_REVISION=${{ github.sha }} --tag deepseek-harness:ci-market-base-${{ matrix.suffix }} .
+      - run: docker build --build-arg IMAGE_VERSION=0.1.2-alpha.3-r1 --build-arg IMAGE_REVISION=${{ github.sha }} --tag deepseek-harness:ci-market-base-${{ matrix.suffix }} .
       - run: >-
           docker build
           --file Dockerfile.market
           --build-arg BASE_IMAGE=deepseek-harness:ci-market-base-${{ matrix.suffix }}
-          --build-arg MARKET_IMAGE_VERSION=0.1.1-rc.2-r2-market.1
+          --build-arg MARKET_IMAGE_VERSION=0.1.2-alpha.3-r1-market.1
           --tag deepseek-harness:ci-market-${{ matrix.suffix }}
           .
-      - run: ./scripts/smoke.sh deepseek-harness:ci-market-${{ matrix.suffix }} 0.1.1-rc.2 10.15.1 1.21.0
+      - run: ./scripts/smoke.sh deepseek-harness:ci-market-${{ matrix.suffix }} 0.1.2-alpha.3 10.15.1 1.38.1

@@ -3,11 +3,11 @@ services:
     build:
       context: .
       args:
-        DSH_VERSION: ${DSH_VERSION:-0.1.1-rc.2}
-        IMAGE_VERSION: ${DSH_IMAGE_VERSION:-0.1.1-rc.2-r2}
+        DSH_VERSION: ${DSH_VERSION:-0.1.2-alpha.3}
+        IMAGE_VERSION: ${DSH_IMAGE_VERSION:-0.1.2-alpha.3-r1}
         NODE_IMAGE: ${NODE_IMAGE:-node:24-trixie}
         PNPM_VERSION: ${PNPM_VERSION:-10.15.1}
-    image: ${DSH_IMAGE_REPOSITORY:-runzhliu/deepseek-harness}:${DSH_IMAGE_VERSION:-0.1.1-rc.2-r2}
+    image: ${DSH_IMAGE_REPOSITORY:-runzhliu/deepseek-harness}:${DSH_IMAGE_VERSION:-0.1.2-alpha.3-r1}
     ports:
       - "127.0.0.1:${DSH_PORT:-3080}:3080"
       - "127.0.0.1:${DSH_DESKTOP_PORT:-6080}:6080"
@@ -37,7 +37,7 @@ services:
         - CMD
         - node
         - -e
-        - "Promise.all([fetch('http://127.0.0.1:3080/'), fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))"
+        - "Promise.all([fetch('http://127.0.0.1:3080/'), fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version')]).then(([web, desktop, cdp]) => { if (web.status !== 401 || !desktop.ok || !cdp.ok) process.exit(1) }).catch(() => process.exit(1))"
       interval: 15s
       timeout: 3s
       start_period: 20s

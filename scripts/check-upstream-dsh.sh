@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-pinned_version="${1:-0.1.1-rc.2}"
+pinned_version="${1:-0.1.2-alpha.3}"
 upstream_repository="${DSH_UPSTREAM_REPOSITORY:-deepseek-ai/deepseek-harness}"
 npm_package="${DSH_NPM_PACKAGE:-@deepseek-ai/dsh}"
 
@@ -12,12 +12,12 @@ for required_command in gh jq npm; do
   fi
 done
 
-if ! latest_release_json="$(gh api "repos/${upstream_repository}/releases?per_page=1")"; then
+if ! latest_release_json="$(gh api "repos/${upstream_repository}/releases?per_page=20")"; then
   echo "could not query GitHub Releases for ${upstream_repository}" >&2
   exit 2
 fi
-latest_tag="$(jq -r '.[0].tag_name // empty' <<<"${latest_release_json}")"
-latest_release_url="$(jq -r '.[0].html_url // empty' <<<"${latest_release_json}")"
+latest_tag="$(jq -r '[.[] | select(.draft | not) | select(.tag_name | startswith("dsh-v"))][0].tag_name // empty' <<<"${latest_release_json}")"
+latest_release_url="$(jq -r --arg tag "${latest_tag}" '.[] | select(.tag_name == $tag) | .html_url' <<<"${latest_release_json}")"
 
 if [[ -z "${latest_tag}" || "${latest_tag}" != dsh-v* ]]; then
   echo "could not resolve the latest dsh-v* release from ${upstream_repository}" >&2
@@ -25,22 +25,24 @@ if [[ -z "${latest_tag}" || "${latest_tag}" != dsh-v* ]]; then
 fi
 
 latest_release_version="${latest_tag#dsh-v}"
-if ! latest_npm_version="$(npm view "${npm_package}" version)"; then
-  echo "could not query npm for ${npm_package}" >&2
+if ! npm_dist_tags_json="$(npm view "${npm_package}" dist-tags --json)"; then
+  echo "could not query npm dist-tags for ${npm_package}" >&2
   exit 2
 fi
+latest_npm_version="$(jq -r '.latest // "unassigned"' <<<"${npm_dist_tags_json}")"
+alpha_npm_version="$(jq -r '.alpha // "unassigned"' <<<"${npm_dist_tags_json}")"
 
-printf 'Pinned DSH:          %s\n' "${pinned_version}"
-printf 'Latest npm:         %s\n' "${latest_npm_version}"
-printf 'Latest GitHub tag:  %s\n' "${latest_tag}"
-printf 'Latest release URL: %s\n' "${latest_release_url}"
+printf 'Pinned DSH:           %s\n' "${pinned_version}"
+printf 'npm latest dist-tag:  %s\n' "${latest_npm_version}"
+printf 'npm alpha dist-tag:   %s\n' "${alpha_npm_version}"
+printf 'Latest GitHub tag:    %s\n' "${latest_tag}"
+printf 'Latest release URL:   %s\n' "${latest_release_url}"
 
-if [[ "${latest_npm_version}" != "${pinned_version}" ]]; then
-  echo "A newer npm dist-tag is available: ${npm_package}@${latest_npm_version}" >&2
-  exit 1
-fi
-
-if npm view "${npm_package}@${latest_release_version}" version >/dev/null 2>&1; then
+if installable_version="$(npm view "${npm_package}@${latest_release_version}" version 2>/dev/null)"; then
+  if [[ "${installable_version}" != "${latest_release_version}" ]]; then
+    echo "npm returned an unexpected version for ${npm_package}@${latest_release_version}: ${installable_version}" >&2
+    exit 2
+  fi
   if [[ "${latest_release_version}" != "${pinned_version}" ]]; then
     echo "The latest upstream release is now installable from npm: ${npm_package}@${latest_release_version}" >&2
     exit 1

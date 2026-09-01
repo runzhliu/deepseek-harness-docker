@@ -8,7 +8,7 @@ on:
       version:
         description: Immutable container revision already published to Docker Hub
         required: true
-        default: 0.1.1-rc.2-r2
+        default: 0.1.2-alpha.3-r1
         type: string
       include_market:
         description: Also mirror the version-market.1 image

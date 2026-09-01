@@ -75,19 +75,21 @@ spec:
               command:
                 - node
                 - -e
-                - "Promise.all([fetch('http://127.0.0.1:3080/'), fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))"
+                - "Promise.all([fetch('http://127.0.0.1:3080/'), fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version')]).then(([web, desktop, cdp]) => { if (web.status !== 401 || !desktop.ok || !cdp.ok) process.exit(1) }).catch(() => process.exit(1))"
             {{- toYaml .Values.startupProbe | nindent 12 }}
           livenessProbe:
-            httpGet:
-              path: /
-              port: http
+            exec:
+              command:
+                - node
+                - -e
+                - "fetch('http://127.0.0.1:3080/').then(response => { if (response.status !== 401) process.exit(1) }).catch(() => process.exit(1))"
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
             exec:
               command:
                 - node
                 - -e
-                - "Promise.all([fetch('http://127.0.0.1:3080/'), fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))"
+                - "Promise.all([fetch('http://127.0.0.1:3080/'), fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version')]).then(([web, desktop, cdp]) => { if (web.status !== 401 || !desktop.ok || !cdp.ok) process.exit(1) }).catch(() => process.exit(1))"
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}

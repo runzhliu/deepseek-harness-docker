@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-image="${1:-runzhliu/deepseek-harness:0.1.1-rc.2-r2}"
-expected_version="${2:-0.1.1-rc.2}"
+image="${1:-runzhliu/deepseek-harness:0.1.2-alpha.3-r1}"
+expected_version="${2:-0.1.2-alpha.3}"
 expected_pnpm_version="${3:-10.15.1}"
 expected_market_version="${4:-}"
 suffix="${RANDOM}-$$"
@@ -158,6 +158,12 @@ docker run --detach \
   "${image}" >/dev/null
 
 port="$(docker port "${container}" 3080/tcp | awk -F: 'NR == 1 { print $NF }')"
+cookie_jar="$(mktemp "${TMPDIR:-/tmp}/deepseek-harness-smoke-cookie.XXXXXX")"
+
+cleanup_web_auth() {
+  rm -f "${cookie_jar}"
+}
+trap 'cleanup_web_auth; cleanup' EXIT INT TERM
 
 market_is_ready() {
   if [[ -z "${expected_market_version}" ]]; then
@@ -168,11 +174,21 @@ market_is_ready() {
 }
 
 for attempt in $(seq 1 30); do
-  if curl --fail --silent "http://127.0.0.1:${port}/" >/dev/null \
+  unauthenticated_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+    "http://127.0.0.1:${port}/" || true)"
+  launch_token="$(docker logs "${container}" 2>&1 \
+    | sed -n 's#^dsh web: http://127\.0\.0\.1:[0-9][0-9]*/?token=\([^ ]*\).*#\1#p' \
+    | tail -n 1)"
+  if [[ "${unauthenticated_status}" == "401" ]] \
+      && [[ -n "${launch_token}" ]] \
+      && curl --fail --silent --location \
+        --cookie-jar "${cookie_jar}" \
+        --cookie "${cookie_jar}" \
+        "http://127.0.0.1:${port}/?token=${launch_token}" >/dev/null \
       && docker exec "${container}" node -e \
         "Promise.all([fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version'), fetch('http://127.0.0.1:3080/browser-desktop/state')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))" \
       && market_is_ready; then
-    if ! curl --fail --silent "http://127.0.0.1:${port}/" \
+    if ! curl --fail --silent --cookie "${cookie_jar}" "http://127.0.0.1:${port}/" \
       | grep --quiet '"id":"@runzhliu/dsh-browser-desktop"'; then
       echo "Harness boot manifest did not include the browser desktop client plugin" >&2
       exit 1
@@ -189,7 +205,7 @@ for attempt in $(seq 1 30); do
       exit 1
     fi
     if [[ -n "${expected_market_version}" ]]; then
-      if ! curl --fail --silent "http://127.0.0.1:${port}/" \
+      if ! curl --fail --silent --cookie "${cookie_jar}" "http://127.0.0.1:${port}/" \
         | grep --quiet 'dshmarket'; then
         echo "Harness boot manifest did not include the plugin market client" >&2
         exit 1

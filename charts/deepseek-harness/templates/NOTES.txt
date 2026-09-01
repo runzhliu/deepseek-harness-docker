@@ -4,12 +4,17 @@ Keep this terminal open:
 
   kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ include "deepseek-harness.fullname" . }} 3080:{{ .Values.service.port }} {{ .Values.service.desktopPort }}:{{ .Values.service.desktopPort }}
 
-Then open http://127.0.0.1:3080.
+In another terminal, print the authenticated startup URL:
+
+  kubectl --namespace {{ .Release.Namespace }} logs statefulset/{{ include "deepseek-harness.fullname" . }} | grep 'dsh web:'
+
+Open the exact tokenized http://127.0.0.1:3080 URL from that log line.
 The embedded browser desktop is forwarded on http://127.0.0.1:{{ .Values.service.desktopPort }}.
 
-The Web API has no authentication and can execute code. Do not change the
-headless Service to NodePort/LoadBalancer or add an Ingress without a reviewed
-authentication and TLS boundary.
+The DSH Web surface exchanges the startup token for a signed browser cookie,
+but it has no TLS and the noVNC desktop is unauthenticated. Do not change the
+headless Service to NodePort/LoadBalancer or add an Ingress without reviewed
+authentication and TLS boundaries for every exposed port.
 
 The dsh-home PVC is retained when the Helm release is removed. Delete it only
 when you intentionally want to erase stored configuration, credentials, and
