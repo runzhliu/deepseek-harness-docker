@@ -1,6 +1,6 @@
 IMAGE ?= runzhliu/deepseek-harness
 GHCR_IMAGE ?= ghcr.io/runzhliu/deepseek-harness
-DSH_VERSION ?= 0.1.2-alpha.3
+DSH_VERSION ?= 0.1.2-alpha.4
 IMAGE_VERSION ?= $(DSH_VERSION)-r1
 NODE_IMAGE ?= node:24-trixie
 PNPM_VERSION ?= 10.15.1

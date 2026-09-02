@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented here.
 
+## 0.1.3 - 2026-09-02
+
+- Upgrade the official runtime to `@deepseek-ai/dsh@0.1.2-alpha.4` and publish the immutable container revision as `0.1.2-alpha.4-r1`.
+
 ## 0.1.2 - 2026-09-01
 
 - Upgrade the official runtime to `@deepseek-ai/dsh@0.1.2-alpha.3` and publish the first immutable container revision as `0.1.2-alpha.3-r1`.

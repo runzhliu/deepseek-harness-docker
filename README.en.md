@@ -12,11 +12,11 @@ English | [简体中文](README.md)
 
 A production-minded community container project for the official DeepSeek Harness `@deepseek-ai/dsh` package. It provides a multi-stage Dockerfile, a hardened Compose setup, and a single-replica StatefulSet Helm chart without forking or rebuilding the upstream monorepo.
 
-> Current baseline: `@deepseek-ai/dsh@0.1.2-alpha.3`. DeepSeek Harness is still a pre-release. Re-run the build and smoke tests before every version upgrade.
+> Current baseline: `@deepseek-ai/dsh@0.1.2-alpha.4`. DeepSeek Harness is still a pre-release. Re-run the build and smoke tests before every version upgrade.
 
-`0.1.2-alpha.3` maps directly to the official [`dsh-v0.1.2-alpha.3`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.3) Release and [`@deepseek-ai/dsh@0.1.2-alpha.3`](https://www.npmjs.com/package/@deepseek-ai/dsh/v/0.1.2-alpha.3) in the npm Registry; it is not a project-defined version. This project packages the installable npm distribution instead of building source, and intentionally does not publish a drifting Docker `latest` tag.
+`0.1.2-alpha.4` maps directly to the official [`dsh-v0.1.2-alpha.4`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.4) Release and [`@deepseek-ai/dsh@0.1.2-alpha.4`](https://www.npmjs.com/package/@deepseek-ai/dsh/v/0.1.2-alpha.4) in the npm Registry; it is not a project-defined version. This project packages the installable npm distribution instead of building source, and intentionally does not publish a drifting Docker `latest` tag.
 
-> Upstream tracking (2026-09-01): the current baseline matches the latest official pre-release, [`dsh-v0.1.2-alpha.3`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.3), and the same `@deepseek-ai/dsh` version is installable from npm. The daily [Upstream DSH version watch](.github/workflows/upstream-dsh.yml) checks both GitHub Releases and npm; it creates or refreshes an upgrade issue when a newer release becomes installable and closes that issue after the pin catches up.
+> Upstream tracking (2026-09-02): the current baseline matches the latest official pre-release, [`dsh-v0.1.2-alpha.4`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.4), and the same `@deepseek-ai/dsh` version is installable from npm. The daily [Upstream DSH version watch](.github/workflows/upstream-dsh.yml) checks both GitHub Releases and npm; it creates or refreshes an upgrade issue when a newer release becomes installable and closes that issue after the pin catches up.
 
 📖 Further reading: [DeepSeek Harness GitHub repository deep dive](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) · [Docker, Compose, and Helm deployment guide](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/) (Chinese)
 
@@ -88,7 +88,7 @@ User code lives separately at `/workspace`. Compose combines a named `dsh-home` 
 
 Choosing the non-slim base is an explicit coding-agent trade-off rather than a smallest-image goal. Debian 13 Trixie raises glibc from Bookworm's 2.36 to 2.41, allowing more binaries built on recent systems to run. The official non-slim Node variant is based on `buildpack-deps` and already includes the compiler, `make`, `git`, `curl`, `file`, `unzip`, `wget`, and `xz`; this project explicitly adds `jq`, `less`, `ripgrep`, `rsync`, and `zip`. The trade-off is roughly 330 MB more compressed base-image data than slim. The smoke test asserts Trixie, glibc 2.41, and the complete command contract so a later upgrade cannot silently regress them.
 
-The Web bind is the most important trade-off. Docker bridge publication requires the process to listen beyond the container loopback interface, while Harness deliberately rejects `--host 0.0.0.0` to prevent accidental exposure of a code-execution surface. The container overlay changes only the internal listener. The deployment boundary then restores the intended posture: Compose binds the host side to `127.0.0.1`, and Kubernetes access uses `kubectl port-forward`. DSH `0.1.2-alpha.3` adds a launch token, signed cookies, and Host/Origin checks, but there is still no TLS and the bundled noVNC endpoint is unauthenticated. Changing this to `-p 3080:3080`, NodePort, LoadBalancer, or a public Ingress still breaks the security model.
+The Web bind is the most important trade-off. Docker bridge publication requires the process to listen beyond the container loopback interface, while Harness deliberately rejects `--host 0.0.0.0` to prevent accidental exposure of a code-execution surface. The container overlay changes only the internal listener. The deployment boundary then restores the intended posture: Compose binds the host side to `127.0.0.1`, and Kubernetes access uses `kubectl port-forward`. The DSH `0.1.2` alpha series adds a launch token, signed cookies, and Host/Origin checks, but there is still no TLS and the bundled noVNC endpoint is unauthenticated. Changing this to `-p 3080:3080`, NodePort, LoadBalancer, or a public Ingress still breaks the security model.
 
 ### Container isolation versus the Harness sandbox
 
@@ -132,7 +132,7 @@ Open the complete <http://127.0.0.1:3080> URL carrying `?token=...` after `dsh w
 
 When `DSH_WORKSPACE` is unset, Compose uses a separate `dsh-workspace` named volume so the Agent cannot accidentally modify this repository. Set `DSH_WORKSPACE=/absolute/path/to/project` only after choosing the intended host project.
 
-The default immutable image revision is [`runzhliu/deepseek-harness:0.1.2-alpha.3-r1`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.2-alpha.3-r1`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). `r1` is the container revision; the packaged upstream DSH version remains `0.1.2-alpha.3`. Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
+The default immutable image revision is [`runzhliu/deepseek-harness:0.1.2-alpha.4-r1`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.2-alpha.4-r1`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). `r1` is the container revision; the packaged upstream DSH version remains `0.1.2-alpha.4`. Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
 
 To pull from GHCR without changing the rest of the Compose deployment:
 
@@ -181,7 +181,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
   docker compose -f compose.yaml -f compose.market.yaml up -d --no-build
 ```
 
-The variant has the unambiguous `runzhliu/deepseek-harness:0.1.2-alpha.3-r1-market.1` tag and pins `dshmarket@1.38.1`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
+The variant has the unambiguous `runzhliu/deepseek-harness:0.1.2-alpha.4-r1-market.1` tag and pins `dshmarket@1.38.1`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
 
 The market package itself is pinned and copied at build time. Plugins installed through it and the pnpm store persist in the `dsh-home` volume. Installation needs container egress to npm/GitHub, and third-party build scripts should remain blocked until separately reviewed and approved. One-click market restart is disabled; apply lifecycle changes with `docker compose restart` or a Kubernetes rollout.
 
@@ -192,7 +192,7 @@ make market-build
 make market-smoke
 ```
 
-Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.2-alpha.3-r1-market.1`.
+Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.2-alpha.4-r1-market.1`.
 
 A reused `dsh-home` previously managed by another pnpm major can fail installation with `ERR_PNPM_UNEXPECTED_STORE`. Stop DSH and run the explicit one-time migration:
 
@@ -223,7 +223,7 @@ docker compose down
 Build:
 
 ```bash
-docker build -t runzhliu/deepseek-harness:0.1.2-alpha.3-r1 .
+docker build -t runzhliu/deepseek-harness:0.1.2-alpha.4-r1 .
 ```
 
 Run the Web UI:
@@ -237,7 +237,7 @@ docker run --rm \
   --shm-size 1g \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.2-alpha.3-r1
+  runzhliu/deepseek-harness:0.1.2-alpha.4-r1
 ```
 
 The foreground command prints the tokenized startup URL; open that exact URL. Do not shorten the publication to `-p 3080:3080`, and do not place this service behind a public Ingress: Web has no TLS, and noVNC on 6080 has no authentication.
@@ -251,7 +251,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.2-alpha.3-r1 \
+  runzhliu/deepseek-harness:0.1.2-alpha.4-r1 \
   --profile headless "summarize this repository"
 ```
 
@@ -268,7 +268,7 @@ helm upgrade --install deepseek-harness charts/deepseek-harness \
   --namespace deepseek-harness \
   --create-namespace \
   --set image.repository=runzhliu/deepseek-harness \
-  --set image.tag=0.1.2-alpha.3-r1
+  --set image.tag=0.1.2-alpha.4-r1
 ```
 
 Kind or Minikube can pull the default `runzhliu/deepseek-harness` image directly, or you can load a local image under the same name first.
@@ -302,15 +302,15 @@ The build argument pins the package:
 
 ```bash
 docker build \
-  --build-arg DSH_VERSION=0.1.2-alpha.3 \
-  --build-arg IMAGE_VERSION=0.1.2-alpha.3-r1 \
-  -t runzhliu/deepseek-harness:0.1.2-alpha.3-r1 .
+  --build-arg DSH_VERSION=0.1.2-alpha.4 \
+  --build-arg IMAGE_VERSION=0.1.2-alpha.4-r1 \
+  -t runzhliu/deepseek-harness:0.1.2-alpha.4-r1 .
 ```
 
 Compose keeps the upstream version and immutable container revision separate:
 
 ```bash
-DSH_VERSION=0.1.2-alpha.3 DSH_IMAGE_VERSION=0.1.2-alpha.3-r1 docker compose build --pull
+DSH_VERSION=0.1.2-alpha.4 DSH_IMAGE_VERSION=0.1.2-alpha.4-r1 docker compose build --pull
 ```
 
 Maintainers can run `make push` to build and publish the `linux/amd64` and `linux/arm64` manifests under the same immutable revision. The target refuses to overwrite an existing tag and does not create a `latest` tag.
@@ -337,9 +337,9 @@ See [SECURITY.md](SECURITY.md) before changing any network or privilege setting.
 Run at least these checks for every DSH upgrade:
 
 ```bash
-docker run --rm runzhliu/deepseek-harness:0.1.2-alpha.3-r1 --version
+docker run --rm runzhliu/deepseek-harness:0.1.2-alpha.4-r1 --version
 
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.2-alpha.3-r1 \
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.2-alpha.4-r1 \
   web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config
 
 docker compose up -d
