@@ -3,11 +3,11 @@ services:
     build:
       context: .
       args:
-        DSH_VERSION: ${DSH_VERSION:-0.1.2-alpha.4}
-        IMAGE_VERSION: ${DSH_IMAGE_VERSION:-0.1.2-alpha.4-r1}
+        DSH_VERSION: ${DSH_VERSION:-0.1.2-rc.1}
+        IMAGE_VERSION: ${DSH_IMAGE_VERSION:-0.1.2-rc.1-r1}
         NODE_IMAGE: ${NODE_IMAGE:-node:24-trixie}
         PNPM_VERSION: ${PNPM_VERSION:-10.15.1}
-    image: ${DSH_IMAGE_REPOSITORY:-runzhliu/deepseek-harness}:${DSH_IMAGE_VERSION:-0.1.2-alpha.4-r1}
+    image: ${DSH_IMAGE_REPOSITORY:-runzhliu/deepseek-harness}:${DSH_IMAGE_VERSION:-0.1.2-rc.1-r1}
     ports:
       - "127.0.0.1:${DSH_PORT:-3080}:3080"
       - "127.0.0.1:${DSH_DESKTOP_PORT:-6080}:6080"

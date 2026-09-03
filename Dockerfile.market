@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 ARG NODE_IMAGE=node:24-trixie
-ARG BASE_IMAGE=runzhliu/deepseek-harness:0.1.2-alpha.4-r1
+ARG BASE_IMAGE=runzhliu/deepseek-harness:0.1.2-rc.1-r1
 FROM ${NODE_IMAGE} AS market-installer
 
 ARG DSH_MARKET_VERSION=1.38.1
@@ -30,7 +30,7 @@ RUN mkdir -p /opt/dshmarket \
 FROM ${BASE_IMAGE}
 
 ARG DSH_MARKET_VERSION=1.38.1
-ARG MARKET_IMAGE_VERSION=0.1.2-alpha.4-r1-market.1
+ARG MARKET_IMAGE_VERSION=0.1.2-rc.1-r1-market.1
 
 LABEL org.opencontainers.image.version="${MARKET_IMAGE_VERSION}" \
       io.github.runzhliu.deepseek-harness.variant="community-market" \

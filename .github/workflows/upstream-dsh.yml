@@ -25,7 +25,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set +e
-          ./scripts/check-upstream-dsh.sh 0.1.2-alpha.4 >upstream-report.txt 2>&1
+          ./scripts/check-upstream-dsh.sh 0.1.2-rc.1 >upstream-report.txt 2>&1
           status="$?"
           echo "status=${status}" >>"${GITHUB_OUTPUT}"
           exit "${status}"
