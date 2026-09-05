@@ -20,7 +20,6 @@ jobs:
           node-version: 24
       - name: Check the pinned DSH version
         id: upstream
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -28,7 +27,6 @@ jobs:
           ./scripts/check-upstream-dsh.sh 0.1.2-rc.1 >upstream-report.txt 2>&1
           status="$?"
           echo "status=${status}" >>"${GITHUB_OUTPUT}"
-          exit "${status}"
       - name: Show the version report
         if: always()
         run: cat upstream-report.txt
