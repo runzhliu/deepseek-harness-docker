@@ -16,7 +16,7 @@ A production-minded community container project for the official DeepSeek Harnes
 
 `0.1.2-rc.1` maps directly to the official [`dsh-v0.1.2-rc.1`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-rc.1) Release and [`@deepseek-ai/dsh@0.1.2-rc.1`](https://www.npmjs.com/package/@deepseek-ai/dsh/v/0.1.2-rc.1) in the npm Registry; it is not a project-defined version. This project packages the installable npm distribution instead of building source, and intentionally does not publish a drifting Docker `latest` tag.
 
-> Upstream tracking (2026-09-03): the current baseline matches the latest official pre-release, [`dsh-v0.1.2-rc.1`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-rc.1), and the same `@deepseek-ai/dsh` version is installable from npm. The daily [Upstream DSH version watch](.github/workflows/upstream-dsh.yml) checks both GitHub Releases and npm; it creates or refreshes an upgrade issue when a newer release becomes installable and closes that issue after the pin catches up.
+> Upstream tracking: the daily [Upstream DSH version watch](.github/workflows/upstream-dsh.yml) checks both GitHub Releases and npm. When a new Release exists but its npm artifact is unavailable, the workflow creates or refreshes a waiting issue while retaining the current installable baseline. Once the matching package becomes installable, the issue automatically becomes an upgrade alert and closes after the pin catches up.
 
 📖 Further reading: [DeepSeek Harness GitHub repository deep dive](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-repository-analysis/) · [Docker, Compose, and Helm deployment guide](https://aik8s.run/ai-k8s/rag-agent/deepseek-harness-runtime-containerization/) (Chinese)
 

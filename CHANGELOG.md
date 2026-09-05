@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented here.
 
+## Unreleased
+
+- Track upstream GitHub Releases even before their matching official npm artifacts become installable, without prematurely changing the pinned runtime.
+
 ## 0.1.4 - 2026-09-03
 
 - Upgrade the official runtime to `@deepseek-ai/dsh@0.1.2-rc.1` and publish the immutable container revision as `0.1.2-rc.1-r1`.

@@ -49,5 +49,11 @@ if installable_version="$(npm view "${npm_package}@${latest_release_version}" ve
   fi
   echo "Pinned DSH matches the latest upstream release and npm package."
 else
-  echo "Latest upstream release is not yet available from npm; retaining ${pinned_version}."
+  if [[ "${latest_release_version}" != "${pinned_version}" ]]; then
+    echo "The latest upstream release is not yet available from npm: ${npm_package}@${latest_release_version}" >&2
+    echo "Retaining ${pinned_version} until the matching official npm package is installable." >&2
+    exit 3
+  fi
+  echo "Pinned DSH matches the latest upstream release; npm availability could not be confirmed." >&2
+  exit 2
 fi

@@ -32,22 +32,31 @@ jobs:
       - name: Show the version report
         if: always()
         run: cat upstream-report.txt
-      - name: Create or refresh the upgrade issue
-        if: steps.upstream.outputs.status == '1'
+      - name: Create or refresh the upstream tracking issue
+        if: steps.upstream.outputs.status == '1' || steps.upstream.outputs.status == '3'
         env:
           GH_TOKEN: ${{ github.token }}
+          UPSTREAM_STATUS: ${{ steps.upstream.outputs.status }}
         run: |
           title="chore: upgrade the pinned DSH release"
           existing_json="$(gh issue list --state open --limit 100 --json number,title,author)"
           existing="$(jq -r --arg title "${title}" 'map(select(.title == $title and .author.is_bot)) | first | .number // empty' <<<"${existing_json}")"
           {
-            echo "The scheduled upstream version check found a newer installable DSH release."
+            if [[ "${UPSTREAM_STATUS}" == "1" ]]; then
+              echo "The scheduled upstream version check found a newer installable DSH release."
+            else
+              echo "The scheduled upstream version check found a newer GitHub Release whose matching npm package is not yet available."
+              echo
+              echo "Keep the current pin until the official npm distribution becomes installable; the next scheduled check will refresh this issue automatically."
+            fi
             echo
             echo '```text'
             cat upstream-report.txt
             echo '```'
             echo
-            echo "Update every pinned version together and run the full multi-architecture smoke tests before publishing."
+            if [[ "${UPSTREAM_STATUS}" == "1" ]]; then
+              echo "Update every pinned version together and run the full multi-architecture smoke tests before publishing."
+            fi
           } >upstream-issue.md
           if [[ -z "${existing}" ]]; then
             gh issue create --title "${title}" --body-file upstream-issue.md
@@ -65,6 +74,6 @@ jobs:
           if [[ -n "${existing}" ]]; then
             gh issue close "${existing}" --comment "Resolved: the pinned DSH version now matches the latest installable upstream release."
           fi
-      - name: Fail when an upgrade is available
-        if: steps.upstream.outcome == 'failure'
+      - name: Fail when an upgrade or check error requires action
+        if: steps.upstream.outputs.status == '1' || steps.upstream.outputs.status == '2'
         run: exit 1
