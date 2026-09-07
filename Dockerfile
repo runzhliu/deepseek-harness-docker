@@ -29,18 +29,28 @@ FROM ${NODE_IMAGE}
 ARG NODE_IMAGE
 ARG DSH_VERSION=0.1.2-rc.1
 ARG PNPM_VERSION=10.15.1
+ARG CHROMIUM_FLAVOR=debian
+ARG UNGOOGLED_CHROMIUM_VERSION=152.0.7977.82-1
+ARG UNGOOGLED_CHROMIUM_AMD64_SHA256=2c6e464e030f87145e42553c5aa539f6e62163ce677d3eace3c51b4fcbd5e347
+ARG UNGOOGLED_CHROMIUM_ARM64_SHA256=1909f42dcc3661bc213f2cf3b5232a9d3c850913b36efa7267ed6499f6cbf87d
+ARG TARGETARCH
 
 # Use Node's official non-slim Trixie variant intentionally: its buildpack-deps
 # base provides the compiler and common development utilities a coding agent or
 # native plugin may need at runtime, while glibc 2.41 accepts newer binaries
 # than Bookworm's glibc 2.36. Install the remaining user-facing CLI tools
-# explicitly so their availability is covered by the smoke test. Chromium is
-# installed from Debian so linux/amd64 and linux/arm64 stay native; Noto CJK
-# keeps Chinese pages and screenshots readable.
-RUN apt-get update \
-    && apt-get install --yes --no-install-recommends \
+# explicitly so their availability is covered by the smoke test. The default
+# flavor installs Chromium from Debian. The separately tagged ungoogled flavor
+# uses a checksum-pinned portable build and still runs natively on amd64/arm64.
+# Noto CJK keeps Chinese pages and screenshots readable.
+RUN set -eux; \
+    case "${CHROMIUM_FLAVOR}" in \
+      debian|ungoogled) ;; \
+      *) echo "unsupported Chromium flavor: ${CHROMIUM_FLAVOR}" >&2; exit 1 ;; \
+    esac; \
+    apt-get update; \
+    apt-get install --yes --no-install-recommends \
       ca-certificates \
-      chromium \
       curl \
       file \
       fonts-liberation \
@@ -63,9 +73,75 @@ RUN apt-get update \
       x11vnc \
       xterm \
       xvfb \
-      zip \
-    && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /usr/local/lib/node_modules/@deepseek-ai
+      zip; \
+    if [ "${CHROMIUM_FLAVOR}" = debian ]; then \
+      apt-get install --yes --no-install-recommends chromium; \
+    else \
+      case "${TARGETARCH}" in \
+        amd64) \
+          ungoogled_arch=x86_64; \
+          ungoogled_sha256="${UNGOOGLED_CHROMIUM_AMD64_SHA256}"; \
+          ;; \
+        arm64) \
+          ungoogled_arch=arm64; \
+          ungoogled_sha256="${UNGOOGLED_CHROMIUM_ARM64_SHA256}"; \
+          ;; \
+        *) echo "unsupported architecture for ungoogled-chromium: ${TARGETARCH}" >&2; exit 1 ;; \
+      esac; \
+      ungoogled_archive="ungoogled-chromium-${UNGOOGLED_CHROMIUM_VERSION}-${ungoogled_arch}_linux.tar.xz"; \
+      ungoogled_url="https://github.com/ungoogled-software/ungoogled-chromium-portablelinux/releases/download/${UNGOOGLED_CHROMIUM_VERSION}/${ungoogled_archive}"; \
+      curl --fail --location --retry 3 --output "/tmp/${ungoogled_archive}" "${ungoogled_url}"; \
+      printf '%s  %s\n' "${ungoogled_sha256}" "/tmp/${ungoogled_archive}" | sha256sum --check --strict -; \
+      mkdir -p /opt/ungoogled-chromium; \
+      tar --extract --xz --file "/tmp/${ungoogled_archive}" \
+        --directory /opt/ungoogled-chromium --strip-components=1; \
+      ln -s /opt/ungoogled-chromium/chrome-wrapper /usr/bin/chromium; \
+      rm -f "/tmp/${ungoogled_archive}"; \
+    fi; \
+    rm -rf /var/lib/apt/lists/*; \
+    mkdir -p /usr/local/lib/node_modules/@deepseek-ai
+
+# The portable archive contains Chromium itself, but intentionally does not
+# bundle the Debian shared libraries it links against. Keep these packages in
+# a separate layer so changing the dependency set does not invalidate the much
+# larger, checksum-verified browser download above.
+RUN if [ "${CHROMIUM_FLAVOR}" = ungoogled ]; then \
+      apt-get update; \
+      apt-get install --yes --no-install-recommends \
+        libasound2t64 \
+        libatk-bridge2.0-0t64 \
+        libatk1.0-0t64 \
+        libatspi2.0-0t64 \
+        libcairo2 \
+        libdav1d7 \
+        libdouble-conversion3 \
+        libflac14 \
+        libglib2.0-0t64 \
+        libharfbuzz-subset0 \
+        libharfbuzz0b \
+        libjpeg62-turbo \
+        liblcms2-2 \
+        libminizip1t64 \
+        libmp3lame0 \
+        libmpg123-0t64 \
+        libnspr4 \
+        libnss3 \
+        libogg0 \
+        libopenh264-8 \
+        libopenjp2-7 \
+        libopus0 \
+        libpango-1.0-0 \
+        libpulse0 \
+        libvorbis0a \
+        libvorbisenc2 \
+        libx11-6 \
+        libxcb1 \
+        libxext6 \
+        libxkbcommon0 \
+        libxnvctrl0; \
+      rm -rf /var/lib/apt/lists/*; \
+      ! ldd /opt/ungoogled-chromium/chrome | grep -F 'not found'; \
+    fi
 
 # dsh misdetects Docker Desktop's WSL2 kernel as WSL and spawns
 # wslpath/powershell.exe (absent in the container) to open native paths.
@@ -207,13 +283,13 @@ RUN chmod 0755 /usr/local/bin/chromium-docker \
 
 ENV DSH_HOME=/home/node/.dsh \
     DSH_TELEMETRY_DISABLED=1 \
+    CHROMIUM_FLAVOR=${CHROMIUM_FLAVOR} \
     HOME=/workspace \
     NPM_CONFIG_CACHE=/home/node/.dsh/npm-cache \
     DISPLAY=:99 \
     XDG_RUNTIME_DIR=/tmp/runtime-node \
     CHROME_BIN=/usr/local/bin/chromium-docker \
     CHROME_PATH=/usr/local/bin/chromium-docker \
-    CHROME_USER_DATA_DIR=/home/node/.dsh/chrome-profile \
     BROWSER=/usr/local/bin/chromium-docker \
     PUPPETEER_EXECUTABLE_PATH=/usr/local/bin/chromium-docker \
     XDG_CACHE_HOME=/tmp/.cache \
@@ -245,6 +321,8 @@ LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
       org.opencontainers.image.revision="${IMAGE_REVISION}" \
       io.github.runzhliu.deepseek-harness.base-image="${NODE_IMAGE}" \
       io.github.runzhliu.deepseek-harness.debian-codename="trixie" \
+      io.github.runzhliu.deepseek-harness.chromium.flavor="${CHROMIUM_FLAVOR}" \
+      io.github.runzhliu.deepseek-harness.chromium.ungoogled.version="${UNGOOGLED_CHROMIUM_VERSION}" \
       io.github.runzhliu.deepseek-harness.upstream.repository="https://github.com/deepseek-ai/deepseek-harness" \
       io.github.runzhliu.deepseek-harness.upstream.release="https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v${DSH_VERSION}" \
       io.github.runzhliu.deepseek-harness.upstream.npm="@deepseek-ai/dsh@${DSH_VERSION}"

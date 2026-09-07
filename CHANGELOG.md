@@ -5,6 +5,9 @@ All notable changes to this project are documented here.
 ## Unreleased
 
 - Track upstream GitHub Releases even before their matching official npm artifacts become installable, without prematurely changing the pinned runtime.
+- Add an explicitly optional `0.1.2-rc.1-r1-ungoogled.1` image that pins and verifies native amd64/arm64 ungoogled-chromium artifacts without replacing the Debian Chromium default.
+- Give the privacy variant a separate persistent browser profile and test the complete Harness/noVNC integration for the absence of GCM port `5228` connections and `google_apis/gcm` logs.
+- Extend immutable GHCR mirroring and local release commands to cover the ungoogled-chromium variant.
 
 ## 0.1.4 - 2026-09-03
 

@@ -1,6 +1,6 @@
 ---
 name: deepseek-harness-docker
-description: Deploy, configure, verify, upgrade, and troubleshoot DeepSeek Harness with the community Docker, Docker Compose, and Helm runtime, including the built-in Chromium/noVNC browser and optional plugin market. Use when users ask to run DSH or DeepSeek Harness locally or on Kubernetes, mount a writable workspace, configure model credentials safely, enable the embedded browser, choose the market image, or diagnose container health and startup problems.
+description: Deploy, configure, verify, upgrade, and troubleshoot DeepSeek Harness with the community Docker, Docker Compose, and Helm runtime, including the built-in Chromium/noVNC browser, optional ungoogled-chromium image, and optional plugin market. Use when users ask to run DSH or DeepSeek Harness locally or on Kubernetes, mount a writable workspace, configure model credentials safely, enable the embedded browser, minimize browser background egress, choose the market image, or diagnose container health and startup problems.
 ---
 
 # DeepSeek Harness Docker
@@ -29,7 +29,7 @@ Read `README.md`, `SECURITY.md`, `compose.yaml`, and `.env.example` before chang
 
 ## Choose the smallest suitable mode
 
-Use default Compose for a local, single-user WebUI with the embedded Chromium desktop. Add `compose.market.yaml` only when the user explicitly wants the community plugin market. Use headless mode for one-shot automation and Helm only when the user requests Kubernetes.
+Use default Compose for a local, single-user WebUI with the embedded Debian Chromium desktop. Select the immutable `0.1.2-rc.1-r1-ungoogled.1` tag only when the user explicitly prioritizes minimized Google background egress and accepts its contributor-binary and reduced browser-service tradeoffs. Add `compose.market.yaml` only when the user explicitly wants the community plugin market. Use headless mode for one-shot automation and Helm only when the user requests Kubernetes.
 
 ## Start the default local runtime
 
@@ -58,6 +58,18 @@ Use default Compose for a local, single-user WebUI with the embedded Chromium de
    ```
 
 5. Tell the user to open `http://127.0.0.1:3080`. Configure the model provider and key in Harness settings. Use the WebUI browser action for the embedded Chromium desktop; use `http://127.0.0.1:6080/vnc.html?autoconnect=1` only as a direct fallback.
+
+## Select the optional ungoogled browser
+
+Keep Debian Chromium as the default. For an explicit privacy-focused deployment, select the separate immutable image before pulling and starting:
+
+```bash
+export DSH_IMAGE_VERSION=0.1.2-rc.1-r1-ungoogled.1
+DSH_WORKSPACE=/absolute/path/to/project docker compose pull
+DSH_WORKSPACE=/absolute/path/to/project docker compose up -d --no-build
+```
+
+This image keeps its browser profile under `/home/node/.dsh/chrome-profile-ungoogled`. Do not point it at the default Chromium profile. Report that Safe Browsing, sync, push, Widevine, and Web Store integration may be absent or require manual setup. When validating the variant, inspect `/proc/net/tcp` and `/proc/net/tcp6` for remote port `146C` (hexadecimal 5228) and confirm `/tmp/dsh-desktop/chromium.log` has no `google_apis/gcm` entry.
 
 ## Enable the optional plugin market
 
@@ -107,6 +119,7 @@ Use an existing Secret for provider credentials and an existing PVC when a persi
 
 - Run `make verify` before building changes.
 - Run `make build` and `make smoke` for the default image.
+- Run `make ungoogled-build` and `make ungoogled-smoke` for the optional privacy-focused image.
 - Run `make market-build` and `make market-smoke` for the optional market image.
 - On version upgrades, update every pinned DSH/image reference together, inspect upstream release notes, and rerun the full verification. Do not publish an unverified tag or a drifting `latest` tag.
 - Confirm both `linux/amd64` and `linux/arm64` when publishing multi-platform images.

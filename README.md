@@ -33,6 +33,7 @@
 | Helm | 可用 | 单副本 StatefulSet、PVC、Headless Service、NetworkPolicy；`helm lint --strict` 通过 |
 | Web UI | 本机单用户 | 启动 token + 签名 Cookie；无 TLS，noVNC 仍无认证，禁止直接暴露到局域网或公网 |
 | Headless | 可用 | 运行时注入 provider Secret；需在目标环境验证实际模型调用和沙箱 |
+| Chromium | 默认 + 可选隐私变体 | Debian Chromium 默认镜像；独立 ungoogled-chromium 双架构镜像会验证无 GCM `:5228` 活动 |
 
 ## DeepSeek Harness 深入分析
 
@@ -158,6 +159,25 @@ docker compose exec deepseek-harness \
 ```
 
 Compose 为 Chromium 配置了 1GB `/dev/shm`。启动器只对浏览器进程附加 `--no-sandbox`，以适配容器现有的 `cap_drop: ALL` 和 `no-new-privileges` 策略，不会放宽整个容器的权限。Agent 与脚本仍可通过 `chromium-docker --headless=new` 做无头渲染。
+
+#### 可选的 ungoogled-chromium 镜像
+
+默认镜像继续使用 Debian Chromium，以保留 Debian 安全更新与发行版供应链。对浏览器空闲后台连接有严格要求时，可显式选择独立的 [`runzhliu/deepseek-harness:0.1.2-rc.1-r1-ungoogled.1`](https://hub.docker.com/r/runzhliu/deepseek-harness/tags) 变体：
+
+```bash
+export DSH_IMAGE_VERSION=0.1.2-rc.1-r1-ungoogled.1
+docker compose pull
+DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
+```
+
+该镜像固定 `ungoogled-chromium@152.0.7977.82-1`，分别校验 amd64 与 arm64 下载包的 SHA256。Smoke Test 会启动完整 Harness/noVNC 桌面、调用 `browser_open`，随后断言不存在 GCM `5228` 连接与 `google_apis/gcm` 日志。它还自动使用 `/home/node/.dsh/chrome-profile-ungoogled`，不会与默认 Debian Chromium 的 Profile 混用。GHCR 使用相同标签；Helm 可显式设置 `--set image.tag=0.1.2-rc.1-r1-ungoogled.1`。
+
+这个变体采用 [`ungoogled-chromium-portablelinux`](https://github.com/ungoogled-software/ungoogled-chromium-portablelinux) 的社区 portable 构建，并非 Debian 官方软件包。[上游二进制索引](https://github.com/ungoogled-software/ungoogled-chromium-binaries)明确提示贡献者二进制不一定可复现、真实性无法完全保证；同时 Google Safe Browsing、同步、推送、Widevine 和扩展商店集成可能缺失或需要手动配置。因此它不会替换默认镜像，也不会发布为 `latest`。本地复现与验证：
+
+```bash
+make ungoogled-build
+make ungoogled-smoke
+```
 
 ### 独立安装浏览器插件
 

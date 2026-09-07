@@ -33,6 +33,7 @@ A production-minded community container project for the official DeepSeek Harnes
 | Helm | Ready | StatefulSet, PVC, headless Service, and NetworkPolicy; `helm lint --strict` passes |
 | Web UI | Local single-user only | Launch token + signed cookie; no TLS and noVNC remains unauthenticated, so never expose directly to a LAN or the Internet |
 | Headless | Ready | Inject provider secrets at runtime; validate model calls and sandboxing in the target environment |
+| Chromium | Default plus privacy variant | Debian Chromium by default; a separate native multi-platform ungoogled-chromium image checks for no GCM `:5228` activity |
 
 ## Deep dive: understanding DeepSeek Harness
 
@@ -159,6 +160,25 @@ docker compose exec deepseek-harness \
 ```
 
 Compose gives Chromium a 1GB `/dev/shm`. The launcher adds `--no-sandbox` only to the browser process so it can run under the existing `cap_drop: ALL` and `no-new-privileges` policy without weakening the whole container. Agents and scripts can still use `chromium-docker --headless=new` for non-interactive rendering.
+
+#### Optional ungoogled-chromium image
+
+The default image keeps Debian Chromium for Debian's security-update and distribution supply chain. Select the separate [`runzhliu/deepseek-harness:0.1.2-rc.1-r1-ungoogled.1`](https://hub.docker.com/r/runzhliu/deepseek-harness/tags) variant only when idle browser egress must be minimized:
+
+```bash
+export DSH_IMAGE_VERSION=0.1.2-rc.1-r1-ungoogled.1
+docker compose pull
+DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
+```
+
+This image pins `ungoogled-chromium@152.0.7977.82-1` and verifies distinct SHA256 values for the amd64 and arm64 downloads. Its smoke test starts the complete Harness/noVNC desktop, invokes `browser_open`, and then rejects any GCM port `5228` connection or `google_apis/gcm` log. It automatically uses `/home/node/.dsh/chrome-profile-ungoogled`, separate from the default Debian Chromium profile. GHCR uses the same tag; Helm users can explicitly set `--set image.tag=0.1.2-rc.1-r1-ungoogled.1`.
+
+The variant uses the community [`ungoogled-chromium-portablelinux`](https://github.com/ungoogled-software/ungoogled-chromium-portablelinux) build, not a Debian package. The [upstream binary index](https://github.com/ungoogled-software/ungoogled-chromium-binaries) warns that contributor binaries may not be reproducible and their authenticity cannot be guaranteed; Google Safe Browsing, sync, push, Widevine, and Chrome Web Store integration may also be absent or require manual setup. It therefore never replaces the default image or receives a moving `latest` tag. Reproduce and test it locally with:
+
+```bash
+make ungoogled-build
+make ungoogled-smoke
+```
 
 ### Install the browser plugin separately
 

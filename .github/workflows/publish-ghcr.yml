@@ -15,6 +15,11 @@ on:
         required: true
         default: false
         type: boolean
+      include_ungoogled:
+        description: Also mirror the version-ungoogled.1 image
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -40,6 +45,7 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_INCLUDE_MARKET: ${{ inputs.include_market }}
+          INPUT_INCLUDE_UNGOOGLED: ${{ inputs.include_ungoogled }}
         run: |
           if [[ "${EVENT_NAME}" == "release" ]]; then
             if [[ "${RELEASE_TAG}" != image-v* ]]; then
@@ -48,9 +54,11 @@ jobs:
             fi
             version="${RELEASE_TAG#image-v}"
             include_market=false
+            include_ungoogled=true
           else
             version="${INPUT_VERSION}"
             include_market="${INPUT_INCLUDE_MARKET}"
+            include_ungoogled="${INPUT_INCLUDE_UNGOOGLED}"
           fi
 
           if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
@@ -60,6 +68,7 @@ jobs:
 
           echo "version=${version}" >>"${GITHUB_OUTPUT}"
           echo "include_market=${include_market}" >>"${GITHUB_OUTPUT}"
+          echo "include_ungoogled=${include_ungoogled}" >>"${GITHUB_OUTPUT}"
       - uses: docker/setup-buildx-action@v4
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -71,15 +80,20 @@ jobs:
         env:
           VERSION: ${{ steps.refs.outputs.version }}
           INCLUDE_MARKET: ${{ steps.refs.outputs.include_market }}
+          INCLUDE_UNGOOGLED: ${{ steps.refs.outputs.include_ungoogled }}
         run: |
           docker buildx imagetools inspect "${SOURCE_IMAGE}:${VERSION}"
           if [[ "${INCLUDE_MARKET}" == "true" ]]; then
             docker buildx imagetools inspect "${SOURCE_IMAGE}:${VERSION}-market.1"
           fi
+          if [[ "${INCLUDE_UNGOOGLED}" == "true" ]]; then
+            docker buildx imagetools inspect "${SOURCE_IMAGE}:${VERSION}-ungoogled.1"
+          fi
       - name: Mirror immutable manifests
         env:
           VERSION: ${{ steps.refs.outputs.version }}
           INCLUDE_MARKET: ${{ steps.refs.outputs.include_market }}
+          INCLUDE_UNGOOGLED: ${{ steps.refs.outputs.include_ungoogled }}
         run: |
           docker buildx imagetools create \
             --progress plain \
@@ -91,10 +105,17 @@ jobs:
               --tag "${TARGET_IMAGE}:${VERSION}-market.1" \
               "${SOURCE_IMAGE}:${VERSION}-market.1"
           fi
+          if [[ "${INCLUDE_UNGOOGLED}" == "true" ]]; then
+            docker buildx imagetools create \
+              --progress plain \
+              --tag "${TARGET_IMAGE}:${VERSION}-ungoogled.1" \
+              "${SOURCE_IMAGE}:${VERSION}-ungoogled.1"
+          fi
       - name: Verify mirrored manifest digests
         env:
           VERSION: ${{ steps.refs.outputs.version }}
           INCLUDE_MARKET: ${{ steps.refs.outputs.include_market }}
+          INCLUDE_UNGOOGLED: ${{ steps.refs.outputs.include_ungoogled }}
         run: |
           verify_copy() {
             local source_ref="$1"
@@ -122,4 +143,10 @@ jobs:
               "${SOURCE_IMAGE}:${VERSION}-market.1" \
               "${TARGET_IMAGE}:${VERSION}-market.1" \
               market
+          fi
+          if [[ "${INCLUDE_UNGOOGLED}" == "true" ]]; then
+            verify_copy \
+              "${SOURCE_IMAGE}:${VERSION}-ungoogled.1" \
+              "${TARGET_IMAGE}:${VERSION}-ungoogled.1" \
+              ungoogled
           fi

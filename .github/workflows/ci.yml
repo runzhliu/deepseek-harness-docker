@@ -53,6 +53,40 @@ jobs:
             IMAGE_REVISION=${{ github.sha }}
       - run: ./scripts/smoke.sh deepseek-harness:ci-${{ matrix.suffix }} 0.1.2-rc.1 10.15.1
 
+  ungoogled:
+    name: Ungoogled Chromium smoke (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            suffix: amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            suffix: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: deepseek-harness:ci-ungoogled-${{ matrix.suffix }}
+          cache-from: type=gha,scope=ungoogled-${{ matrix.suffix }}
+          cache-to: type=gha,mode=max,scope=ungoogled-${{ matrix.suffix }}
+          build-args: |
+            IMAGE_VERSION=0.1.2-rc.1-r1-ungoogled.1
+            IMAGE_REVISION=${{ github.sha }}
+            CHROMIUM_FLAVOR=ungoogled
+            UNGOOGLED_CHROMIUM_VERSION=152.0.7977.82-1
+            UNGOOGLED_CHROMIUM_AMD64_SHA256=2c6e464e030f87145e42553c5aa539f6e62163ce677d3eace3c51b4fcbd5e347
+            UNGOOGLED_CHROMIUM_ARM64_SHA256=1909f42dcc3661bc213f2cf3b5232a9d3c850913b36efa7267ed6499f6cbf87d
+      - run: ./scripts/smoke.sh deepseek-harness:ci-ungoogled-${{ matrix.suffix }} 0.1.2-rc.1 10.15.1 "" ungoogled 152.0.7977.82-1
+
   optional-market:
     name: Optional market smoke (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}

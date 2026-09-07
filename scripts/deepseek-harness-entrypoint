@@ -4,6 +4,15 @@ set -u
 dsh_pid=""
 desktop_pids=""
 
+if [ -z "${CHROME_USER_DATA_DIR:-}" ]; then
+  if [ "${CHROMIUM_FLAVOR:-debian}" = ungoogled ]; then
+    CHROME_USER_DATA_DIR="${DSH_HOME}/chrome-profile-ungoogled"
+  else
+    CHROME_USER_DATA_DIR="${DSH_HOME}/chrome-profile"
+  fi
+  export CHROME_USER_DATA_DIR
+fi
+
 install_browser_plugin() {
   plugin_scope="${DSH_HOME}/profiles/web/node_modules/@runzhliu"
   plugin_link="${plugin_scope}/dsh-browser-desktop"

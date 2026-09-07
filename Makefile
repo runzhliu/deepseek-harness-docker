@@ -7,9 +7,13 @@ PNPM_VERSION ?= 10.15.1
 DSH_MARKET_VERSION ?= 1.38.1
 MARKET_IMAGE_VERSION ?= $(IMAGE_VERSION)-market.1
 BROWSER_PLUGIN_VERSION ?= 0.1.2
+UNGOOGLED_CHROMIUM_VERSION ?= 152.0.7977.82-1
+UNGOOGLED_CHROMIUM_AMD64_SHA256 ?= 2c6e464e030f87145e42553c5aa539f6e62163ce677d3eace3c51b4fcbd5e347
+UNGOOGLED_CHROMIUM_ARM64_SHA256 ?= 1909f42dcc3661bc213f2cf3b5232a9d3c850913b36efa7267ed6499f6cbf87d
+UNGOOGLED_IMAGE_VERSION ?= $(IMAGE_VERSION)-ungoogled.1
 PLATFORMS ?= linux/amd64,linux/arm64
 
-.PHONY: help build multiarch-build push pull ghcr-pull market-build market-push market-pull up down logs compose-check helm-check plugin-check dockerhub-check version-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
+.PHONY: help build multiarch-build push pull ghcr-pull ungoogled-build ungoogled-multiarch-build ungoogled-push ungoogled-pull ungoogled-smoke ungoogled-inspect market-build market-push market-pull up down logs compose-check helm-check plugin-check dockerhub-check version-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
 
 help:
 	@echo "build            Build the local platform image"
@@ -17,6 +21,9 @@ help:
 	@echo "push             Build and push the versioned multi-platform image"
 	@echo "pull             Pull the published image"
 	@echo "ghcr-pull        Pull the GHCR mirror of the published image"
+	@echo "ungoogled-build  Build the privacy-focused Chromium variant"
+	@echo "ungoogled-push   Build and push its versioned multi-platform image"
+	@echo "ungoogled-smoke  Test Harness/noVNC and reject GCM port 5228 activity"
 	@echo "market-build     Build the optional community-market image"
 	@echo "market-push      Build and push its versioned multi-platform image"
 	@echo "up/down/logs     Manage the Compose service"
@@ -43,6 +50,19 @@ pull:
 
 ghcr-pull:
 	docker pull $(GHCR_IMAGE):$(IMAGE_VERSION)
+
+ungoogled-build:
+	docker build --pull --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg IMAGE_VERSION=$(UNGOOGLED_IMAGE_VERSION) --build-arg IMAGE_REVISION=$$(git describe --always --dirty) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg PNPM_VERSION=$(PNPM_VERSION) --build-arg CHROMIUM_FLAVOR=ungoogled --build-arg UNGOOGLED_CHROMIUM_VERSION=$(UNGOOGLED_CHROMIUM_VERSION) --build-arg UNGOOGLED_CHROMIUM_AMD64_SHA256=$(UNGOOGLED_CHROMIUM_AMD64_SHA256) --build-arg UNGOOGLED_CHROMIUM_ARM64_SHA256=$(UNGOOGLED_CHROMIUM_ARM64_SHA256) --tag $(IMAGE):$(UNGOOGLED_IMAGE_VERSION) .
+
+ungoogled-multiarch-build:
+	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg IMAGE_VERSION=$(UNGOOGLED_IMAGE_VERSION) --build-arg IMAGE_REVISION=$$(git describe --always --dirty) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg PNPM_VERSION=$(PNPM_VERSION) --build-arg CHROMIUM_FLAVOR=ungoogled --build-arg UNGOOGLED_CHROMIUM_VERSION=$(UNGOOGLED_CHROMIUM_VERSION) --build-arg UNGOOGLED_CHROMIUM_AMD64_SHA256=$(UNGOOGLED_CHROMIUM_AMD64_SHA256) --build-arg UNGOOGLED_CHROMIUM_ARM64_SHA256=$(UNGOOGLED_CHROMIUM_ARM64_SHA256) --tag $(IMAGE):$(UNGOOGLED_IMAGE_VERSION) .
+
+ungoogled-push:
+	@if docker buildx imagetools inspect $(IMAGE):$(UNGOOGLED_IMAGE_VERSION) >/dev/null 2>&1; then echo "refusing to overwrite existing image tag: $(IMAGE):$(UNGOOGLED_IMAGE_VERSION)" >&2; exit 1; fi
+	docker buildx build --platform $(PLATFORMS) --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg IMAGE_VERSION=$(UNGOOGLED_IMAGE_VERSION) --build-arg IMAGE_REVISION=$$(git describe --always --dirty) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg PNPM_VERSION=$(PNPM_VERSION) --build-arg CHROMIUM_FLAVOR=ungoogled --build-arg UNGOOGLED_CHROMIUM_VERSION=$(UNGOOGLED_CHROMIUM_VERSION) --build-arg UNGOOGLED_CHROMIUM_AMD64_SHA256=$(UNGOOGLED_CHROMIUM_AMD64_SHA256) --build-arg UNGOOGLED_CHROMIUM_ARM64_SHA256=$(UNGOOGLED_CHROMIUM_ARM64_SHA256) --tag $(IMAGE):$(UNGOOGLED_IMAGE_VERSION) --push .
+
+ungoogled-pull:
+	docker pull $(IMAGE):$(UNGOOGLED_IMAGE_VERSION)
 
 market-build:
 	docker build --pull --file Dockerfile.market --build-arg BASE_IMAGE=$(IMAGE):$(IMAGE_VERSION) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg DSH_MARKET_VERSION=$(DSH_MARKET_VERSION) --build-arg MARKET_IMAGE_VERSION=$(MARKET_IMAGE_VERSION) --tag $(IMAGE):$(MARKET_IMAGE_VERSION) .
@@ -88,7 +108,7 @@ dockerhub-check:
 	bash scripts/render-dockerhub-readme.sh README.md /dev/null
 
 version-check:
-	./scripts/check-version-consistency.sh $(DSH_VERSION) $(IMAGE_VERSION) $(PNPM_VERSION) $(DSH_MARKET_VERSION) $(MARKET_IMAGE_VERSION) $(BROWSER_PLUGIN_VERSION)
+	./scripts/check-version-consistency.sh $(DSH_VERSION) $(IMAGE_VERSION) $(PNPM_VERSION) $(DSH_MARKET_VERSION) $(MARKET_IMAGE_VERSION) $(BROWSER_PLUGIN_VERSION) $(UNGOOGLED_CHROMIUM_VERSION) $(UNGOOGLED_IMAGE_VERSION) $(UNGOOGLED_CHROMIUM_AMD64_SHA256) $(UNGOOGLED_CHROMIUM_ARM64_SHA256)
 
 verify: compose-check helm-check plugin-check dockerhub-check version-check
 
@@ -97,6 +117,9 @@ upstream-check:
 
 smoke:
 	./scripts/smoke.sh $(IMAGE):$(IMAGE_VERSION) $(DSH_VERSION) $(PNPM_VERSION)
+
+ungoogled-smoke:
+	./scripts/smoke.sh $(IMAGE):$(UNGOOGLED_IMAGE_VERSION) $(DSH_VERSION) $(PNPM_VERSION) "" ungoogled $(UNGOOGLED_CHROMIUM_VERSION)
 
 market-smoke:
 	./scripts/smoke.sh $(IMAGE):$(MARKET_IMAGE_VERSION) $(DSH_VERSION) $(PNPM_VERSION) $(DSH_MARKET_VERSION)
@@ -109,3 +132,6 @@ ghcr-inspect:
 
 market-inspect:
 	docker buildx imagetools inspect $(IMAGE):$(MARKET_IMAGE_VERSION)
+
+ungoogled-inspect:
+	docker buildx imagetools inspect $(IMAGE):$(UNGOOGLED_IMAGE_VERSION)

@@ -5,6 +5,8 @@ image="${1:-runzhliu/deepseek-harness:0.1.2-rc.1-r1}"
 expected_version="${2:-0.1.2-rc.1}"
 expected_pnpm_version="${3:-10.15.1}"
 expected_market_version="${4:-}"
+expected_chromium_flavor="${5:-debian}"
+expected_ungoogled_version="${6:-}"
 suffix="${RANDOM}-$$"
 container="deepseek-harness-smoke-${suffix}"
 volume="deepseek-harness-smoke-home-${suffix}"
@@ -31,6 +33,23 @@ actual_node_version="$(docker run --rm --entrypoint node "${image}" --version)"
 if [[ "${actual_node_version}" != v24.* ]]; then
   echo "expected Node.js 24.x from the upstream image, got ${actual_node_version}" >&2
   exit 1
+fi
+
+actual_chromium_flavor="$(docker image inspect --format '{{ index .Config.Labels "io.github.runzhliu.deepseek-harness.chromium.flavor" }}' "${image}")"
+if [[ "${actual_chromium_flavor}" != "${expected_chromium_flavor}" ]]; then
+  echo "expected Chromium flavor ${expected_chromium_flavor}, got ${actual_chromium_flavor:-missing label}" >&2
+  exit 1
+fi
+if [[ "${expected_chromium_flavor}" == ungoogled ]]; then
+  if [[ -z "${expected_ungoogled_version}" ]]; then
+    echo "the ungoogled smoke test requires an expected Chromium version" >&2
+    exit 1
+  fi
+  actual_ungoogled_version="$(docker image inspect --format '{{ index .Config.Labels "io.github.runzhliu.deepseek-harness.chromium.ungoogled.version" }}' "${image}")"
+  if [[ "${actual_ungoogled_version}" != "${expected_ungoogled_version}" ]]; then
+    echo "expected ungoogled-chromium ${expected_ungoogled_version}, got ${actual_ungoogled_version:-missing label}" >&2
+    exit 1
+  fi
 fi
 
 inherited_node_env="$(docker run --rm --entrypoint node "${image}" -e \
@@ -108,6 +127,11 @@ docker run --rm --entrypoint node "${image}" -e '
 chromium_version="$(docker run --rm --entrypoint chromium-docker "${image}" --version)"
 if [[ "${chromium_version}" != Chromium* ]]; then
   echo "expected Chromium in the runtime image, got ${chromium_version}" >&2
+  exit 1
+fi
+if [[ "${expected_chromium_flavor}" == ungoogled ]] \
+    && [[ "${chromium_version}" != "Chromium ${expected_ungoogled_version%-*} custom" ]]; then
+  echo "expected ungoogled Chromium ${expected_ungoogled_version%-*} custom, got ${chromium_version}" >&2
   exit 1
 fi
 
@@ -285,12 +309,27 @@ for attempt in $(seq 1 30); do
       echo "browser_open transport did not open a Chromium tab" >&2
       exit 1
     fi
+    if [[ "${expected_chromium_flavor}" == ungoogled ]]; then
+      sleep 5
+      if docker exec "${container}" sh -c \
+        'grep -i ":146C " /proc/net/tcp /proc/net/tcp6 >/dev/null 2>&1'; then
+        echo "ungoogled-chromium unexpectedly established a TCP connection to GCM port 5228" >&2
+        exit 1
+      fi
+      if docker exec "${container}" sh -c \
+        'grep -i "google_apis/gcm" /tmp/dsh-desktop/chromium.log >/dev/null 2>&1'; then
+        echo "ungoogled-chromium unexpectedly emitted Google Cloud Messaging logs" >&2
+        exit 1
+      fi
+    fi
     if docker logs "${container}" 2>&1 | grep --quiet 'opening the default browser'; then
       echo "dsh web attempted to open a host browser; the container command must include --no-open" >&2
       exit 1
     fi
     if [[ -n "${expected_market_version}" ]]; then
       features="Harness, optional plugin market, and noVNC desktop"
+    elif [[ "${expected_chromium_flavor}" == ungoogled ]]; then
+      features="official Harness integration, noVNC desktop, and no GCM port 5228 activity"
     else
       features="official Harness integration and noVNC desktop"
     fi
