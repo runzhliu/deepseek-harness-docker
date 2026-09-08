@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.1.5 - 2026-09-08
+
+- Upgrade the official runtime to `@deepseek-ai/dsh@0.1.3-alpha.2` and publish the immutable container revision as `0.1.3-alpha.2-r1`.
+- Adopt upstream long-session responsiveness and memory improvements, Web reconnect and auto-scroll fixes, new-model support through `pi-ai@0.85.1`, continuable-subagent queue controls, and Session format v2 migration.
+- Validate the upgrade against both native release architectures and a history-heavy persisted-session fixture before publishing.
 - Track upstream GitHub Releases even before their matching official npm artifacts become installable, without prematurely changing the pinned runtime.
 - Add an explicitly optional `0.1.2-rc.1-r1-ungoogled.1` image that pins and verifies native amd64/arm64 ungoogled-chromium artifacts without replacing the Debian Chromium default.
 - Give the privacy variant a separate persistent browser profile and test the complete Harness/noVNC integration for the absence of GCM port `5228` connections and `google_apis/gcm` logs.
