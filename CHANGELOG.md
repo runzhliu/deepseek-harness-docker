@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.1.6 - 2026-09-08
+
+- Publish container revision `0.1.3-alpha.2-r2` without changing the packaged DSH runtime.
+- Serve each noVNC module tree from a versioned path so browser caches cannot combine an upgraded `rfb.js` with an older `util/browser.js` and fail on the `supportsWebCodecsH264Decode` import.
+- Extend smoke coverage to require the versioned desktop URL and matching H.264 capability exports in both noVNC modules.
+
 ## 0.1.5 - 2026-09-08
 
 - Upgrade the official runtime to `@deepseek-ai/dsh@0.1.3-alpha.2` and publish the immutable container revision as `0.1.3-alpha.2-r1`.

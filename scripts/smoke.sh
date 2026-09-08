@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-image="${1:-runzhliu/deepseek-harness:0.1.3-alpha.2-r1}"
+image="${1:-runzhliu/deepseek-harness:0.1.3-alpha.2-r2}"
 expected_version="${2:-0.1.3-alpha.2}"
 expected_pnpm_version="${3:-10.15.1}"
 expected_market_version="${4:-}"
@@ -220,12 +220,26 @@ for attempt in $(seq 1 30); do
     if ! docker exec "${container}" node -e '
       fetch("http://127.0.0.1:3080/browser-desktop/state")
         .then(response => response.json())
-        .then(state => {
-          if (state.desktop.port !== 6080 || !state.desktop.path.startsWith("/vnc.html")) process.exit(1)
+        .then(async state => {
+          const desktopPath = new URL(state.desktop.path, "http://127.0.0.1:6080")
+          if (state.desktop.port !== 6080 || !/^\/novnc-[^/]+\/vnc\.html$/.test(desktopPath.pathname)) process.exit(1)
+
+          const assetBase = desktopPath.pathname.slice(0, desktopPath.pathname.lastIndexOf("/"))
+          const [rfb, browser] = await Promise.all([
+            fetch(`http://127.0.0.1:6080${assetBase}/core/rfb.js`).then(response => {
+              if (!response.ok) throw new Error(`rfb.js returned HTTP ${response.status}`)
+              return response.text()
+            }),
+            fetch(`http://127.0.0.1:6080${assetBase}/core/util/browser.js`).then(response => {
+              if (!response.ok) throw new Error(`browser.js returned HTTP ${response.status}`)
+              return response.text()
+            })
+          ])
+          if (!rfb.includes("supportsWebCodecsH264Decode") || !browser.includes("export let supportsWebCodecsH264Decode")) process.exit(1)
         })
         .catch(() => process.exit(1))
     '; then
-      echo "browser desktop state did not expose its noVNC endpoint" >&2
+      echo "browser desktop did not expose a consistent versioned noVNC module tree" >&2
       exit 1
     fi
     if [[ -n "${expected_market_version}" ]]; then

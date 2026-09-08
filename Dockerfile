@@ -143,6 +143,16 @@ RUN if [ "${CHROMIUM_FLAVOR}" = ungoogled ]; then \
       ! ldd /opt/ungoogled-chromium/chrome | grep -F 'not found'; \
     fi
 
+# Keep the distro-provided root for backward-compatible direct links, while
+# giving the embedded client an immutable path. This prevents a browser from
+# combining an upgraded rfb.js with an older cached util/browser.js.
+ARG NOVNC_ASSET_REVISION=debian-1.6.0-2
+RUN novnc_copy="$(mktemp -d)" \
+    && cp -a /usr/share/novnc/. "${novnc_copy}/" \
+    && mkdir -p "/usr/share/novnc/novnc-${NOVNC_ASSET_REVISION}" \
+    && cp -a "${novnc_copy}/." "/usr/share/novnc/novnc-${NOVNC_ASSET_REVISION}/" \
+    && rm -rf "${novnc_copy}"
+
 # dsh misdetects Docker Desktop's WSL2 kernel as WSL and spawns
 # wslpath/powershell.exe (absent in the container) to open native paths.
 # Fake wslpath echoes the target path; fake powershell.exe hands it to wish
@@ -283,6 +293,7 @@ RUN chmod 0755 /usr/local/bin/chromium-docker \
 
 ENV DSH_HOME=/home/node/.dsh \
     DSH_TELEMETRY_DISABLED=1 \
+    DSH_NOVNC_ASSET_REVISION=${NOVNC_ASSET_REVISION} \
     CHROMIUM_FLAVOR=${CHROMIUM_FLAVOR} \
     HOME=/workspace \
     NPM_CONFIG_CACHE=/home/node/.dsh/npm-cache \
@@ -309,7 +320,7 @@ EXPOSE 3080 6080
 # Keep source metadata after every filesystem-producing instruction so a new
 # commit revision updates only image configuration instead of invalidating the
 # large Debian/Chromium installation layers.
-ARG IMAGE_VERSION=0.1.3-alpha.2-r1
+ARG IMAGE_VERSION=0.1.3-alpha.2-r2
 ARG IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
       org.opencontainers.image.description="Community container image for the DeepSeek Harness CLI, Web UI, and browser-accessible Chromium desktop" \

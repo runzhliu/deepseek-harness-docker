@@ -7,6 +7,7 @@
       config:
         cdpBaseUrl: 'http://127.0.0.1:9222'
         desktopPort: !!js Number(process.env.DSH_DESKTOP_PUBLIC_PORT ?? 6080)
+        desktopPath: !!js "'/novnc-' + process.env.DSH_NOVNC_ASSET_REVISION + '/vnc.html?autoconnect=1&resize=scale&view_only=0&reconnect=1'"
 
 - id: webserver
   name: '@deepseek-ai/dsh-host-webserver'

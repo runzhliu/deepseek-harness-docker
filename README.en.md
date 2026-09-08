@@ -135,7 +135,7 @@ Open the complete <http://127.0.0.1:3080> URL carrying `?token=...` after `dsh w
 
 When `DSH_WORKSPACE` is unset, Compose uses a separate `dsh-workspace` named volume so the Agent cannot accidentally modify this repository. Set `DSH_WORKSPACE=/absolute/path/to/project` only after choosing the intended host project.
 
-The default immutable image revision is [`runzhliu/deepseek-harness:0.1.3-alpha.2-r1`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.3-alpha.2-r1`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). `r1` is the container revision; the packaged upstream DSH version remains `0.1.3-alpha.2`. Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
+The default immutable image revision is [`runzhliu/deepseek-harness:0.1.3-alpha.2-r2`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.3-alpha.2-r2`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). `r2` is the container revision; the packaged upstream DSH version remains `0.1.3-alpha.2`. This revision serves noVNC assets from a versioned path so an image upgrade cannot make a browser mix incompatible cached ES modules. Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
 
 To pull from GHCR without changing the rest of the Compose deployment:
 
@@ -147,7 +147,7 @@ DSH_IMAGE_REPOSITORY=ghcr.io/runzhliu/deepseek-harness \
 
 ### Browser inside the Web UI
 
-The image includes Debian Chromium, CJK fonts, an Xvfb/Openbox desktop, and noVNC. The public `@runzhliu/dsh-browser-desktop` plugin uses Harness's `sidebar.footer.action` and `shell.overlay` extension points to add an always-visible **Open Browser** action. It embeds the interactive desktop in the Web UI and also offers a separate-window fallback at <http://127.0.0.1:6080/vnc.html?autoconnect=1>. The panel starts at roughly 68% of the page, moves by dragging its title bar, resizes from its bottom-right corner, and supports maximize/restore. The plugin also registers a `browser_open` Agent tool: asking “open https://example.com in the browser” creates and activates a Chromium tab and automatically expands the embedded panel. Chromium restarts automatically after an unexpected exit or window close, while its profile persists at `/home/node/.dsh/chrome-profile`.
+The image includes Debian Chromium, CJK fonts, an Xvfb/Openbox desktop, and noVNC. The public `@runzhliu/dsh-browser-desktop` plugin uses Harness's `sidebar.footer.action` and `shell.overlay` extension points to add an always-visible **Open Browser** action. It embeds the interactive desktop in the Web UI and also offers a separate-window fallback at <http://127.0.0.1:6080/novnc-debian-1.6.0-2/vnc.html?autoconnect=1>. The panel starts at roughly 68% of the page, moves by dragging its title bar, resizes from its bottom-right corner, and supports maximize/restore. The plugin also registers a `browser_open` Agent tool: asking “open https://example.com in the browser” creates and activates a Chromium tab and automatically expands the embedded panel. Chromium restarts automatically after an unexpected exit or window close, while its profile persists at `/home/node/.dsh/chrome-profile`.
 
 ![Movable and resizable Chromium browser embedded in the Harness Web UI](assets/browser-desktop-webui.png)
 
@@ -165,15 +165,15 @@ Compose gives Chromium a 1GB `/dev/shm`. The launcher adds `--no-sandbox` only t
 
 #### Optional ungoogled-chromium image
 
-The default image keeps Debian Chromium for Debian's security-update and distribution supply chain. Select the separate [`runzhliu/deepseek-harness:0.1.3-alpha.2-r1-ungoogled.1`](https://hub.docker.com/r/runzhliu/deepseek-harness/tags) variant only when idle browser egress must be minimized:
+The default image keeps Debian Chromium for Debian's security-update and distribution supply chain. Select the separate [`runzhliu/deepseek-harness:0.1.3-alpha.2-r2-ungoogled.1`](https://hub.docker.com/r/runzhliu/deepseek-harness/tags) variant only when idle browser egress must be minimized:
 
 ```bash
-export DSH_IMAGE_VERSION=0.1.3-alpha.2-r1-ungoogled.1
+export DSH_IMAGE_VERSION=0.1.3-alpha.2-r2-ungoogled.1
 docker compose pull
 DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
 ```
 
-This image pins `ungoogled-chromium@152.0.7977.82-1` and verifies distinct SHA256 values for the amd64 and arm64 downloads. Its smoke test starts the complete Harness/noVNC desktop, invokes `browser_open`, and then rejects any GCM port `5228` connection or `google_apis/gcm` log. It automatically uses `/home/node/.dsh/chrome-profile-ungoogled`, separate from the default Debian Chromium profile. GHCR uses the same tag; Helm users can explicitly set `--set image.tag=0.1.3-alpha.2-r1-ungoogled.1`.
+This image pins `ungoogled-chromium@152.0.7977.82-1` and verifies distinct SHA256 values for the amd64 and arm64 downloads. Its smoke test starts the complete Harness/noVNC desktop, invokes `browser_open`, and then rejects any GCM port `5228` connection or `google_apis/gcm` log. It automatically uses `/home/node/.dsh/chrome-profile-ungoogled`, separate from the default Debian Chromium profile. GHCR uses the same tag; Helm users can explicitly set `--set image.tag=0.1.3-alpha.2-r2-ungoogled.1`.
 
 The variant uses the community [`ungoogled-chromium-portablelinux`](https://github.com/ungoogled-software/ungoogled-chromium-portablelinux) build, not a Debian package. The [upstream binary index](https://github.com/ungoogled-software/ungoogled-chromium-binaries) warns that contributor binaries may not be reproducible and their authenticity cannot be guaranteed; Google Safe Browsing, sync, push, Widevine, and Chrome Web Store integration may also be absent or require manual setup. It therefore never replaces the default image or receives a moving `latest` tag. Reproduce and test it locally with:
 
@@ -203,7 +203,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
   docker compose -f compose.yaml -f compose.market.yaml up -d --no-build
 ```
 
-The variant has the unambiguous `runzhliu/deepseek-harness:0.1.3-alpha.2-r1-market.1` tag and pins `dshmarket@1.38.1`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
+The variant has the unambiguous `runzhliu/deepseek-harness:0.1.3-alpha.2-r2-market.1` tag and pins `dshmarket@1.38.1`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
 
 The market package itself is pinned and copied at build time. Plugins installed through it and the pnpm store persist in the `dsh-home` volume. Installation needs container egress to npm/GitHub, and third-party build scripts should remain blocked until separately reviewed and approved. One-click market restart is disabled; apply lifecycle changes with `docker compose restart` or a Kubernetes rollout.
 
@@ -214,7 +214,7 @@ make market-build
 make market-smoke
 ```
 
-Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.3-alpha.2-r1-market.1`.
+Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.3-alpha.2-r2-market.1`.
 
 A reused `dsh-home` previously managed by another pnpm major can fail installation with `ERR_PNPM_UNEXPECTED_STORE`. Stop DSH and run the explicit one-time migration:
 
@@ -245,7 +245,7 @@ docker compose down
 Build:
 
 ```bash
-docker build -t runzhliu/deepseek-harness:0.1.3-alpha.2-r1 .
+docker build -t runzhliu/deepseek-harness:0.1.3-alpha.2-r2 .
 ```
 
 Run the Web UI:
@@ -259,7 +259,7 @@ docker run --rm \
   --shm-size 1g \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.3-alpha.2-r1
+  runzhliu/deepseek-harness:0.1.3-alpha.2-r2
 ```
 
 The foreground command prints the tokenized startup URL; open that exact URL. Do not shorten the publication to `-p 3080:3080`, and do not place this service behind a public Ingress: Web has no TLS, and noVNC on 6080 has no authentication.
@@ -273,7 +273,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.3-alpha.2-r1 \
+  runzhliu/deepseek-harness:0.1.3-alpha.2-r2 \
   --profile headless "summarize this repository"
 ```
 
@@ -290,7 +290,7 @@ helm upgrade --install deepseek-harness charts/deepseek-harness \
   --namespace deepseek-harness \
   --create-namespace \
   --set image.repository=runzhliu/deepseek-harness \
-  --set image.tag=0.1.3-alpha.2-r1
+  --set image.tag=0.1.3-alpha.2-r2
 ```
 
 Kind or Minikube can pull the default `runzhliu/deepseek-harness` image directly, or you can load a local image under the same name first.
@@ -325,14 +325,14 @@ The build argument pins the package:
 ```bash
 docker build \
   --build-arg DSH_VERSION=0.1.3-alpha.2 \
-  --build-arg IMAGE_VERSION=0.1.3-alpha.2-r1 \
-  -t runzhliu/deepseek-harness:0.1.3-alpha.2-r1 .
+  --build-arg IMAGE_VERSION=0.1.3-alpha.2-r2 \
+  -t runzhliu/deepseek-harness:0.1.3-alpha.2-r2 .
 ```
 
 Compose keeps the upstream version and immutable container revision separate:
 
 ```bash
-DSH_VERSION=0.1.3-alpha.2 DSH_IMAGE_VERSION=0.1.3-alpha.2-r1 docker compose build --pull
+DSH_VERSION=0.1.3-alpha.2 DSH_IMAGE_VERSION=0.1.3-alpha.2-r2 docker compose build --pull
 ```
 
 Maintainers can run `make push` to build and publish the `linux/amd64` and `linux/arm64` manifests under the same immutable revision. The target refuses to overwrite an existing tag and does not create a `latest` tag.
@@ -359,9 +359,9 @@ See [SECURITY.md](SECURITY.md) before changing any network or privilege setting.
 Run at least these checks for every DSH upgrade:
 
 ```bash
-docker run --rm runzhliu/deepseek-harness:0.1.3-alpha.2-r1 --version
+docker run --rm runzhliu/deepseek-harness:0.1.3-alpha.2-r2 --version
 
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.3-alpha.2-r1 \
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.3-alpha.2-r2 \
   web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config
 
 docker compose up -d

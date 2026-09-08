@@ -2,7 +2,7 @@ apiVersion: v2
 name: deepseek-harness
 description: Community Helm chart for a single-user DeepSeek Harness Web instance
 type: application
-version: 0.1.5
+version: 0.1.6
 appVersion: "0.1.3-alpha.2"
 kubeVersion: ">=1.27.0-0"
 home: https://github.com/runzhliu/deepseek-harness-docker
@@ -21,11 +21,7 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/images: |
     - name: deepseek-harness
-      image: runzhliu/deepseek-harness:0.1.3-alpha.2-r1
+      image: runzhliu/deepseek-harness:0.1.3-alpha.2-r2
   artifacthub.io/changes: |
-    - kind: changed
-      description: Upgrade the packaged DeepSeek Harness runtime to 0.1.3-alpha.2.
-    - kind: changed
-      description: Adopt upstream long-session responsiveness, reconnect, and new-model improvements.
     - kind: fixed
-      description: Expose and probe the embedded browser desktop with dedicated shared memory.
+      description: Serve noVNC from a versioned asset path so browser caches cannot mix incompatible ES modules after an image upgrade.
