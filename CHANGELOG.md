@@ -9,6 +9,7 @@ All notable changes to this project are documented here.
 - Upgrade the official runtime to `@deepseek-ai/dsh@0.1.5-alpha.1` and publish the immutable container revision as `0.1.5-alpha.1-r1`.
 - Adopt dynamic system prompts, the experimental right Sidebar, Web interaction fixes, and the upstream Agent and Inbox plugin API changes.
 - Document the one-way Session Format V3 migration and require users to back up persistent Harness state before upgrading.
+- Add a guarded manual GitHub Actions release workflow that publishes the default, market, and ungoogled multi-platform images without overwriting immutable tags.
 
 ## 0.1.6 - 2026-09-08
 

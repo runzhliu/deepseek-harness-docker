@@ -18,7 +18,7 @@ PLATFORMS ?= linux/amd64,linux/arm64
 help:
 	@echo "build            Build the local platform image"
 	@echo "multiarch-build  Build both release platforms without pushing"
-	@echo "push             Build and push the versioned multi-platform image"
+	@echo "push             Build and push the versioned multi-platform image (or dispatch publish-dockerhub.yml)"
 	@echo "pull             Pull the published image"
 	@echo "ghcr-pull        Pull the GHCR mirror of the published image"
 	@echo "ungoogled-build  Build the privacy-focused Chromium variant"

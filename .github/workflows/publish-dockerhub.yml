@@ -1,0 +1,93 @@
+name: Publish Docker Hub images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dockerhub-image-release
+  cancel-in-progress: false
+
+env:
+  IMAGE: runzhliu/deepseek-harness
+  DSH_VERSION: 0.1.5-alpha.1
+  IMAGE_VERSION: 0.1.5-alpha.1-r1
+  MARKET_IMAGE_VERSION: 0.1.5-alpha.1-r1-market.1
+  UNGOOGLED_IMAGE_VERSION: 0.1.5-alpha.1-r1-ungoogled.1
+  UNGOOGLED_CHROMIUM_VERSION: 152.0.7977.82-1
+  UNGOOGLED_CHROMIUM_AMD64_SHA256: 2c6e464e030f87145e42553c5aa539f6e62163ce677d3eace3c51b4fcbd5e347
+  UNGOOGLED_CHROMIUM_ARM64_SHA256: 1909f42dcc3661bc213f2cf3b5232a9d3c850913b36efa7267ed6499f6cbf87d
+
+jobs:
+  publish:
+    name: Build and publish immutable images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate repository pins
+        run: make version-check
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: runzhliu
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Refuse to overwrite immutable tags
+        run: |
+          for tag in "${IMAGE_VERSION}" "${MARKET_IMAGE_VERSION}" "${UNGOOGLED_IMAGE_VERSION}"; do
+            if docker buildx imagetools inspect "${IMAGE}:${tag}" >/dev/null 2>&1; then
+              echo "refusing to overwrite existing image tag: ${IMAGE}:${tag}" >&2
+              exit 1
+            fi
+          done
+      - name: Publish default image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
+          cache-from: type=gha,scope=release-default
+          cache-to: type=gha,mode=max,scope=release-default
+          build-args: |
+            DSH_VERSION=${{ env.DSH_VERSION }}
+            IMAGE_VERSION=${{ env.IMAGE_VERSION }}
+            IMAGE_REVISION=${{ github.sha }}
+      - name: Publish optional market image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.market
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ env.MARKET_IMAGE_VERSION }}
+          cache-from: type=gha,scope=release-market
+          cache-to: type=gha,mode=max,scope=release-market
+          build-args: |
+            BASE_IMAGE=${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
+            MARKET_IMAGE_VERSION=${{ env.MARKET_IMAGE_VERSION }}
+      - name: Publish optional ungoogled-chromium image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ env.UNGOOGLED_IMAGE_VERSION }}
+          cache-from: type=gha,scope=release-ungoogled
+          cache-to: type=gha,mode=max,scope=release-ungoogled
+          build-args: |
+            DSH_VERSION=${{ env.DSH_VERSION }}
+            IMAGE_VERSION=${{ env.UNGOOGLED_IMAGE_VERSION }}
+            IMAGE_REVISION=${{ github.sha }}
+            CHROMIUM_FLAVOR=ungoogled
+            UNGOOGLED_CHROMIUM_VERSION=${{ env.UNGOOGLED_CHROMIUM_VERSION }}
+            UNGOOGLED_CHROMIUM_AMD64_SHA256=${{ env.UNGOOGLED_CHROMIUM_AMD64_SHA256 }}
+            UNGOOGLED_CHROMIUM_ARM64_SHA256=${{ env.UNGOOGLED_CHROMIUM_ARM64_SHA256 }}
+      - name: Inspect published manifests
+        run: |
+          docker buildx imagetools inspect "${IMAGE}:${IMAGE_VERSION}"
+          docker buildx imagetools inspect "${IMAGE}:${MARKET_IMAGE_VERSION}"
+          docker buildx imagetools inspect "${IMAGE}:${UNGOOGLED_IMAGE_VERSION}"

@@ -47,6 +47,10 @@ require_literal .github/workflows/ci.yml "UNGOOGLED_CHROMIUM_AMD64_SHA256=${ungo
 require_literal .github/workflows/ci.yml "UNGOOGLED_CHROMIUM_ARM64_SHA256=${ungoogled_arm64_sha256}"
 require_literal .github/workflows/ci.yml "${dsh_version} ${pnpm_version} ${market_version}"
 require_literal .github/workflows/publish-ghcr.yml "default: ${image_version}"
+require_literal .github/workflows/publish-dockerhub.yml "DSH_VERSION: ${dsh_version}"
+require_literal .github/workflows/publish-dockerhub.yml "IMAGE_VERSION: ${image_version}"
+require_literal .github/workflows/publish-dockerhub.yml "MARKET_IMAGE_VERSION: ${market_image_version}"
+require_literal .github/workflows/publish-dockerhub.yml "UNGOOGLED_IMAGE_VERSION: ${ungoogled_image_version}"
 require_literal .github/workflows/upstream-dsh.yml "./scripts/check-upstream-dsh.sh ${dsh_version}"
 require_literal plugins/dsh-browser-desktop/package.json "\"version\": \"${browser_plugin_version}\""
 require_literal plugins/dsh-browser-desktop/package.json '"@deepseek-ai/dsh-client-modules"'
