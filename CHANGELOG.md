@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.1.8 - 2026-09-10
+
+- Upgrade the official runtime to `@deepseek-ai/dsh@0.1.5-alpha.2` and publish the immutable container revision as `0.1.5-alpha.2-r1`.
+- Adopt right-Sidebar previews for Markdown, source code, HTML, PDF, and images, together with explicit conversation file delivery.
+- Include upstream fixes for invalid model configurations, custom-provider Base URL validation, repeated MCP pagination cursors, and npm installs that previously required local `fs-ext` compilation.
+- Confirm that the embedded browser plugin's `sidebar.footer.action` and `shell.overlay` slots remain available after the upstream Web panel API changes.
+- Advance the Helm chart to `0.1.7` while retaining the existing Session Format V3 backup and downgrade warning.
+
 ## 0.1.7 - 2026-09-09
 
 - Upgrade the official runtime to `@deepseek-ai/dsh@0.1.5-alpha.1` and publish the immutable container revision as `0.1.5-alpha.1-r1`.

@@ -2,8 +2,8 @@ apiVersion: v2
 name: deepseek-harness
 description: Community Helm chart for a single-user DeepSeek Harness Web instance
 type: application
-version: 0.1.6
-appVersion: "0.1.5-alpha.1"
+version: 0.1.7
+appVersion: "0.1.5-alpha.2"
 kubeVersion: ">=1.27.0-0"
 home: https://github.com/runzhliu/deepseek-harness-docker
 keywords:
@@ -21,7 +21,9 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/images: |
     - name: deepseek-harness
-      image: runzhliu/deepseek-harness:0.1.5-alpha.1-r1
+      image: runzhliu/deepseek-harness:0.1.5-alpha.2-r1
   artifacthub.io/changes: |
+    - kind: added
+      description: Package DSH document previews and explicit file delivery in the right Sidebar.
     - kind: fixed
-      description: Serve noVNC from a versioned asset path so browser caches cannot mix incompatible ES modules after an image upgrade.
+      description: Adopt upstream model-settings recovery, Base URL validation, MCP pagination, and fs-ext installation fixes.
