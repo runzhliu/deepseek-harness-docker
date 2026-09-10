@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-pinned_version="${1:-0.1.5-rc.1}"
+pinned_version="${1:-0.1.5-rc.2}"
 upstream_repository="${DSH_UPSTREAM_REPOSITORY:-deepseek-ai/deepseek-harness}"
 npm_package="${DSH_NPM_PACKAGE:-@deepseek-ai/dsh}"
 

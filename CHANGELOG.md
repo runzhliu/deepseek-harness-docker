@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.1.10 - 2026-09-11
+
+- Upgrade the official runtime to `@deepseek-ai/dsh@0.1.5-rc.2` and publish the immutable container revision as `0.1.5-rc.2-r1`.
+- Adopt the improved like/dislike confirmation flow, including preserved feedback text and an explicit notice when submission fails.
+- Include the refined delivered-file card layout, tighter conversation spacing, and refreshed code-file icons.
+- Advance the Helm chart to `0.1.9` while retaining the Session Format V3 backup and downgrade warning.
+
 ## 0.1.9 - 2026-09-10
 
 - Upgrade the official runtime to `@deepseek-ai/dsh@0.1.5-rc.1` and publish the immutable container revision as `0.1.5-rc.1-r1`.

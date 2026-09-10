@@ -2,8 +2,8 @@ apiVersion: v2
 name: deepseek-harness
 description: Community Helm chart for a single-user DeepSeek Harness Web instance
 type: application
-version: 0.1.8
-appVersion: "0.1.5-rc.1"
+version: 0.1.9
+appVersion: "0.1.5-rc.2"
 kubeVersion: ">=1.27.0-0"
 home: https://github.com/runzhliu/deepseek-harness-docker
 keywords:
@@ -21,9 +21,9 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/images: |
     - name: deepseek-harness
-      image: runzhliu/deepseek-harness:0.1.5-rc.1-r1
+      image: runzhliu/deepseek-harness:0.1.5-rc.2-r1
   artifacthub.io/changes: |
-    - kind: added
-      description: Package DeepSeek-V41-Flash, arbitrary file uploads, and continuable-subagent queue controls.
     - kind: changed
-      description: Adopt proxy-aware outbound requests and long-session responsiveness improvements from DSH 0.1.5-rc.1.
+      description: Improve feedback confirmation and preserve entered feedback when submission fails.
+    - kind: changed
+      description: Refine delivered-file cards, conversation spacing, and code-file icons from DSH 0.1.5-rc.2.
