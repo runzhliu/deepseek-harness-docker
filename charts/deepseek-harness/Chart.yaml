@@ -2,8 +2,8 @@ apiVersion: v2
 name: deepseek-harness
 description: Community Helm chart for a single-user DeepSeek Harness Web instance
 type: application
-version: 0.1.7
-appVersion: "0.1.5-alpha.2"
+version: 0.1.8
+appVersion: "0.1.5-rc.1"
 kubeVersion: ">=1.27.0-0"
 home: https://github.com/runzhliu/deepseek-harness-docker
 keywords:
@@ -21,9 +21,9 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/images: |
     - name: deepseek-harness
-      image: runzhliu/deepseek-harness:0.1.5-alpha.2-r1
+      image: runzhliu/deepseek-harness:0.1.5-rc.1-r1
   artifacthub.io/changes: |
     - kind: added
-      description: Package DSH document previews and explicit file delivery in the right Sidebar.
-    - kind: fixed
-      description: Adopt upstream model-settings recovery, Base URL validation, MCP pagination, and fs-ext installation fixes.
+      description: Package DeepSeek-V41-Flash, arbitrary file uploads, and continuable-subagent queue controls.
+    - kind: changed
+      description: Adopt proxy-aware outbound requests and long-session responsiveness improvements from DSH 0.1.5-rc.1.

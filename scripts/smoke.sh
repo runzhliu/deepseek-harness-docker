@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-image="${1:-runzhliu/deepseek-harness:0.1.5-alpha.2-r1}"
-expected_version="${2:-0.1.5-alpha.2}"
+image="${1:-runzhliu/deepseek-harness:0.1.5-rc.1-r1}"
+expected_version="${2:-0.1.5-rc.1}"
 expected_pnpm_version="${3:-10.15.1}"
 expected_market_version="${4:-}"
 expected_chromium_flavor="${5:-debian}"

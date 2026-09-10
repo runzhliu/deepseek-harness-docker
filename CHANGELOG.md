@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.1.9 - 2026-09-10
+
+- Upgrade the official runtime to `@deepseek-ai/dsh@0.1.5-rc.1` and publish the immutable container revision as `0.1.5-rc.1-r1`.
+- Adopt the first `0.1.5` release candidate, including DeepSeek-V41-Flash, arbitrary file uploads, continuable-subagent queue controls, and dynamic system prompts.
+- Include proxy-aware outbound requests, long-session responsiveness and memory improvements, and the accumulated Web, model-provider, MCP, and cross-platform fixes.
+- Advance the Helm chart to `0.1.8`; retain the Session Format V3 backup and downgrade warning.
+
 ## 0.1.8 - 2026-09-10
 
 - Upgrade the official runtime to `@deepseek-ai/dsh@0.1.5-alpha.2` and publish the immutable container revision as `0.1.5-alpha.2-r1`.

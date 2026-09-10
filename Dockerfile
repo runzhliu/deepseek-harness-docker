@@ -3,7 +3,7 @@
 ARG NODE_IMAGE=node:24-trixie
 FROM ${NODE_IMAGE} AS installer
 
-ARG DSH_VERSION=0.1.5-alpha.2
+ARG DSH_VERSION=0.1.5-rc.1
 ARG PNPM_VERSION=10.15.1
 
 # node-pty publishes prebuilds for only some Linux architectures. Keep the
@@ -27,7 +27,7 @@ RUN apt-get update \
 FROM ${NODE_IMAGE}
 
 ARG NODE_IMAGE
-ARG DSH_VERSION=0.1.5-alpha.2
+ARG DSH_VERSION=0.1.5-rc.1
 ARG PNPM_VERSION=10.15.1
 ARG CHROMIUM_FLAVOR=debian
 ARG UNGOOGLED_CHROMIUM_VERSION=152.0.7977.82-1
@@ -320,7 +320,7 @@ EXPOSE 3080 6080
 # Keep source metadata after every filesystem-producing instruction so a new
 # commit revision updates only image configuration instead of invalidating the
 # large Debian/Chromium installation layers.
-ARG IMAGE_VERSION=0.1.5-alpha.2-r1
+ARG IMAGE_VERSION=0.1.5-rc.1-r1
 ARG IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
       org.opencontainers.image.description="Community container image for the DeepSeek Harness CLI, Web UI, and browser-accessible Chromium desktop" \

@@ -29,7 +29,7 @@ Read `README.md`, `SECURITY.md`, `compose.yaml`, and `.env.example` before chang
 
 ## Choose the smallest suitable mode
 
-Use default Compose for a local, single-user WebUI with the embedded Debian Chromium desktop. Select the immutable `0.1.5-alpha.2-r1-ungoogled.1` tag only when the user explicitly prioritizes minimized Google background egress and accepts its contributor-binary and reduced browser-service tradeoffs. Add `compose.market.yaml` only when the user explicitly wants the community plugin market. Use headless mode for one-shot automation and Helm only when the user requests Kubernetes.
+Use default Compose for a local, single-user WebUI with the embedded Debian Chromium desktop. Select the immutable `0.1.5-rc.1-r1-ungoogled.1` tag only when the user explicitly prioritizes minimized Google background egress and accepts its contributor-binary and reduced browser-service tradeoffs. Add `compose.market.yaml` only when the user explicitly wants the community plugin market. Use headless mode for one-shot automation and Helm only when the user requests Kubernetes.
 
 ## Start the default local runtime
 
@@ -64,7 +64,7 @@ Use default Compose for a local, single-user WebUI with the embedded Debian Chro
 Keep Debian Chromium as the default. For an explicit privacy-focused deployment, select the separate immutable image before pulling and starting:
 
 ```bash
-export DSH_IMAGE_VERSION=0.1.5-alpha.2-r1-ungoogled.1
+export DSH_IMAGE_VERSION=0.1.5-rc.1-r1-ungoogled.1
 DSH_WORKSPACE=/absolute/path/to/project docker compose pull
 DSH_WORKSPACE=/absolute/path/to/project docker compose up -d --no-build
 ```
@@ -94,7 +94,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src=/absolute/path/to/project,dst=/workspace \
-  runzhliu/deepseek-harness:0.1.5-alpha.2-r1 \
+  runzhliu/deepseek-harness:0.1.5-rc.1-r1 \
   --profile headless "summarize this repository"
 ```
 
