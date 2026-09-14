@@ -22,7 +22,7 @@ jobs:
     name: Publish README and short description
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Render the Docker Hub overview
         run: bash scripts/render-dockerhub-readme.sh README.md README.dockerhub.md
       - name: Update Docker Hub repository information
