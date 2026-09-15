@@ -1,4 +1,5 @@
 .env
+.env.lan
 .DS_Store
 *.log
 .bash_history
@@ -7,6 +8,7 @@
 .npm/
 Downloads/
 workspace/
+dsh-lan-root.crt
 
 # Machine-local Compose mounts and private extensions are never published.
 compose.local.yaml

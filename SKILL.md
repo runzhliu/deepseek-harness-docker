@@ -1,6 +1,6 @@
 ---
 name: deepseek-harness-docker
-description: Deploy, configure, verify, upgrade, and troubleshoot DeepSeek Harness with the community Docker, Docker Compose, and Helm runtime, including the built-in Chromium/noVNC browser, optional ungoogled-chromium image, and optional plugin market. Use when users ask to run DSH or DeepSeek Harness locally or on Kubernetes, mount a writable workspace, configure model credentials safely, enable the embedded browser, minimize browser background egress, choose the market image, or diagnose container health and startup problems.
+description: Deploy, configure, verify, upgrade, and troubleshoot DeepSeek Harness with the community Docker, Docker Compose, and Helm runtime, including the built-in Chromium/noVNC browser, optional protected LAN gateway, optional ungoogled-chromium image, and optional plugin market. Use when users ask to run DSH or DeepSeek Harness locally or on a trusted LAN or Kubernetes, mount a writable workspace, configure model credentials safely, enable the embedded browser, minimize browser background egress, choose the market image, or diagnose container health and startup problems.
 ---
 
 # DeepSeek Harness Docker
@@ -9,7 +9,7 @@ Use the public `runzhliu/deepseek-harness-docker` project as the source of truth
 
 ## Preserve the security boundary
 
-- Bind WebUI port `3080` and noVNC port `6080` to `127.0.0.1` only.
+- Bind native WebUI port `3080` and noVNC port `6080` to `127.0.0.1` only. For an explicit trusted-LAN request, use `compose.lan.yaml`; never publish the native ports.
 - Never create a public Ingress, LoadBalancer, NodePort, unrestricted `-p 3080:3080`, privileged container, or Docker socket mount.
 - Pass provider keys only at runtime through the Harness settings page, environment variables, `.env`, or Kubernetes Secrets. Never write credentials into Dockerfiles, images, Compose files committed to Git, logs, or answers.
 - Keep the named `dsh-home` volume unless the user explicitly asks to delete all Harness settings, credentials, sessions, and browser state.
@@ -29,7 +29,11 @@ Read `README.md`, `SECURITY.md`, `compose.yaml`, and `.env.example` before chang
 
 ## Choose the smallest suitable mode
 
-Use default Compose for a local, single-user WebUI with the embedded Debian Chromium desktop. Select the immutable `0.1.6-alpha.1-r1-ungoogled.1` tag only when the user explicitly prioritizes minimized Google background egress and accepts its contributor-binary and reduced browser-service tradeoffs. Add `compose.market.yaml` only when the user explicitly wants the community plugin market. Use headless mode for one-shot automation and Helm only when the user requests Kubernetes.
+Use default Compose for a local, single-user WebUI with the embedded Debian Chromium desktop. Add `compose.lan.yaml` only for an explicit trusted-LAN request, after choosing one exact bind address, an internal DNS name or IP, a Caddy Basic Auth credential, and a firewall boundary. This mode uses `caddy:2.11.4-alpine` and still represents one shared trust domain, not multi-tenancy. Select the immutable `0.1.6-alpha.1-r1-ungoogled.1` tag only when the user explicitly prioritizes minimized Google background egress and accepts its contributor-binary and reduced browser-service tradeoffs. Add `compose.market.yaml` only when the user explicitly wants the community plugin market. Use headless mode for one-shot automation and Helm only when the user requests Kubernetes.
+
+## Enable protected LAN access
+
+Follow the `.env.lan.example` and README procedure. Generate the bcrypt hash without recording its plaintext, keep `.env.lan` private, bind `DSH_LAN_BIND_ADDRESS` to one exact server LAN IP, and prefer an internal DNS name for `DSH_LAN_HOST`. Start with `make lan-up`, install the persistent Caddy internal CA root on authorized clients, and use the DSH launch token only through the resulting HTTPS URL. Verify with `make lan-smoke`. Tell the user that all authenticated clients share the same Harness authority and that mutually untrusted users need isolated instances and volumes.
 
 ## Start the default local runtime
 
@@ -52,7 +56,7 @@ Use default Compose for a local, single-user WebUI with the embedded Debian Chro
 4. Wait for the `deepseek-harness` service to become healthy. Verify both surfaces:
 
    ```bash
-   curl --fail http://127.0.0.1:3080/
+   test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3080/)" = 401
    curl --fail http://127.0.0.1:6080/novnc-debian-1.6.0-2/vnc.html
    docker compose logs --tail=120 deepseek-harness
    ```

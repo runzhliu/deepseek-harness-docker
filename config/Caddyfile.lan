@@ -1,0 +1,38 @@
+{
+	auto_https disable_redirects
+}
+
+https://{$DSH_LAN_HOST}:8443 {
+	tls internal
+
+	basic_auth {
+		{$DSH_LAN_USERNAME} {$DSH_LAN_PASSWORD_HASH}
+	}
+
+	# DSH emits a host-only HttpOnly/SameSite=Strict cookie for loopback HTTP.
+	# The gateway is the TLS boundary, so mark that downstream cookie Secure.
+	header >Set-Cookie (.*) "$1; Secure"
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+	}
+
+	# Keep the versioned noVNC assets and WebSocket behind exactly the same TLS
+	# and Basic Auth boundary as the DSH UI. Do not strip the path prefix.
+	@novnc path /novnc-*
+	handle @novnc {
+		reverse_proxy deepseek-harness:6080 {
+			header_up -Authorization
+		}
+	}
+
+	handle {
+		reverse_proxy deepseek-harness:3080 {
+			# Caddy preserves the browser Host/Origin for DSH trusted-host checks.
+			# Do not forward the gateway credential into Harness or its plugins.
+			header_up -Authorization
+			flush_interval -1
+		}
+	}
+}

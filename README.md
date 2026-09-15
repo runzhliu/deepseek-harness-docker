@@ -37,7 +37,7 @@
 | Dockerfile | 可用 | `linux/arm64`、`linux/amd64` 构建与原生 PTY 实际启动均已验证 |
 | Docker Compose | 可用 | Web token/cookie 认证、healthy、回环端口、重启持久化已验证 |
 | Helm | 可用 | 单副本 StatefulSet、PVC、Headless Service、NetworkPolicy；`helm lint --strict` 通过 |
-| Web UI | 本机单用户 | 启动 token + 签名 Cookie；无 TLS，noVNC 仍无认证，禁止直接暴露到局域网或公网 |
+| Web UI | 本机默认；可选受保护 LAN | 默认仅回环访问；LAN overlay 提供 HTTPS、Basic Auth、DSH token/cookie 与同源 noVNC |
 | Headless | 可用 | 运行时注入 provider Secret；需在目标环境验证实际模型调用和沙箱 |
 | Chromium | 默认 + 可选隐私变体 | Debian Chromium 默认镜像；独立 ungoogled-chromium 双架构镜像会验证无 GCM `:5228` 活动 |
 
@@ -86,8 +86,8 @@ flowchart TB
 | --- | --- | --- |
 | Node / glibc | 要求 Node 22.19+ 或 24+；部分用户二进制需要较新 glibc | 固定官方 `node:24-trixie` 非 slim，Debian 13 / glibc 2.41 |
 | 原生依赖与 Agent 工具 | `node-pty` 或第三方插件可能需要本机构建；Agent 需要常见开发命令 | 多阶段安装 DSH；runtime 有意保留 buildpack-deps 工具链，并补齐 `jq`、`less`、`ripgrep`、`rsync`、`zip` 等命令 |
-| Web 监听 | CLI 主动拒绝 `--host 0.0.0.0` | 使用 Cordis overlay；宿主端口只能绑定 `127.0.0.1` |
-| Web 安全 | 有启动 token 认证与 Host/Origin 检查，但无 TLS；noVNC 无认证，工具可触发代码执行 | 不提供 Ingress/LoadBalancer；Compose 回环发布；Helm 默认拒绝 Pod 入站 |
+| Web 监听 | CLI 主动拒绝 `--host 0.0.0.0` | 使用 Cordis overlay；3080/6080 只绑定 `127.0.0.1`，可选 LAN gateway 单独绑定指定网卡 |
+| Web 安全 | 有启动 token 认证与 Host/Origin 检查，但原生端口无 TLS；noVNC 无认证，工具可触发代码执行 | 默认回环发布；可选 Caddy HTTPS + Basic Auth；不提供公网 Ingress/LoadBalancer |
 | HMR | 启动后挂载配置 watcher，需要 Node internals | 仅给 DSH 主进程传 `--expose-internals`，不通过 `NODE_OPTIONS` 传播给 Agent 子进程 |
 | 目录选择器 | 浏览模式以 `os.homedir()` 为首页 | 将 `HOME` 指向可写 `/workspace`，避免只读 `/home/node` 的 EROFS |
 | 信号和子进程 | Agent 会创建 shell/PTY 子进程 | 使用 `tini` 转发信号和回收孤儿进程 |
@@ -95,7 +95,7 @@ flowchart TB
 
 默认基础镜像选择非 slim 是面向 coding agent 的明确取舍，而不是追求最小体积。Debian 13 Trixie 将 glibc 从 Bookworm 的 2.36 提升到 2.41，能运行更多按新系统构建的二进制；官方 Node 非 slim 变体基于 `buildpack-deps`，自带编译器、`make`、`git`、`curl`、`file`、`unzip`、`wget`、`xz` 等开发工具，本项目再显式安装 `jq`、`less`、`ripgrep`、`rsync` 和 `zip`。代价是基础镜像压缩体积比 slim 大约增加 330 MB；Smoke Test 会同时检查 Trixie、glibc 2.41 和完整命令清单，避免后续升级意外退化。
 
-这里最需要强调的是 Web 监听：Docker bridge 端口转发要求容器进程监听非 loopback 地址，但 Harness 的 CLI 会拒绝 `--host 0.0.0.0`，防止具备代码执行能力的 Web surface 被误暴露。本项目只在容器内部用官方 patch 机制改监听地址，并把安全责任收回到部署边界：Compose 只发布 `127.0.0.1`，Kubernetes 只建议 `kubectl port-forward`。DSH `0.1.2` alpha 系列已加入启动 token、签名 Cookie 与 Host/Origin 检查，但仍没有 TLS，内置 noVNC 也没有认证；如果改成 `-p 3080:3080`、NodePort、LoadBalancer 或公开 Ingress，仍会破坏这个安全模型。
+这里最需要强调的是 Web 监听：Docker bridge 端口转发要求容器进程监听非 loopback 地址，但 Harness 的 CLI 会拒绝 `--host 0.0.0.0`，防止具备代码执行能力的 Web surface 被误暴露。本项目只在容器内部用官方 patch 机制改监听地址，并把安全责任收回到部署边界：默认 Compose 只发布 `127.0.0.1`，Kubernetes 只建议 `kubectl port-forward`。需要受信任局域网访问时，显式叠加 `compose.lan.yaml`，由 Caddy 在指定 LAN 地址上终止 HTTPS、增加 Basic Auth，并把 noVNC 收进同一认证入口；DSH 仍执行自己的启动 token、签名 Cookie 与 Host/Origin 检查。直接改成 `-p 3080:3080`、NodePort、LoadBalancer 或公开 Ingress 仍会破坏这个安全模型。
 
 ### 容器与 Harness 沙箱的关系
 
@@ -121,7 +121,7 @@ Harness 的 profile、模型设置、凭据、会话和 Workspace 索引都具�
 - 把容器用户的交互主目录指向 `/workspace`，让 Web 目录选择器的新建操作落在可写工作区；
 - 通过容器专用 Cordis overlay 监听容器网络，同时只把宿主端口发布到 `127.0.0.1`。
 
-DeepSeek Harness Web 会用启动 token 换取签名浏览器 Cookie，并检查 Host/Origin；但它仍没有 TLS，Web API 可以执行代码，本镜像的 noVNC 端口也没有认证。因此本方案是**本机单用户开发环境**，不是可直接暴露到局域网或公网的服务。
+DeepSeek Harness Web 会用启动 token 换取签名浏览器 Cookie，并检查 Host/Origin；但原生端口没有 TLS，Web API 可以执行代码，本镜像的 noVNC 端口也没有认证。因此默认方案是**本机单用户开发环境**。局域网访问必须使用下方显式启用的受保护入口；公网暴露不在支持范围内。
 
 ## 快速开始
 
@@ -148,6 +148,35 @@ DSH_IMAGE_REPOSITORY=ghcr.io/runzhliu/deepseek-harness \
   DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
 ```
 
+### 可选的 HTTPS 局域网访问
+
+不要直接发布 `3080`/`6080`。可选 [`compose.lan.yaml`](compose.lan.yaml) 在指定 LAN IP 提供 Caddy HTTPS + Basic Auth，保留 DSH token/cookie 与 Host/Origin 校验，并同源代理 noVNC。
+
+先创建私有配置并生成密码哈希：
+
+```bash
+cp .env.lan.example .env.lan
+docker run --rm -it caddy:2.11.4-alpine caddy hash-password
+```
+
+编辑 `.env.lan`：填写**确切 LAN IP**（禁止 `0.0.0.0`）、客户端可解析的内网域名或 IP、单引号包裹的 bcrypt 哈希及可选工作区，然后启动：
+
+```bash
+make lan-up
+make lan-logs
+```
+
+Caddy 默认使用内部 CA。将根证书安装到受信任客户端的系统信任库：
+
+```bash
+docker compose --env-file .env.lan -f compose.yaml -f compose.lan.yaml \
+  cp lan-gateway:/data/caddy/pki/authorities/local/root.crt ./dsh-lan-root.crt
+```
+
+从 `dsh web:` 日志 URL 取 `?token=...`，首次用 `https://DSH_LAN_HOST:8443/?token=...` 打开。完成两层认证后即可使用干净地址。`make lan-down` 保留数据卷。8443 兼容 rootless 运行时。
+
+该模式不是多租户：登录者共享会话、凭据及 Agent 权限；不互信用户须拆分实例和卷。用防火墙限制来源，禁止转发公网。`make lan-smoke` 可验证边界。
+
 ### WebUI 内置浏览器
 
 镜像内置 Debian Chromium、中文字体、Xvfb/Openbox 桌面和 noVNC。公开插件 `@runzhliu/dsh-browser-desktop` 通过 Harness 的 `sidebar.footer.action` 与 `shell.overlay` 扩展点提供始终可见的“打开浏览器”入口，点击后直接在 WebUI 内嵌可交互桌面，也可以选择新窗口打开 <http://127.0.0.1:6080/novnc-debian-1.6.0-2/vnc.html?autoconnect=1>。内嵌面板默认占页面约 68%，可拖动标题栏移动、拖动右下角缩放，并支持最大化/还原。插件同时注册 `browser_open` Agent 工具；在对话中说“用浏览器打开 https://example.com”会创建并激活 Chromium 标签页，然后自动展开内嵌面板。浏览器意外退出或关闭后会自动重启，Profile 持久化到 `/home/node/.dsh/chrome-profile`。
@@ -156,7 +185,7 @@ DSH_IMAGE_REPOSITORY=ghcr.io/runzhliu/deepseek-harness \
 
 _实际运行效果：浏览器浮窗位于 Harness WebUI 内，图中打开的是 DeepSeek Harness 的公开 GitHub 仓库。_
 
-该实现参考了 [`docker-antigravity`](https://github.com/runzhliu/docker-antigravity) 的可视桌面思路，但没有采用其 `amd64` 基础镜像和 Selkies，而是使用 Debian 原生架构软件包，因此 Apple Silicon 与 x86 Linux 均可运行。6080 与 3080 一样只绑定宿主机回环地址；noVNC 当前没有认证，不能暴露到局域网或公网。
+该实现参考了 [`docker-antigravity`](https://github.com/runzhliu/docker-antigravity) 的可视桌面思路，但没有采用其 `amd64` 基础镜像和 Selkies，而是使用 Debian 原生架构软件包，因此 Apple Silicon 与 x86 Linux 均可运行。6080 与 3080 一样只绑定宿主机回环地址；noVNC 原生端口没有认证，不能直接暴露。可选 LAN overlay 会把版本化 `/novnc-*` 路径放到与 WebUI 相同的 HTTPS 和认证入口下。
 
 ```bash
 docker compose exec deepseek-harness chromium-docker --version
@@ -355,9 +384,10 @@ DSH_VERSION=0.1.6-alpha.1 DSH_IMAGE_VERSION=0.1.6-alpha.1-r1 docker compose buil
 
 - 容器默认以镜像内的 `node` 用户（UID/GID 1000）运行；如果宿主工作区拒绝该 UID 写入，需要调整目录权限或构建适配本机 UID 的派生镜像。
 - Web 目录选择器中的“主目录”是 `/workspace`，不是保存内部配置的 `/home/node`；通过 Compose 或 Kubernetes 挂载的工作区必须可由 UID 1000 写入。
-- Compose 丢弃全部 Linux capabilities、启用 `no-new-privileges`、只读根文件系统，并给 `/tmp` 单独的 tmpfs。
+- DSH 服务丢弃全部 Linux capabilities；LAN gateway 因官方 Caddy 二进制的 file capability 仅保留 `NET_BIND_SERVICE`。两者均启用 `no-new-privileges`、只读根文件系统和独立 `/tmp` tmpfs。
 - 只挂载需要 Agent 操作的工作区。不要挂载宿主根目录、`~/.ssh`、云凭据目录或 Docker socket。
 - Docker 隔离不是多租户安全沙箱。不要把这个实例交给不受信任用户，也不要把未审查的插件装进持久化配置卷。
+- LAN overlay 只为可信内网增加传输加密和外层认证，不提供用户级授权或会话隔离；始终绑定确切 LAN IP、限制防火墙来源，并为不互信用户部署独立实例。
 - DeepSeek Harness 自己的 Linux 沙箱能力受宿主内核和容器运行时影响；镜像不会通过 `--privileged` 或额外 capabilities 绕过失败。应保留其默认权限模式，并验证真实工具调用。
 
 ## Smoke Test
@@ -373,6 +403,7 @@ docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.6-alpha.1-r1 \
 docker compose up -d
 test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3080/)" = 401
 make smoke
+make lan-smoke
 docker compose ps
 docker compose logs --no-color deepseek-harness
 ```
@@ -400,10 +431,14 @@ docker compose exec deepseek-harness node -e "console.log(require('node:os').hom
 | `web.cordis.patch.yml` | 只用于 Docker bridge 网络的 Web 监听覆盖 |
 | `compose.yaml` | 持久化、回环端口和收紧后的运行时配置 |
 | `compose.market.yaml` | 显式选择第三方社区市场镜像的可选 Compose overlay |
+| `compose.lan.yaml` | HTTPS、Basic Auth、trusted-host 和同源 noVNC 的可选 LAN overlay |
+| `config/Caddyfile.lan` | 受保护局域网入口的 Caddy 配置 |
+| `.env.lan.example` | 不含 Secret 的 LAN 配置模板 |
 | `web.market.cordis.patch.yml` | 只由可选市场派生镜像使用的 profile 配置 |
 | `plugins/dsh-browser-desktop/` | 可独立发布的 DSH 浏览器桌面 bundle |
 | `charts/deepseek-harness/` | 单副本 StatefulSet、PVC、Service 和 NetworkPolicy |
 | `scripts/smoke.sh` | CLI、配置、原生 PTY 和 HTTP 启动验证 |
+| `scripts/lan-smoke.sh` | LAN gateway 的 TLS、认证、Origin、noVNC 与端口边界验证 |
 | `.github/workflows/ci.yml` | Compose/Helm 校验和双架构镜像 Smoke Test |
 | `.dockerignore` | 把构建上下文限制到镜像真正需要的文件 |
 

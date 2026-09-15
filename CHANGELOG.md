@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Add an opt-in trusted-LAN Compose overlay using `caddy:2.11.4-alpine`, HTTPS with a persistent internal CA, Basic Auth, DSH trusted-host enforcement, and same-origin protection for versioned noVNC routes.
+- Keep the default 3080/6080 publications loopback-only and add an end-to-end LAN smoke test covering both authentication layers, Secure cookies, Origin rejection, noVNC, and port bindings.
+
 ## 0.1.11 - 2026-09-15
 
 - Upgrade the official runtime to `@deepseek-ai/dsh@0.1.6-alpha.1` and publish the immutable container revision as `0.1.6-alpha.1-r1`.
