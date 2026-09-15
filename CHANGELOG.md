@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.1.11 - 2026-09-15
+
+- Upgrade the official runtime to `@deepseek-ai/dsh@0.1.6-alpha.1` and publish the immutable container revision as `0.1.6-alpha.1-r1`.
+- Add the Web sidebar terminal, archived-session recovery, MCP Resources, resumable Headless sessions, and experimental Browser Use, Computer Use, and Auto review.
+- Adopt the new DeepSeek Messages default, renamed PTC and workflow services, optional-plugin startup isolation, and the accumulated session, Web, file-preview, and persistent-Bash fixes.
+- Advance the Helm chart to `0.1.10` and document the `0.1.6-alpha.1` compatibility changes for custom providers, plugins, and Cordis patches.
+
 ## 0.1.10 - 2026-09-11
 
 - Upgrade the official runtime to `@deepseek-ai/dsh@0.1.5-rc.2` and publish the immutable container revision as `0.1.5-rc.2-r1`.
