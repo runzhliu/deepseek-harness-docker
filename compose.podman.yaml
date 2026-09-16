@@ -1,6 +1,11 @@
 # Rootless Podman maps the invoking host user to the image's node user
 # (UID/GID 1000). This keeps bind-mounted workspaces writable without running
 # DSH as root or recursively changing ownership on the host.
+x-podman:
+  # podman-compose defaults to a Pod, but per-container keep-id user namespaces
+  # cannot be combined with --pod. This deployment contains only one service.
+  in_pod: false
+
 services:
   deepseek-harness:
     userns_mode: "keep-id:uid=1000,gid=1000"

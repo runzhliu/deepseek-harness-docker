@@ -158,7 +158,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
 podman-compose -f compose.yaml -f compose.podman.yaml ps
 ```
 
-The commands deliberately use `podman-compose` so an installed Docker Compose cannot be selected as the wrong external provider by `podman compose`. Mount only a project directory dedicated to this instance. On SELinux hosts, `:Z` makes that directory private to this container; do not apply it to a shared home, repository cache, or system directory. `make podman-down` stops the stack without deleting named volumes. Maintainers can run `make podman-smoke` to verify rootless identity, host file ownership, restart persistence, and loopback-only ports.
+The commands deliberately use `podman-compose` so an installed Docker Compose cannot be selected as the wrong external provider by `podman compose`. The overlay sets `x-podman.in_pod: false` because this single-service deployment does not need a Pod and the `keep-id` user namespace cannot be combined with `--pod`. Mount only a project directory dedicated to this instance. On SELinux hosts, `:Z` makes that directory private to this container; do not apply it to a shared home, repository cache, or system directory. `make podman-down` stops the stack without deleting named volumes. Maintainers can run `make podman-smoke` to verify rootless identity, host file ownership, restart persistence, and loopback-only ports.
 
 To keep using the Docker Compose client, expose the rootless Podman API socket and point the Docker CLI at it. The Podman overlay is still required:
 

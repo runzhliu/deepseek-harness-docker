@@ -39,6 +39,7 @@ require_literal compose.yaml 'NODE_IMAGE:-docker.io/library/node:24-trixie'
 require_literal compose.market.yaml "MARKET_IMAGE_VERSION:-${market_image_version}"
 require_literal compose.lan.yaml "docker.io/library/caddy:${caddy_version}-alpine"
 require_literal compose.podman.yaml 'userns_mode: "keep-id:uid=1000,gid=1000"'
+require_literal compose.podman.yaml 'in_pod: false'
 require_literal compose.podman.yaml '${DSH_WORKSPACE:-dsh-workspace}:/workspace:Z'
 require_literal .env.example "DSH_VERSION=${dsh_version}"
 require_literal .env.example "DSH_IMAGE_VERSION=${image_version}"
