@@ -44,7 +44,7 @@ jobs:
             fi
           done
       - name: Publish default image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -57,7 +57,7 @@ jobs:
             IMAGE_VERSION=${{ env.IMAGE_VERSION }}
             IMAGE_REVISION=${{ github.sha }}
       - name: Publish optional market image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.market
@@ -70,7 +70,7 @@ jobs:
             BASE_IMAGE=${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
             MARKET_IMAGE_VERSION=${{ env.MARKET_IMAGE_VERSION }}
       - name: Publish optional ungoogled-chromium image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
