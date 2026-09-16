@@ -21,8 +21,13 @@ export DSH_WORKSPACE="${workspace_dir}"
 export DSH_PORT="$(free_port)"
 export DSH_DESKTOP_PORT="$(free_port)"
 
+if ! command -v podman-compose >/dev/null 2>&1; then
+  echo "podman-compose is required for the rootless smoke test" >&2
+  exit 1
+fi
+
 compose=(
-  podman compose
+  podman-compose
   --project-directory "${project_dir}"
   --project-name "${project}"
   --file "${project_dir}/compose.yaml"

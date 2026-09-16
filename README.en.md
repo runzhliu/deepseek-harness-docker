@@ -148,17 +148,17 @@ Podman `4.5` or newer can use the dedicated [`compose.podman.yaml`](compose.podm
 
 ```bash
 podman version
-podman compose version
+podman-compose version
 podman info --format '{{.Host.Security.Rootless}}'  # must be true
 
 DSH_WORKSPACE=/absolute/path/to/your/project \
-  podman compose -f compose.yaml -f compose.podman.yaml pull
+  podman-compose -f compose.yaml -f compose.podman.yaml pull
 DSH_WORKSPACE=/absolute/path/to/your/project \
-  podman compose -f compose.yaml -f compose.podman.yaml up -d --no-build
-podman compose -f compose.yaml -f compose.podman.yaml ps
+  podman-compose -f compose.yaml -f compose.podman.yaml up -d --no-build
+podman-compose -f compose.yaml -f compose.podman.yaml ps
 ```
 
-Mount only a project directory dedicated to this instance. On SELinux hosts, `:Z` makes that directory private to this container; do not apply it to a shared home, repository cache, or system directory. `make podman-down` stops the stack without deleting named volumes. Maintainers can run `make podman-smoke` to verify rootless identity, host file ownership, restart persistence, and loopback-only ports.
+The commands deliberately use `podman-compose` so an installed Docker Compose cannot be selected as the wrong external provider by `podman compose`. Mount only a project directory dedicated to this instance. On SELinux hosts, `:Z` makes that directory private to this container; do not apply it to a shared home, repository cache, or system directory. `make podman-down` stops the stack without deleting named volumes. Maintainers can run `make podman-smoke` to verify rootless identity, host file ownership, restart persistence, and loopback-only ports.
 
 To keep using the Docker Compose client, expose the rootless Podman API socket and point the Docker CLI at it. The Podman overlay is still required:
 

@@ -52,6 +52,7 @@ require_literal charts/deepseek-harness/values.yaml 'repository: docker.io/runzh
 require_literal charts/deepseek-harness/values.yaml "tag: ${image_version}"
 require_literal scripts/smoke.sh "runzhliu/deepseek-harness:${image_version}"
 require_literal scripts/podman-smoke.sh "docker.io/runzhliu/deepseek-harness:${image_version}"
+require_literal scripts/podman-smoke.sh 'command -v podman-compose'
 require_literal .github/workflows/ci.yml "IMAGE_VERSION=${image_version}"
 require_literal .github/workflows/ci.yml "MARKET_IMAGE_VERSION=${market_image_version}"
 require_literal .github/workflows/ci.yml "IMAGE_VERSION=${ungoogled_image_version}"
@@ -60,6 +61,7 @@ require_literal .github/workflows/ci.yml "UNGOOGLED_CHROMIUM_AMD64_SHA256=${ungo
 require_literal .github/workflows/ci.yml "UNGOOGLED_CHROMIUM_ARM64_SHA256=${ungoogled_arm64_sha256}"
 require_literal .github/workflows/ci.yml "${dsh_version} ${pnpm_version} ${market_version}"
 require_literal .github/workflows/ci.yml './scripts/podman-smoke.sh localhost/deepseek-harness:ci-amd64'
+require_literal .github/workflows/ci.yml 'podman-compose version'
 require_literal .github/workflows/publish-ghcr.yml "default: ${image_version}"
 require_literal .github/workflows/publish-dockerhub.yml "DSH_VERSION: ${dsh_version}"
 require_literal .github/workflows/publish-dockerhub.yml "IMAGE_VERSION: ${image_version}"

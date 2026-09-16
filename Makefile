@@ -14,7 +14,7 @@ UNGOOGLED_IMAGE_VERSION ?= $(IMAGE_VERSION)-ungoogled.1
 CADDY_VERSION ?= 2.11.4
 CADDY_IMAGE ?= docker.io/library/caddy:$(CADDY_VERSION)-alpine
 PODMAN ?= podman
-PODMAN_COMPOSE ?= $(PODMAN) compose
+PODMAN_COMPOSE ?= podman-compose
 LAN_ENV_FILE ?= .env.lan
 PLATFORMS ?= linux/amd64,linux/arm64
 

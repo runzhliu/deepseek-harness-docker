@@ -147,17 +147,17 @@ Podman `4.5` 或更新版本可使用专用 [`compose.podman.yaml`](compose.podm
 
 ```bash
 podman version
-podman compose version
+podman-compose version
 podman info --format '{{.Host.Security.Rootless}}'  # 应为 true
 
 DSH_WORKSPACE=/absolute/path/to/your/project \
-  podman compose -f compose.yaml -f compose.podman.yaml pull
+  podman-compose -f compose.yaml -f compose.podman.yaml pull
 DSH_WORKSPACE=/absolute/path/to/your/project \
-  podman compose -f compose.yaml -f compose.podman.yaml up -d --no-build
-podman compose -f compose.yaml -f compose.podman.yaml ps
+  podman-compose -f compose.yaml -f compose.podman.yaml up -d --no-build
+podman-compose -f compose.yaml -f compose.podman.yaml ps
 ```
 
-只挂载专用于该实例的项目目录；`:Z` 会在启用 SELinux 的主机上把该目录标记为本容器私有，不要对共享 home、仓库缓存或系统目录使用。停止服务使用 `make podman-down`，不会删除命名卷。维护者可运行 `make podman-smoke` 验证 rootless 身份、宿主文件所有权、重启持久化及回环端口。
+这里明确使用 `podman-compose`，避免已安装 Docker Compose 时 `podman compose` 自动选中错误的外部 provider。只挂载专用于该实例的项目目录；`:Z` 会在启用 SELinux 的主机上把该目录标记为本容器私有，不要对共享 home、仓库缓存或系统目录使用。停止服务使用 `make podman-down`，不会删除命名卷。维护者可运行 `make podman-smoke` 验证 rootless 身份、宿主文件所有权、重启持久化及回环端口。
 
 若希望继续使用 Docker Compose 客户端，可启动 rootless Podman API socket，再让 Docker CLI 指向它；仍须叠加 `compose.podman.yaml`：
 

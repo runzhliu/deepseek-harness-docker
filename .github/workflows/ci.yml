@@ -14,11 +14,11 @@ jobs:
     name: Compose and Helm
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v5
         with:
           version: v3.18.4
       - run: make verify
@@ -38,9 +38,9 @@ jobs:
             suffix: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           platforms: ${{ matrix.platform }}
@@ -58,7 +58,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes podman podman-compose uidmap slirp4netns fuse-overlayfs
           podman info --format '{{.Host.Security.Rootless}}'
-          podman compose version
+          podman-compose version
       - name: Import the tested image into rootless Podman
         if: matrix.platform == 'linux/amd64'
         run: docker save localhost/deepseek-harness:ci-amd64 | podman load
@@ -71,9 +71,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
@@ -101,9 +101,9 @@ jobs:
             suffix: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           platforms: ${{ matrix.platform }}
@@ -135,7 +135,7 @@ jobs:
             suffix: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker build --build-arg IMAGE_VERSION=0.1.6-alpha.1-r1 --build-arg IMAGE_REVISION=${{ github.sha }} --tag deepseek-harness:ci-market-base-${{ matrix.suffix }} .
       - run: >-
           docker build
