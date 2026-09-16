@@ -143,7 +143,7 @@ docker compose logs --no-color deepseek-harness | grep 'dsh web:'
 
 ### Rootless Podman
 
-Podman `4.5` 或更新版本可使用专用 [`compose.podman.yaml`](compose.podman.yaml) overlay。它把当前 rootless 用户映射为镜像内的 `node` UID/GID 1000，并为工作区添加私有 SELinux 标签；这样无需用 root 运行 DSH，也无需递归修改宿主项目所有权：
+Podman `4.5` 和 `podman-compose 1.6.0` 或更新版本可使用专用 [`compose.podman.yaml`](compose.podman.yaml) overlay。较旧的 `podman-compose 1.0.x` 不能正确替换多文件 Compose 中相同目标路径的挂载；若发行版仓库版本过旧，可先执行 `pipx install 'podman-compose>=1.6.0'`。该 overlay 把当前 rootless 用户映射为镜像内的 `node` UID/GID 1000，并为工作区添加私有 SELinux 标签；这样无需用 root 运行 DSH，也无需递归修改宿主项目所有权：
 
 ```bash
 podman version

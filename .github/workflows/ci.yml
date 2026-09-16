@@ -56,9 +56,12 @@ jobs:
         if: matrix.platform == 'linux/amd64'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes podman podman-compose uidmap slirp4netns fuse-overlayfs
+          sudo apt-get install --yes podman uidmap slirp4netns fuse-overlayfs python3-venv
+          python3 -m venv "${RUNNER_TEMP}/podman-compose"
+          "${RUNNER_TEMP}/podman-compose/bin/pip" install --disable-pip-version-check podman-compose==1.6.0
+          echo "${RUNNER_TEMP}/podman-compose/bin" >> "${GITHUB_PATH}"
           podman info --format '{{.Host.Security.Rootless}}'
-          podman-compose version
+          "${RUNNER_TEMP}/podman-compose/bin/podman-compose" version
       - name: Import the tested image into rootless Podman
         if: matrix.platform == 'linux/amd64'
         run: docker save localhost/deepseek-harness:ci-amd64 | podman load

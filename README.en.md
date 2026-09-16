@@ -144,7 +144,7 @@ The default immutable image revision is [`runzhliu/deepseek-harness:0.1.6-alpha.
 
 ### Rootless Podman
 
-Podman `4.5` or newer can use the dedicated [`compose.podman.yaml`](compose.podman.yaml) overlay. It maps the invoking rootless user to the image's `node` UID/GID 1000 and applies a private SELinux label to the workspace. DSH remains non-root without recursively changing ownership of the host project:
+Podman `4.5` and `podman-compose 1.6.0` or newer can use the dedicated [`compose.podman.yaml`](compose.podman.yaml) overlay. Older `podman-compose 1.0.x` releases do not replace mounts with the same container target correctly when merging Compose files; run `pipx install 'podman-compose>=1.6.0'` when the distribution package is too old. The overlay maps the invoking rootless user to the image's `node` UID/GID 1000 and applies a private SELinux label to the workspace. DSH remains non-root without recursively changing ownership of the host project:
 
 ```bash
 podman version

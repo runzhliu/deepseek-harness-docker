@@ -26,6 +26,16 @@ if ! command -v podman-compose >/dev/null 2>&1; then
   exit 1
 fi
 
+podman_compose_version_output="$(podman-compose version 2>&1)"
+if [[ ! "${podman_compose_version_output}" =~ podman-compose[[:space:]]version:?[[:space:]]+([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+  echo "could not determine podman-compose version: ${podman_compose_version_output}" >&2
+  exit 1
+fi
+if (( BASH_REMATCH[1] < 1 || (BASH_REMATCH[1] == 1 && BASH_REMATCH[2] < 6) )); then
+  echo "podman-compose 1.6.0 or newer is required; found ${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}" >&2
+  exit 1
+fi
+
 compose=(
   podman-compose
   -p "${project}"
@@ -54,7 +64,7 @@ fi
 "${compose[@]}" config >/dev/null
 "${compose[@]}" up --detach --no-build
 
-container="$("${compose[@]}" ps --quiet deepseek-harness)"
+container="$("${compose[@]}" ps --quiet)"
 if [[ -z "${container}" ]]; then
   echo "rootless Compose did not create the DSH container" >&2
   exit 1
