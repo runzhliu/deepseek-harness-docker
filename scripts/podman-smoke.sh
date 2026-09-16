@@ -28,10 +28,9 @@ fi
 
 compose=(
   podman-compose
-  --project-directory "${project_dir}"
-  --project-name "${project}"
-  --file "${project_dir}/compose.yaml"
-  --file "${project_dir}/compose.podman.yaml"
+  -p "${project}"
+  -f "${project_dir}/compose.yaml"
+  -f "${project_dir}/compose.podman.yaml"
 )
 
 cleanup() {
