@@ -1,0 +1,11 @@
+# Rootless Podman maps the invoking host user to the image's node user
+# (UID/GID 1000). This keeps bind-mounted workspaces writable without running
+# DSH as root or recursively changing ownership on the host.
+services:
+  deepseek-harness:
+    userns_mode: "keep-id:uid=1000,gid=1000"
+    volumes:
+      - dsh-home:/home/node/.dsh
+      # :Z gives this one container a private SELinux label. Mount only a
+      # dedicated project directory; do not point DSH at a shared home/root.
+      - ${DSH_WORKSPACE:-dsh-workspace}:/workspace:Z

@@ -14,7 +14,7 @@ services:
       DSH_DESKTOP_PUBLIC_PORT: ${DSH_LAN_HTTPS_PORT:-8443}
 
   lan-gateway:
-    image: ${CADDY_IMAGE:-caddy:2.11.4-alpine}
+    image: ${CADDY_IMAGE:-docker.io/library/caddy:2.11.4-alpine}
     depends_on:
       deepseek-harness:
         condition: service_healthy

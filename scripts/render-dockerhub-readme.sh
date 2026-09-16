@@ -31,7 +31,28 @@ awk '
     next
   }
 
-  !skip {
+  /^### Rootless Podman$/ {
+    compact = 1
+    print
+    print "见 [完整文档](https://github.com/runzhliu/deepseek-harness-docker)。"
+    print ""
+    next
+  }
+
+  compact && /^### / {
+    compact = 0
+  }
+
+  /^## 文件$/ {
+    layout = 1
+    print
+    print "完整目录结构见 [GitHub README](https://github.com/runzhliu/deepseek-harness-docker#文件)。"
+    print ""
+    print "本目录是社区实现，不代表 DeepSeek 官方发布的容器镜像。"
+    next
+  }
+
+  !skip && !compact && !layout {
     print
   }
 ' "${source_readme}" >"${temporary_readme}"

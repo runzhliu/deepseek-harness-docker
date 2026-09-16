@@ -10,6 +10,8 @@ DeepSeek Harness Web uses a process launch token, signed browser cookie, and Hos
 
 Trusted-LAN access is supported only through the opt-in `compose.lan.yaml` gateway. It binds Caddy to one explicit LAN address, terminates HTTPS, requires Basic Auth, passes the declared host to DSH's trusted-host check, and proxies versioned noVNC routes through that same protected origin. Ports 3080 and 6080 remain bound to host loopback. The bundled internal CA root must be installed on each authorized client, and a host firewall should restrict source networks.
 
+Rootless Podman deployments must use `compose.podman.yaml`. Its `keep-id` mapping preserves the image's non-root UID 1000 while making a selected host workspace writable, and its `:Z` suffix privately relabels that workspace on SELinux hosts. Never aim that bind mount at a shared home directory, filesystem root, or directory used by unrelated containers.
+
 The gateway does not make Harness multi-tenant. All authenticated users share the same settings, credentials, sessions, workspace access, and Agent code-execution authority. Mutually untrusted users require separate instances and separate state/workspace volumes.
 
 Public Ingress, LoadBalancer, NodePort, unrestricted `-p 3080:3080`, direct publication of noVNC, Internet forwarding of the LAN gateway, shared untrusted-user access, Docker socket mounts, and privileged containers are outside the supported security model.

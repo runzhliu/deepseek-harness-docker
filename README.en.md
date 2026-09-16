@@ -36,6 +36,7 @@ The explicit npm version is available upstream; registry replicas and dist-tags 
 | --- | --- | --- |
 | Dockerfile | Ready | `linux/arm64` and `linux/amd64` builds and real native PTY spawning tested |
 | Docker Compose | Ready | Web token/cookie authentication, healthy state, loopback publication, and persistence across restart tested |
+| Rootless Podman | Ready | CI covers `keep-id`, bind-mount writes, named-volume persistence, and loopback publication |
 | Helm | Ready | StatefulSet, PVC, headless Service, and NetworkPolicy; `helm lint --strict` passes |
 | Web UI | Local by default; protected LAN opt-in | Loopback by default; LAN overlay adds HTTPS, Basic Auth, DSH token/cookie, and same-origin noVNC |
 | Headless | Ready | Inject provider secrets at runtime; validate model calls and sandboxing in the target environment |
@@ -140,6 +141,33 @@ Open the complete <http://127.0.0.1:3080> URL carrying `?token=...` after `dsh w
 When `DSH_WORKSPACE` is unset, Compose uses a separate `dsh-workspace` named volume so the Agent cannot accidentally modify this repository. Set `DSH_WORKSPACE=/absolute/path/to/project` only after choosing the intended host project.
 
 The default immutable image revision is [`runzhliu/deepseek-harness:0.1.6-alpha.1-r1`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.6-alpha.1-r1`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). `r1` is the first container revision for this upstream version. The image continues to serve noVNC assets from a versioned path so an upgrade cannot make a browser mix incompatible cached ES modules. Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
+
+### Rootless Podman
+
+Podman `4.5` or newer can use the dedicated [`compose.podman.yaml`](compose.podman.yaml) overlay. It maps the invoking rootless user to the image's `node` UID/GID 1000 and applies a private SELinux label to the workspace. DSH remains non-root without recursively changing ownership of the host project:
+
+```bash
+podman version
+podman compose version
+podman info --format '{{.Host.Security.Rootless}}'  # must be true
+
+DSH_WORKSPACE=/absolute/path/to/your/project \
+  podman compose -f compose.yaml -f compose.podman.yaml pull
+DSH_WORKSPACE=/absolute/path/to/your/project \
+  podman compose -f compose.yaml -f compose.podman.yaml up -d --no-build
+podman compose -f compose.yaml -f compose.podman.yaml ps
+```
+
+Mount only a project directory dedicated to this instance. On SELinux hosts, `:Z` makes that directory private to this container; do not apply it to a shared home, repository cache, or system directory. `make podman-down` stops the stack without deleting named volumes. Maintainers can run `make podman-smoke` to verify rootless identity, host file ownership, restart persistence, and loopback-only ports.
+
+To keep using the Docker Compose client, expose the rootless Podman API socket and point the Docker CLI at it. The Podman overlay is still required:
+
+```bash
+systemctl --user enable --now podman.socket
+export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
+DSH_WORKSPACE=/absolute/path/to/your/project \
+  docker compose -f compose.yaml -f compose.podman.yaml up -d --no-build
+```
 
 To pull from GHCR without changing the rest of the Compose deployment:
 
@@ -432,6 +460,7 @@ The last command must print `/workspace`. An `EACCES` under `/workspace` instead
 | `web.cordis.patch.yml` | Docker-bridge-only Web listener override |
 | `compose.yaml` | Persistent, loopback-only, hardened local deployment |
 | `compose.market.yaml` | Optional Compose overlay that explicitly selects the third-party community market image |
+| `compose.podman.yaml` | Rootless Podman `keep-id` and SELinux workspace overlay |
 | `compose.lan.yaml` | Optional LAN overlay for HTTPS, Basic Auth, trusted-host, and same-origin noVNC |
 | `config/Caddyfile.lan` | Caddy configuration for the protected LAN endpoint |
 | `.env.lan.example` | Secret-free LAN configuration template |
@@ -440,6 +469,7 @@ The last command must print `/workspace`. An `EACCES` under `/workspace` instead
 | `charts/deepseek-harness/` | StatefulSet, PVC, headless Service, and NetworkPolicy |
 | `scripts/smoke.sh` | CLI, config, native PTY, and HTTP startup checks |
 | `scripts/lan-smoke.sh` | LAN gateway TLS, authentication, Origin, noVNC, and port-boundary checks |
+| `scripts/podman-smoke.sh` | Rootless user mapping, persistence, Web/noVNC, and port-boundary checks |
 | `.github/workflows/ci.yml` | Compose/Helm validation and two-platform image smoke tests |
 | `assets/` | Sanitized screenshots captured from the tested container |
 | `.dockerignore` | Minimal build context |

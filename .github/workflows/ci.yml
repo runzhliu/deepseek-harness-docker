@@ -45,13 +45,26 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           load: true
-          tags: deepseek-harness:ci-${{ matrix.suffix }}
+          tags: localhost/deepseek-harness:ci-${{ matrix.suffix }}
           cache-from: type=gha,scope=${{ matrix.suffix }}
           cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
           build-args: |
             IMAGE_VERSION=0.1.6-alpha.1-r1
             IMAGE_REVISION=${{ github.sha }}
-      - run: ./scripts/smoke.sh deepseek-harness:ci-${{ matrix.suffix }} 0.1.6-alpha.1 10.15.1
+      - run: ./scripts/smoke.sh localhost/deepseek-harness:ci-${{ matrix.suffix }} 0.1.6-alpha.1 10.15.1
+      - name: Install rootless Podman Compose
+        if: matrix.platform == 'linux/amd64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes podman podman-compose uidmap slirp4netns fuse-overlayfs
+          podman info --format '{{.Host.Security.Rootless}}'
+          podman compose version
+      - name: Import the tested image into rootless Podman
+        if: matrix.platform == 'linux/amd64'
+        run: docker save localhost/deepseek-harness:ci-amd64 | podman load
+      - name: Rootless Podman smoke
+        if: matrix.platform == 'linux/amd64'
+        run: ./scripts/podman-smoke.sh localhost/deepseek-harness:ci-amd64 0.1.6-alpha.1
 
   lan-gateway:
     name: HTTPS LAN gateway smoke

@@ -6,6 +6,9 @@ All notable changes to this project are documented here.
 
 - Add an opt-in trusted-LAN Compose overlay using `caddy:2.11.4-alpine`, HTTPS with a persistent internal CA, Basic Auth, DSH trusted-host enforcement, and same-origin protection for versioned noVNC routes.
 - Keep the default 3080/6080 publications loopback-only and add an end-to-end LAN smoke test covering both authentication layers, Secure cookies, Origin rejection, noVNC, and port bindings.
+- Add an official rootless Podman Compose overlay using `keep-id`, SELinux-private workspace labeling, loopback-only ports, and non-root UID 1000 without recursive host ownership changes.
+- Qualify default Docker Hub image references so Podman's non-interactive short-name enforcement cannot block builds or startup, and add a rootless Podman CI smoke test for bind writes, persisted state, Web/noVNC health, and port boundaries.
+- Advance the Helm chart to `0.1.11` with a fully qualified Docker Hub repository default.
 
 ## 0.1.11 - 2026-09-15
 

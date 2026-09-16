@@ -1,6 +1,6 @@
 ---
 name: deepseek-harness-docker
-description: Deploy, configure, verify, upgrade, and troubleshoot DeepSeek Harness with the community Docker, Docker Compose, and Helm runtime, including the built-in Chromium/noVNC browser, optional protected LAN gateway, optional ungoogled-chromium image, and optional plugin market. Use when users ask to run DSH or DeepSeek Harness locally or on a trusted LAN or Kubernetes, mount a writable workspace, configure model credentials safely, enable the embedded browser, minimize browser background egress, choose the market image, or diagnose container health and startup problems.
+description: Deploy, configure, verify, upgrade, and troubleshoot DeepSeek Harness with the community Docker, Docker Compose, rootless Podman, and Helm runtime, including the built-in Chromium/noVNC browser, optional protected LAN gateway, optional ungoogled-chromium image, and optional plugin market. Use when users ask to run DSH or DeepSeek Harness locally or on a trusted LAN or Kubernetes, mount a writable workspace, configure model credentials safely, enable the embedded browser, minimize browser background egress, choose the market image, or diagnose container health and startup problems.
 ---
 
 # DeepSeek Harness Docker
@@ -30,6 +30,8 @@ Read `README.md`, `SECURITY.md`, `compose.yaml`, and `.env.example` before chang
 ## Choose the smallest suitable mode
 
 Use default Compose for a local, single-user WebUI with the embedded Debian Chromium desktop. Add `compose.lan.yaml` only for an explicit trusted-LAN request, after choosing one exact bind address, an internal DNS name or IP, a Caddy Basic Auth credential, and a firewall boundary. This mode uses `caddy:2.11.4-alpine` and still represents one shared trust domain, not multi-tenancy. Select the immutable `0.1.6-alpha.1-r1-ungoogled.1` tag only when the user explicitly prioritizes minimized Google background egress and accepts its contributor-binary and reduced browser-service tradeoffs. Add `compose.market.yaml` only when the user explicitly wants the community plugin market. Use headless mode for one-shot automation and Helm only when the user requests Kubernetes.
+
+For an explicitly rootless Podman deployment, require Podman 4.5 or newer and add `compose.podman.yaml`. Confirm `podman info --format '{{.Host.Security.Rootless}}'` returns `true`. The overlay maps the caller to container UID/GID 1000 and privately labels the workspace on SELinux hosts; authorize one dedicated project directory and never broaden the mount to a shared home or filesystem root. Use `make podman-smoke` when validation is requested.
 
 ## Enable protected LAN access
 

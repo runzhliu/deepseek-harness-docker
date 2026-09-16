@@ -25,23 +25,33 @@ require_literal() {
 require_literal Dockerfile "ARG DSH_VERSION=${dsh_version}"
 require_literal Dockerfile "ARG IMAGE_VERSION=${image_version}"
 require_literal Dockerfile "ARG PNPM_VERSION=${pnpm_version}"
+require_literal Dockerfile "ARG NODE_IMAGE=docker.io/library/node:24-trixie"
 require_literal Dockerfile "ARG UNGOOGLED_CHROMIUM_VERSION=${ungoogled_chromium_version}"
 require_literal Dockerfile "ARG UNGOOGLED_CHROMIUM_AMD64_SHA256=${ungoogled_amd64_sha256}"
 require_literal Dockerfile "ARG UNGOOGLED_CHROMIUM_ARM64_SHA256=${ungoogled_arm64_sha256}"
-require_literal Dockerfile.market "ARG BASE_IMAGE=runzhliu/deepseek-harness:${image_version}"
+require_literal Dockerfile.market "ARG NODE_IMAGE=docker.io/library/node:24-trixie"
+require_literal Dockerfile.market "ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:${image_version}"
 require_literal Dockerfile.market "ARG DSH_MARKET_VERSION=${market_version}"
 require_literal Dockerfile.market "ARG MARKET_IMAGE_VERSION=${market_image_version}"
 require_literal compose.yaml "DSH_IMAGE_VERSION:-${image_version}"
+require_literal compose.yaml 'DSH_IMAGE_REPOSITORY:-docker.io/runzhliu/deepseek-harness'
+require_literal compose.yaml 'NODE_IMAGE:-docker.io/library/node:24-trixie'
 require_literal compose.market.yaml "MARKET_IMAGE_VERSION:-${market_image_version}"
-require_literal compose.lan.yaml "caddy:${caddy_version}-alpine"
+require_literal compose.lan.yaml "docker.io/library/caddy:${caddy_version}-alpine"
+require_literal compose.podman.yaml 'userns_mode: "keep-id:uid=1000,gid=1000"'
+require_literal compose.podman.yaml '${DSH_WORKSPACE:-dsh-workspace}:/workspace:Z'
 require_literal .env.example "DSH_VERSION=${dsh_version}"
 require_literal .env.example "DSH_IMAGE_VERSION=${image_version}"
 require_literal .env.example "PNPM_VERSION=${pnpm_version}"
-require_literal .env.lan.example "CADDY_IMAGE=caddy:${caddy_version}-alpine"
+require_literal .env.example 'DSH_IMAGE_REPOSITORY=docker.io/runzhliu/deepseek-harness'
+require_literal .env.example 'NODE_IMAGE=docker.io/library/node:24-trixie'
+require_literal .env.lan.example "CADDY_IMAGE=docker.io/library/caddy:${caddy_version}-alpine"
 require_literal charts/deepseek-harness/Chart.yaml "appVersion: \"${dsh_version}\""
-require_literal charts/deepseek-harness/Chart.yaml "image: runzhliu/deepseek-harness:${image_version}"
+require_literal charts/deepseek-harness/Chart.yaml "image: docker.io/runzhliu/deepseek-harness:${image_version}"
+require_literal charts/deepseek-harness/values.yaml 'repository: docker.io/runzhliu/deepseek-harness'
 require_literal charts/deepseek-harness/values.yaml "tag: ${image_version}"
 require_literal scripts/smoke.sh "runzhliu/deepseek-harness:${image_version}"
+require_literal scripts/podman-smoke.sh "docker.io/runzhliu/deepseek-harness:${image_version}"
 require_literal .github/workflows/ci.yml "IMAGE_VERSION=${image_version}"
 require_literal .github/workflows/ci.yml "MARKET_IMAGE_VERSION=${market_image_version}"
 require_literal .github/workflows/ci.yml "IMAGE_VERSION=${ungoogled_image_version}"
@@ -49,6 +59,7 @@ require_literal .github/workflows/ci.yml "UNGOOGLED_CHROMIUM_VERSION=${ungoogled
 require_literal .github/workflows/ci.yml "UNGOOGLED_CHROMIUM_AMD64_SHA256=${ungoogled_amd64_sha256}"
 require_literal .github/workflows/ci.yml "UNGOOGLED_CHROMIUM_ARM64_SHA256=${ungoogled_arm64_sha256}"
 require_literal .github/workflows/ci.yml "${dsh_version} ${pnpm_version} ${market_version}"
+require_literal .github/workflows/ci.yml './scripts/podman-smoke.sh localhost/deepseek-harness:ci-amd64'
 require_literal .github/workflows/publish-ghcr.yml "default: ${image_version}"
 require_literal .github/workflows/publish-dockerhub.yml "DSH_VERSION: ${dsh_version}"
 require_literal .github/workflows/publish-dockerhub.yml "IMAGE_VERSION: ${image_version}"
@@ -72,6 +83,9 @@ require_literal README.en.md "caddy:${caddy_version}-alpine"
 require_literal SKILL.md "runzhliu/deepseek-harness:${image_version}"
 require_literal SKILL.md "${ungoogled_image_version}"
 require_literal SKILL.md "caddy:${caddy_version}-alpine"
+require_literal README.md 'compose.podman.yaml'
+require_literal README.en.md 'compose.podman.yaml'
+require_literal SKILL.md 'compose.podman.yaml'
 
 printf 'versions are consistent: image=%s dsh=%s pnpm=%s market=%s browser-plugin=%s ungoogled-chromium=%s caddy=%s\n' \
   "${image_version}" "${dsh_version}" "${pnpm_version}" "${market_version}" "${browser_plugin_version}" "${ungoogled_chromium_version}" "${caddy_version}"

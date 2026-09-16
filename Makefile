@@ -1,8 +1,8 @@
-IMAGE ?= runzhliu/deepseek-harness
+IMAGE ?= docker.io/runzhliu/deepseek-harness
 GHCR_IMAGE ?= ghcr.io/runzhliu/deepseek-harness
 DSH_VERSION ?= 0.1.6-alpha.1
 IMAGE_VERSION ?= $(DSH_VERSION)-r1
-NODE_IMAGE ?= node:24-trixie
+NODE_IMAGE ?= docker.io/library/node:24-trixie
 PNPM_VERSION ?= 10.15.1
 DSH_MARKET_VERSION ?= 1.38.1
 MARKET_IMAGE_VERSION ?= $(IMAGE_VERSION)-market.1
@@ -12,11 +12,13 @@ UNGOOGLED_CHROMIUM_AMD64_SHA256 ?= 2c6e464e030f87145e42553c5aa539f6e62163ce677d3
 UNGOOGLED_CHROMIUM_ARM64_SHA256 ?= 1909f42dcc3661bc213f2cf3b5232a9d3c850913b36efa7267ed6499f6cbf87d
 UNGOOGLED_IMAGE_VERSION ?= $(IMAGE_VERSION)-ungoogled.1
 CADDY_VERSION ?= 2.11.4
-CADDY_IMAGE ?= caddy:$(CADDY_VERSION)-alpine
+CADDY_IMAGE ?= docker.io/library/caddy:$(CADDY_VERSION)-alpine
+PODMAN ?= podman
+PODMAN_COMPOSE ?= $(PODMAN) compose
 LAN_ENV_FILE ?= .env.lan
 PLATFORMS ?= linux/amd64,linux/arm64
 
-.PHONY: help build multiarch-build push pull ghcr-pull ungoogled-build ungoogled-multiarch-build ungoogled-push ungoogled-pull ungoogled-smoke ungoogled-inspect market-build market-push market-pull up down logs lan-up lan-down lan-logs lan-smoke compose-check helm-check plugin-check dockerhub-check version-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
+.PHONY: help build multiarch-build push pull ghcr-pull ungoogled-build ungoogled-multiarch-build ungoogled-push ungoogled-pull ungoogled-smoke ungoogled-inspect market-build market-push market-pull up down logs lan-up lan-down lan-logs lan-smoke podman-up podman-down podman-logs podman-smoke compose-check helm-check plugin-check dockerhub-check version-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
 
 help:
 	@echo "build            Build the local platform image"
@@ -32,6 +34,8 @@ help:
 	@echo "up/down/logs     Manage the Compose service"
 	@echo "lan-up/down/logs Manage the opt-in HTTPS LAN gateway (LAN_ENV_FILE=.env.lan)"
 	@echo "lan-smoke        Test the authenticated TLS LAN gateway end to end"
+	@echo "podman-up/down   Manage the rootless Podman Compose deployment"
+	@echo "podman-smoke     Test bind ownership, Web health, and loopback ports under rootless Podman"
 	@echo "verify           Validate Compose and Helm rendering"
 	@echo "plugin-check     Validate and dry-pack the browser plugin"
 	@echo "dockerhub-check  Render and validate the Docker Hub overview"
@@ -101,6 +105,7 @@ lan-logs:
 compose-check:
 	docker compose config --quiet
 	docker compose -f compose.yaml -f compose.market.yaml config --quiet
+	docker compose -f compose.yaml -f compose.podman.yaml config --quiet
 	DSH_LAN_BIND_ADDRESS=127.0.0.1 DSH_LAN_HOST=dsh-lan.test DSH_LAN_USERNAME=smoke DSH_LAN_PASSWORD_HASH=not-used CADDY_IMAGE=$(CADDY_IMAGE) docker compose -f compose.yaml -f compose.lan.yaml config --quiet
 	DSH_LAN_BIND_ADDRESS=127.0.0.1 DSH_LAN_HOST=dsh-lan.test DSH_LAN_USERNAME=smoke DSH_LAN_PASSWORD_HASH=not-used CADDY_IMAGE=$(CADDY_IMAGE) docker compose -f compose.yaml -f compose.market.yaml -f compose.lan.yaml config --quiet
 
@@ -118,6 +123,7 @@ plugin-check:
 	bash -n scripts/check-upstream-dsh.sh
 	bash -n scripts/check-version-consistency.sh
 	bash -n scripts/lan-smoke.sh
+	bash -n scripts/podman-smoke.sh
 	bash -n scripts/smoke.sh
 	npm --cache "$${TMPDIR:-/tmp}/dsh-browser-plugin-npm-cache" pack --dry-run --json ./plugins/dsh-browser-desktop >/dev/null
 
@@ -138,6 +144,19 @@ smoke:
 
 lan-smoke:
 	CADDY_IMAGE=$(CADDY_IMAGE) ./scripts/lan-smoke.sh $(IMAGE) $(IMAGE_VERSION)
+
+podman-up:
+	$(PODMAN_COMPOSE) -f compose.yaml -f compose.podman.yaml pull
+	$(PODMAN_COMPOSE) -f compose.yaml -f compose.podman.yaml up --detach --no-build
+
+podman-down:
+	$(PODMAN_COMPOSE) -f compose.yaml -f compose.podman.yaml down
+
+podman-logs:
+	$(PODMAN_COMPOSE) -f compose.yaml -f compose.podman.yaml logs --follow deepseek-harness
+
+podman-smoke:
+	./scripts/podman-smoke.sh $(IMAGE):$(IMAGE_VERSION) $(DSH_VERSION)
 
 ungoogled-smoke:
 	./scripts/smoke.sh $(IMAGE):$(UNGOOGLED_IMAGE_VERSION) $(DSH_VERSION) $(PNPM_VERSION) "" ungoogled $(UNGOOGLED_CHROMIUM_VERSION)

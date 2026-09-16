@@ -36,6 +36,7 @@
 | --- | --- | --- |
 | Dockerfile | 可用 | `linux/arm64`、`linux/amd64` 构建与原生 PTY 实际启动均已验证 |
 | Docker Compose | 可用 | Web token/cookie 认证、healthy、回环端口、重启持久化已验证 |
+| Rootless Podman | 可用 | `keep-id` 用户映射、bind mount 写入、命名卷持久化与回环端口已纳入 CI |
 | Helm | 可用 | 单副本 StatefulSet、PVC、Headless Service、NetworkPolicy；`helm lint --strict` 通过 |
 | Web UI | 本机默认；可选受保护 LAN | 默认仅回环访问；LAN overlay 提供 HTTPS、Basic Auth、DSH token/cookie 与同源 noVNC |
 | Headless | 可用 | 运行时注入 provider Secret；需在目标环境验证实际模型调用和沙箱 |
@@ -139,6 +140,33 @@ docker compose logs --no-color deepseek-harness | grep 'dsh web:'
 未设置 `DSH_WORKSPACE` 时，Compose 使用独立的 `dsh-workspace` 命名卷，避免 Agent 意外修改本仓库。只有准备好明确的项目目录后，才通过 `DSH_WORKSPACE=/absolute/path/to/project` 改用 bind mount。
 
 默认镜像修订版为 Docker Hub 上的 [`runzhliu/deepseek-harness:0.1.6-alpha.1-r1`](https://hub.docker.com/r/runzhliu/deepseek-harness)，同一份多架构制品也会发布到 GitHub Container Registry：[`ghcr.io/runzhliu/deepseek-harness:0.1.6-alpha.1-r1`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness)。`r1` 是该上游版本的首个容器修订号；镜像继续使用带版本的 noVNC 静态资源路径，避免升级后浏览器缓存混用不兼容的 ES Module。Compose 同时保留 `build` 配置，方便审查并从本目录复现镜像；如需本地构建，执行 `docker compose build --pull` 后再启动。
+
+### Rootless Podman
+
+Podman `4.5` 或更新版本可使用专用 [`compose.podman.yaml`](compose.podman.yaml) overlay。它把当前 rootless 用户映射为镜像内的 `node` UID/GID 1000，并为工作区添加私有 SELinux 标签；这样无需用 root 运行 DSH，也无需递归修改宿主项目所有权：
+
+```bash
+podman version
+podman compose version
+podman info --format '{{.Host.Security.Rootless}}'  # 应为 true
+
+DSH_WORKSPACE=/absolute/path/to/your/project \
+  podman compose -f compose.yaml -f compose.podman.yaml pull
+DSH_WORKSPACE=/absolute/path/to/your/project \
+  podman compose -f compose.yaml -f compose.podman.yaml up -d --no-build
+podman compose -f compose.yaml -f compose.podman.yaml ps
+```
+
+只挂载专用于该实例的项目目录；`:Z` 会在启用 SELinux 的主机上把该目录标记为本容器私有，不要对共享 home、仓库缓存或系统目录使用。停止服务使用 `make podman-down`，不会删除命名卷。维护者可运行 `make podman-smoke` 验证 rootless 身份、宿主文件所有权、重启持久化及回环端口。
+
+若希望继续使用 Docker Compose 客户端，可启动 rootless Podman API socket，再让 Docker CLI 指向它；仍须叠加 `compose.podman.yaml`：
+
+```bash
+systemctl --user enable --now podman.socket
+export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
+DSH_WORKSPACE=/absolute/path/to/your/project \
+  docker compose -f compose.yaml -f compose.podman.yaml up -d --no-build
+```
 
 需要从 GHCR 拉取时，设置镜像仓库即可，其他 Compose 配置保持不变：
 
@@ -431,6 +459,7 @@ docker compose exec deepseek-harness node -e "console.log(require('node:os').hom
 | `web.cordis.patch.yml` | 只用于 Docker bridge 网络的 Web 监听覆盖 |
 | `compose.yaml` | 持久化、回环端口和收紧后的运行时配置 |
 | `compose.market.yaml` | 显式选择第三方社区市场镜像的可选 Compose overlay |
+| `compose.podman.yaml` | rootless Podman 的 `keep-id` 与 SELinux workspace overlay |
 | `compose.lan.yaml` | HTTPS、Basic Auth、trusted-host 和同源 noVNC 的可选 LAN overlay |
 | `config/Caddyfile.lan` | 受保护局域网入口的 Caddy 配置 |
 | `.env.lan.example` | 不含 Secret 的 LAN 配置模板 |
@@ -439,6 +468,7 @@ docker compose exec deepseek-harness node -e "console.log(require('node:os').hom
 | `charts/deepseek-harness/` | 单副本 StatefulSet、PVC、Service 和 NetworkPolicy |
 | `scripts/smoke.sh` | CLI、配置、原生 PTY 和 HTTP 启动验证 |
 | `scripts/lan-smoke.sh` | LAN gateway 的 TLS、认证、Origin、noVNC 与端口边界验证 |
+| `scripts/podman-smoke.sh` | rootless 用户映射、持久化、Web/noVNC 和端口边界验证 |
 | `.github/workflows/ci.yml` | Compose/Helm 校验和双架构镜像 Smoke Test |
 | `.dockerignore` | 把构建上下文限制到镜像真正需要的文件 |
 

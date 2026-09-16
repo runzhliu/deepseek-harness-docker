@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
-ARG NODE_IMAGE=node:24-trixie
-ARG BASE_IMAGE=runzhliu/deepseek-harness:0.1.6-alpha.1-r1
+ARG NODE_IMAGE=docker.io/library/node:24-trixie
+ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:0.1.6-alpha.1-r1
 FROM ${NODE_IMAGE} AS market-installer
 
 ARG DSH_MARKET_VERSION=1.38.1

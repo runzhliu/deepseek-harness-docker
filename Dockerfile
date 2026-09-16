@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-ARG NODE_IMAGE=node:24-trixie
+ARG NODE_IMAGE=docker.io/library/node:24-trixie
 FROM ${NODE_IMAGE} AS installer
 
 ARG DSH_VERSION=0.1.6-alpha.1
