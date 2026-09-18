@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+# DSH 0.1.6-alpha.2 materializes native addons in a runtime cache before
+# loading them. The hardened container intentionally mounts /tmp with noexec,
+# while the packaged addon tree under /usr/local is immutable and executable.
+# Load directly from that tree unless an operator explicitly selects either
+# cache behavior.
+if [ -z "${NARB_DISABLE_NATIVE_CACHE+x}" ] && [ -z "${NARB_NATIVE_CACHE_DIR+x}" ]; then
+  export NARB_DISABLE_NATIVE_CACHE=1
+fi
+
+exec node --expose-internals \
+  /usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin.js \
+  "$@"

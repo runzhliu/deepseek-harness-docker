@@ -3,7 +3,7 @@
 ARG NODE_IMAGE=docker.io/library/node:24-trixie
 FROM ${NODE_IMAGE} AS installer
 
-ARG DSH_VERSION=0.1.6-alpha.1
+ARG DSH_VERSION=0.1.6-alpha.2
 ARG PNPM_VERSION=10.15.1
 
 # node-pty publishes prebuilds for only some Linux architectures. Keep the
@@ -27,7 +27,7 @@ RUN apt-get update \
 FROM ${NODE_IMAGE}
 
 ARG NODE_IMAGE
-ARG DSH_VERSION=0.1.6-alpha.1
+ARG DSH_VERSION=0.1.6-alpha.2
 ARG PNPM_VERSION=10.15.1
 ARG CHROMIUM_FLAVOR=debian
 ARG UNGOOGLED_CHROMIUM_VERSION=152.0.7977.82-1
@@ -266,10 +266,12 @@ RUN chmod 0755 /usr/local/bin/wslpath /usr/local/bin/powershell.exe /usr/local/b
 COPY --from=installer /usr/local/lib/node_modules/@deepseek-ai/dsh /usr/local/lib/node_modules/@deepseek-ai/dsh
 COPY --from=installer /usr/local/lib/node_modules/pnpm /usr/local/lib/node_modules/pnpm
 COPY scripts/chromium-docker /usr/local/bin/chromium-docker
+COPY scripts/dsh-container /usr/local/bin/dsh
 COPY scripts/deepseek-harness-entrypoint /usr/local/bin/deepseek-harness-entrypoint
 COPY plugins/dsh-browser-desktop /opt/deepseek-harness/plugins/dsh-browser-desktop
 
 RUN chmod 0755 /usr/local/bin/chromium-docker \
+        /usr/local/bin/dsh \
         /usr/local/bin/deepseek-harness-entrypoint \
     && mkdir -p \
       /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@runzhliu \
@@ -278,7 +280,6 @@ RUN chmod 0755 /usr/local/bin/chromium-docker \
       /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@runzhliu/dsh-browser-desktop \
     && ln -s /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/schemastery \
       /opt/deepseek-harness/plugins/dsh-browser-desktop/node_modules/@deepseek-ai/schemastery \
-    && ln -s ../lib/node_modules/@deepseek-ai/dsh/lib/bin.js /usr/local/bin/dsh \
     && ln -s ../lib/node_modules/pnpm/bin/pnpm.cjs /usr/local/bin/pnpm \
     && ln -s ../lib/node_modules/pnpm/bin/pnpx.cjs /usr/local/bin/pnpx \
     && ln -s chromium-docker /usr/local/bin/chrome \
@@ -320,7 +321,7 @@ EXPOSE 3080 6080
 # Keep source metadata after every filesystem-producing instruction so a new
 # commit revision updates only image configuration instead of invalidating the
 # large Debian/Chromium installation layers.
-ARG IMAGE_VERSION=0.1.6-alpha.1-r1
+ARG IMAGE_VERSION=0.1.6-alpha.2-r1
 ARG IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
       org.opencontainers.image.description="Community container image for the DeepSeek Harness CLI, Web UI, and browser-accessible Chromium desktop" \

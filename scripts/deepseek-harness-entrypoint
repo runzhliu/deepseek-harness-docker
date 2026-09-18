@@ -161,9 +161,7 @@ if { [ "${1:-}" = "web" ] || { [ "${1:-}" = "--profile" ] && [ "${2:-}" = "web" 
   }
 fi
 
-node --expose-internals \
-  /usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin.js \
-  "$@" &
+/usr/local/bin/dsh "$@" &
 dsh_pid=$!
 
 wait "${dsh_pid}"

@@ -1,6 +1,6 @@
 IMAGE ?= docker.io/runzhliu/deepseek-harness
 GHCR_IMAGE ?= ghcr.io/runzhliu/deepseek-harness
-DSH_VERSION ?= 0.1.6-alpha.1
+DSH_VERSION ?= 0.1.6-alpha.2
 IMAGE_VERSION ?= $(DSH_VERSION)-r1
 NODE_IMAGE ?= docker.io/library/node:24-trixie
 PNPM_VERSION ?= 10.15.1
@@ -119,6 +119,7 @@ plugin-check:
 	node --check plugins/dsh-browser-desktop/client.js
 	node --check scripts/dsh-market-repair-store
 	sh -n scripts/deepseek-harness-entrypoint
+	sh -n scripts/dsh-container
 	sh -n scripts/deepseek-harness-market-entrypoint
 	bash -n scripts/check-upstream-dsh.sh
 	bash -n scripts/check-version-consistency.sh

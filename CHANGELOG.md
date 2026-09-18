@@ -4,12 +4,18 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.1.12 - 2026-09-18
+
+- Upgrade the official runtime to `@deepseek-ai/dsh@0.1.6-alpha.2` and publish the immutable container revision as `0.1.6-alpha.2-r1`.
+- Add upstream plugin management, file-change review, Office previews, and sidebar views for URLs, Subagent conversations, and submitted plans.
+- Adopt runtime plugin dependency resolution and unloading, persistent Plugin Manager installation in Creator mode, updated Client Session APIs, and the accumulated startup, model, Inbox, Messages API, and approval fixes.
+- Preserve the hardened `noexec` `/tmp` mount by loading DSH native addons directly from the immutable packaged tree instead of its new runtime cache.
 - Add an opt-in trusted-LAN Compose overlay using `caddy:2.11.4-alpine`, HTTPS with a persistent internal CA, Basic Auth, DSH trusted-host enforcement, and same-origin protection for versioned noVNC routes.
 - Keep the default 3080/6080 publications loopback-only and add an end-to-end LAN smoke test covering both authentication layers, Secure cookies, Origin rejection, noVNC, and port bindings.
 - Add an official rootless Podman Compose overlay using `keep-id`, SELinux-private workspace labeling, loopback-only ports, and non-root UID 1000 without recursive host ownership changes.
 - Qualify default Docker Hub image references so Podman's non-interactive short-name enforcement cannot block builds or startup, require `podman-compose 1.6.0` to obtain spec-compliant volume replacement, and add a rootless Podman CI smoke test for bind writes, persisted state, Web/noVNC health, and port boundaries.
 - Move the maintained GitHub Actions to their Node 24-compatible major releases.
-- Advance the Helm chart to `0.1.11` with a fully qualified Docker Hub repository default.
+- Advance the Helm chart to `0.1.12` with a fully qualified Docker Hub repository default and the DSH `0.1.6-alpha.2` application baseline.
 
 ## 0.1.11 - 2026-09-15
 

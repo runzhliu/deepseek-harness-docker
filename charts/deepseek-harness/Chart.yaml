@@ -2,8 +2,8 @@ apiVersion: v2
 name: deepseek-harness
 description: Community Helm chart for a single-user DeepSeek Harness Web instance
 type: application
-version: 0.1.11
-appVersion: "0.1.6-alpha.1"
+version: 0.1.12
+appVersion: "0.1.6-alpha.2"
 kubeVersion: ">=1.27.0-0"
 home: https://github.com/runzhliu/deepseek-harness-docker
 keywords:
@@ -21,13 +21,11 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/images: |
     - name: deepseek-harness
-      image: docker.io/runzhliu/deepseek-harness:0.1.6-alpha.1-r1
+      image: docker.io/runzhliu/deepseek-harness:0.1.6-alpha.2-r1
   artifacthub.io/changes: |
-    - kind: changed
-      description: Fully qualify the Docker Hub image reference for non-interactive rootless Podman and OCI clients.
     - kind: added
-      description: Add the Web sidebar terminal, archived-session recovery, MCP Resources, and experimental Browser and Computer Use from DSH 0.1.6-alpha.1.
+      description: Add plugin management, file-change review, Office previews, and sidebar views for URLs, Subagents, and submitted plans from DSH 0.1.6-alpha.2.
     - kind: changed
-      description: Adopt the new DeepSeek Messages default and the renamed PTC and workflow services.
+      description: Adopt runtime plugin dependency resolution and unloading, persistent Plugin Manager installation in Creator mode, and the updated Client Session APIs.
     - kind: fixed
-      description: Include optional-plugin startup isolation, persistent Bash, session ordering, and Web reconnect fixes.
+      description: Include startup diagnostics, vision-model input overrides, Inbox restoration, Messages API fixes, and approval reuse.

@@ -25,6 +25,7 @@ require_literal() {
 require_literal Dockerfile "ARG DSH_VERSION=${dsh_version}"
 require_literal Dockerfile "ARG IMAGE_VERSION=${image_version}"
 require_literal Dockerfile "ARG PNPM_VERSION=${pnpm_version}"
+require_literal Dockerfile 'COPY scripts/dsh-container /usr/local/bin/dsh'
 require_literal Dockerfile "ARG NODE_IMAGE=docker.io/library/node:24-trixie"
 require_literal Dockerfile "ARG UNGOOGLED_CHROMIUM_VERSION=${ungoogled_chromium_version}"
 require_literal Dockerfile "ARG UNGOOGLED_CHROMIUM_AMD64_SHA256=${ungoogled_amd64_sha256}"
@@ -52,6 +53,8 @@ require_literal charts/deepseek-harness/Chart.yaml "image: docker.io/runzhliu/de
 require_literal charts/deepseek-harness/values.yaml 'repository: docker.io/runzhliu/deepseek-harness'
 require_literal charts/deepseek-harness/values.yaml "tag: ${image_version}"
 require_literal scripts/smoke.sh "runzhliu/deepseek-harness:${image_version}"
+require_literal scripts/dsh-container 'NARB_DISABLE_NATIVE_CACHE=1'
+require_literal scripts/deepseek-harness-entrypoint '/usr/local/bin/dsh "$@" &'
 require_literal scripts/podman-smoke.sh "docker.io/runzhliu/deepseek-harness:${image_version}"
 require_literal scripts/podman-smoke.sh 'command -v podman-compose'
 require_literal scripts/podman-smoke.sh 'podman-compose 1.6.0 or newer is required'
