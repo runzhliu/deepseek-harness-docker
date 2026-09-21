@@ -43,6 +43,18 @@ awk '
     compact = 0
   }
 
+  /^### 浏览器桌面、官方 Browser Use 与人工接管$/ {
+    browser = 1
+    print
+    print "镜像把官方 Playwright MCP Browser Use attach 到同一个持久化 Chromium；插件负责 noVNC 可视桌面与人工接管，详见 [完整浏览器说明](https://github.com/runzhliu/deepseek-harness-docker#浏览器桌面官方-browser-use-与人工接管)。"
+    print ""
+    next
+  }
+
+  browser && /^#### / {
+    browser = 0
+  }
+
   /^## 文件$/ {
     layout = 1
     print
@@ -52,7 +64,7 @@ awk '
     next
   }
 
-  !skip && !compact && !layout {
+  !skip && !compact && !browser && !layout {
     print
   }
 ' "${source_readme}" >"${temporary_readme}"

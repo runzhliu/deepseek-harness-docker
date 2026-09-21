@@ -29,7 +29,7 @@ Read `README.md`, `SECURITY.md`, `compose.yaml`, and `.env.example` before chang
 
 ## Choose the smallest suitable mode
 
-Use default Compose for a local, single-user WebUI with the embedded Debian Chromium desktop. Add `compose.lan.yaml` only for an explicit trusted-LAN request, after choosing one exact bind address, an internal DNS name or IP, a Caddy Basic Auth credential, and a firewall boundary. This mode uses `caddy:2.11.4-alpine` and still represents one shared trust domain, not multi-tenancy. Select the immutable `0.1.6-alpha.2-r1-ungoogled.1` tag only when the user explicitly prioritizes minimized Google background egress and accepts its contributor-binary and reduced browser-service tradeoffs. Add `compose.market.yaml` only when the user explicitly wants the community plugin market. Use headless mode for one-shot automation and Helm only when the user requests Kubernetes.
+Use default Compose for a local, single-user WebUI with the embedded Debian Chromium desktop. The image attaches official Playwright MCP Browser Use to the same persistent Chromium used for visible human takeover. Add `compose.lan.yaml` only for an explicit trusted-LAN request, after choosing one exact bind address, an internal DNS name or IP, a Caddy Basic Auth credential, and a firewall boundary. This mode uses `caddy:2.11.4-alpine` and still represents one shared trust domain, not multi-tenancy. Select the immutable `0.1.6-alpha.2-r2-ungoogled.1` tag only when the user explicitly prioritizes minimized Google background egress and accepts its contributor-binary and reduced browser-service tradeoffs. Add `compose.market.yaml` only when the user explicitly wants the community plugin market. Use headless mode for one-shot automation and Helm only when the user requests Kubernetes.
 
 For an explicitly rootless Podman deployment, require Podman 4.5 and `podman-compose 1.6.0` or newer, then add `compose.podman.yaml`. Confirm `podman info --format '{{.Host.Security.Rootless}}'` returns `true`. The overlay maps the caller to container UID/GID 1000 and privately labels the workspace on SELinux hosts; authorize one dedicated project directory and never broaden the mount to a shared home or filesystem root. Use `make podman-smoke` when validation is requested.
 
@@ -70,7 +70,7 @@ Follow the `.env.lan.example` and README procedure. Generate the bcrypt hash wit
 Keep Debian Chromium as the default. For an explicit privacy-focused deployment, select the separate immutable image before pulling and starting:
 
 ```bash
-export DSH_IMAGE_VERSION=0.1.6-alpha.2-r1-ungoogled.1
+export DSH_IMAGE_VERSION=0.1.6-alpha.2-r2-ungoogled.1
 DSH_WORKSPACE=/absolute/path/to/project docker compose pull
 DSH_WORKSPACE=/absolute/path/to/project docker compose up -d --no-build
 ```
@@ -100,7 +100,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src=/absolute/path/to/project,dst=/workspace \
-  runzhliu/deepseek-harness:0.1.6-alpha.2-r1 \
+  runzhliu/deepseek-harness:0.1.6-alpha.2-r2 \
   --profile headless "summarize this repository"
 ```
 

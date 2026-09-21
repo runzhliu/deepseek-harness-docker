@@ -25,6 +25,8 @@ require_literal() {
 require_literal Dockerfile "ARG DSH_VERSION=${dsh_version}"
 require_literal Dockerfile "ARG IMAGE_VERSION=${image_version}"
 require_literal Dockerfile "ARG PNPM_VERSION=${pnpm_version}"
+require_literal Dockerfile '"@deepseek-ai/dsh-browser-use@${DSH_VERSION}"'
+require_literal Dockerfile '"@deepseek-ai/dsh-experimental-browser-use-playwright-mcp@${DSH_VERSION}"'
 require_literal Dockerfile 'COPY scripts/dsh-container /usr/local/bin/dsh'
 require_literal Dockerfile "ARG NODE_IMAGE=docker.io/library/node:24-trixie"
 require_literal Dockerfile "ARG UNGOOGLED_CHROMIUM_VERSION=${ungoogled_chromium_version}"
@@ -37,6 +39,7 @@ require_literal Dockerfile.market "ARG MARKET_IMAGE_VERSION=${market_image_versi
 require_literal compose.yaml "DSH_IMAGE_VERSION:-${image_version}"
 require_literal compose.yaml 'DSH_IMAGE_REPOSITORY:-docker.io/runzhliu/deepseek-harness'
 require_literal compose.yaml 'NODE_IMAGE:-docker.io/library/node:24-trixie'
+require_literal compose.yaml 'DSH_BROWSER_USE_ENABLED: ${DSH_BROWSER_USE_ENABLED:-1}'
 require_literal compose.market.yaml "MARKET_IMAGE_VERSION:-${market_image_version}"
 require_literal compose.lan.yaml "docker.io/library/caddy:${caddy_version}-alpine"
 require_literal compose.podman.yaml 'userns_mode: "keep-id:uid=1000,gid=1000"'
@@ -55,6 +58,7 @@ require_literal charts/deepseek-harness/values.yaml "tag: ${image_version}"
 require_literal scripts/smoke.sh "runzhliu/deepseek-harness:${image_version}"
 require_literal scripts/dsh-container 'NARB_DISABLE_NATIVE_CACHE=1'
 require_literal scripts/deepseek-harness-entrypoint '/usr/local/bin/dsh "$@" &'
+require_literal scripts/deepseek-harness-entrypoint 'dsh-experimental-browser-use-playwright-mcp'
 require_literal scripts/podman-smoke.sh "docker.io/runzhliu/deepseek-harness:${image_version}"
 require_literal scripts/podman-smoke.sh 'command -v podman-compose'
 require_literal scripts/podman-smoke.sh 'podman-compose 1.6.0 or newer is required'
@@ -76,6 +80,9 @@ require_literal .github/workflows/publish-dockerhub.yml "UNGOOGLED_IMAGE_VERSION
 require_literal .github/workflows/upstream-dsh.yml "./scripts/check-upstream-dsh.sh ${dsh_version}"
 require_literal plugins/dsh-browser-desktop/package.json "\"version\": \"${browser_plugin_version}\""
 require_literal plugins/dsh-browser-desktop/package.json '"@deepseek-ai/dsh-client-modules"'
+require_literal web.cordis.patch.yml "name: '@deepseek-ai/dsh-browser-use'"
+require_literal web.cordis.patch.yml "name: '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp'"
+require_literal web.cordis.patch.yml "endpoint: 'http://127.0.0.1:9222'"
 require_literal README.md "runzhliu/deepseek-harness:${image_version}"
 require_literal README.md "runzhliu/deepseek-harness:${market_image_version}"
 require_literal README.md "runzhliu/deepseek-harness:${ungoogled_image_version}"

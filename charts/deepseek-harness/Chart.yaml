@@ -2,7 +2,7 @@ apiVersion: v2
 name: deepseek-harness
 description: Community Helm chart for a single-user DeepSeek Harness Web instance
 type: application
-version: 0.1.12
+version: 0.1.13
 appVersion: "0.1.6-alpha.2"
 kubeVersion: ">=1.27.0-0"
 home: https://github.com/runzhliu/deepseek-harness-docker
@@ -21,11 +21,9 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/images: |
     - name: deepseek-harness
-      image: docker.io/runzhliu/deepseek-harness:0.1.6-alpha.2-r1
+      image: docker.io/runzhliu/deepseek-harness:0.1.6-alpha.2-r2
   artifacthub.io/changes: |
     - kind: added
-      description: Add plugin management, file-change review, Office previews, and sidebar views for URLs, Subagents, and submitted plans from DSH 0.1.6-alpha.2.
+      description: Add the official Playwright MCP Browser Use provider attached to the image's persistent Chromium desktop.
     - kind: changed
-      description: Adopt runtime plugin dependency resolution and unloading, persistent Plugin Manager installation in Creator mode, and the updated Client Session APIs.
-    - kind: fixed
-      description: Include startup diagnostics, vision-model input overrides, Inbox restoration, Messages API fixes, and approval reuse.
+      description: Reposition the browser plugin as the visible human-takeover layer while official Browser Use owns model automation.

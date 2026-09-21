@@ -13,19 +13,37 @@ if [ -z "${CHROME_USER_DATA_DIR:-}" ]; then
   export CHROME_USER_DATA_DIR
 fi
 
-install_browser_plugin() {
-  plugin_scope="${DSH_HOME}/profiles/web/node_modules/@runzhliu"
-  plugin_link="${plugin_scope}/dsh-browser-desktop"
-  plugin_source=/opt/deepseek-harness/plugins/dsh-browser-desktop
+install_profile_package_link() {
+  plugin_link="$1"
+  plugin_source="$2"
+  plugin_label="$3"
 
-  mkdir -p "${plugin_scope}"
+  mkdir -p "$(dirname "${plugin_link}")"
   if [ -L "${plugin_link}" ]; then
     rm -f "${plugin_link}"
   elif [ -e "${plugin_link}" ]; then
-    echo "browser desktop plugin path already exists; leaving it unchanged: ${plugin_link}" >&2
+    echo "${plugin_label} path already exists; leaving it unchanged: ${plugin_link}" >&2
     return 0
   fi
   ln -s "${plugin_source}" "${plugin_link}"
+}
+
+install_browser_plugins() {
+  profile_modules="${DSH_HOME}/profiles/web/node_modules"
+  dsh_modules=/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules
+
+  install_profile_package_link \
+    "${profile_modules}/@runzhliu/dsh-browser-desktop" \
+    /opt/deepseek-harness/plugins/dsh-browser-desktop \
+    'browser desktop plugin'
+  install_profile_package_link \
+    "${profile_modules}/@deepseek-ai/dsh-browser-use" \
+    "${dsh_modules}/@deepseek-ai/dsh-browser-use" \
+    'official Browser Use service'
+  install_profile_package_link \
+    "${profile_modules}/@deepseek-ai/dsh-experimental-browser-use-playwright-mcp" \
+    "${dsh_modules}/@deepseek-ai/dsh-experimental-browser-use-playwright-mcp" \
+    'official Playwright Browser Use provider'
 }
 
 stop_children() {
@@ -151,7 +169,7 @@ start_desktop() {
 
 trap handle_signal INT TERM HUP
 
-install_browser_plugin
+install_browser_plugins
 
 if { [ "${1:-}" = "web" ] || { [ "${1:-}" = "--profile" ] && [ "${2:-}" = "web" ]; }; } \
     && [ "${DSH_DESKTOP_ENABLED:-1}" = "1" ]; then

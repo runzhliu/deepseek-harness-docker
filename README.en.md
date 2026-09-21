@@ -136,11 +136,11 @@ docker compose ps
 docker compose logs --no-color deepseek-harness | grep 'dsh web:'
 ```
 
-Open the complete <http://127.0.0.1:3080> URL carrying `?token=...` after `dsh web:` in the logs. Harness exchanges that process-scoped launch token for a signed cookie and redirects to the clean root path; opening the root without a token returns `401`. Configure a model and credentials in Settings. The **Browser** action in the sidebar opens an interactive container Chromium directly inside the Harness Web UI. The named `dsh-home` volume preserves both Harness state and the browser profile across container recreation.
+Open the complete <http://127.0.0.1:3080> URL carrying `?token=...` after `dsh web:` in the logs. Harness exchanges that process-scoped launch token for a signed cookie and redirects to the clean root path; opening the root without a token returns `401`. Configure a model and credentials in Settings. The **Browser desktop** action in the sidebar opens an interactive container Chromium directly inside the Harness Web UI. The named `dsh-home` volume preserves both Harness state and the browser profile across container recreation.
 
 When `DSH_WORKSPACE` is unset, Compose uses a separate `dsh-workspace` named volume so the Agent cannot accidentally modify this repository. Set `DSH_WORKSPACE=/absolute/path/to/project` only after choosing the intended host project.
 
-The default immutable image revision is [`runzhliu/deepseek-harness:0.1.6-alpha.2-r1`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.6-alpha.2-r1`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). `r1` is the first container revision for this upstream version. The image continues to serve noVNC assets from a versioned path so an upgrade cannot make a browser mix incompatible cached ES modules. Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
+The default immutable image revision is [`runzhliu/deepseek-harness:0.1.6-alpha.2-r2`](https://hub.docker.com/r/runzhliu/deepseek-harness). The same multi-platform artifact is also published to GitHub Container Registry as [`ghcr.io/runzhliu/deepseek-harness:0.1.6-alpha.2-r2`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness). `r2` adds the official Playwright MCP Browser Use provider in attachment mode against the visible Chromium. The image continues to serve noVNC assets from a versioned path so an upgrade cannot make a browser mix incompatible cached ES modules. Compose retains the `build` definition so the image remains reproducible and reviewable; run `docker compose build --pull` before startup when you explicitly want a local build.
 
 ### Rootless Podman
 
@@ -206,15 +206,27 @@ Find the local startup URL after `dsh web:` in `make lan-logs`, take only its `?
 
 This mode is for a small number of users in the **same trust domain**, not DSH multi-tenancy. Every authenticated user shares the sessions, settings, credentials, and Agent code-execution authority. Deploy separate instances and volumes for mutually untrusted users. Restrict source networks with the host firewall and never forward this endpoint to the public Internet. Run `make lan-smoke` to verify TLS, both authentication layers, Origin rejection, same-origin noVNC, and loopback-only native ports.
 
-### Browser inside the Web UI
+### Browser desktop, official Browser Use, and human takeover
 
-The image includes Debian Chromium, CJK fonts, an Xvfb/Openbox desktop, and noVNC. The public `@runzhliu/dsh-browser-desktop` plugin uses Harness's `sidebar.footer.action` and `shell.overlay` extension points to add an always-visible **Open Browser** action. It embeds the interactive desktop in the Web UI and also offers a separate-window fallback at <http://127.0.0.1:6080/novnc-debian-1.6.0-2/vnc.html?autoconnect=1>. The panel starts at roughly 68% of the page, moves by dragging its title bar, resizes from its bottom-right corner, and supports maximize/restore. The plugin also registers a `browser_open` Agent tool: asking “open https://example.com in the browser” creates and activates a Chromium tab and automatically expands the embedded panel. Chromium restarts automatically after an unexpected exit or window close, while its profile persists at `/home/node/.dsh/chrome-profile`.
+The image includes Debian Chromium, CJK fonts, an Xvfb/Openbox desktop, and noVNC. It mounts the official `@deepseek-ai/dsh-experimental-browser-use-playwright-mcp` provider with `mode: attach` against `http://127.0.0.1:9222`. Model automation and the visible desktop therefore use the same Chromium tabs, cookies, login state, and profile persisted at `/home/node/.dsh/chrome-profile`.
+
+| Layer | Responsibility |
+| --- | --- |
+| Official DSH Sidebar Browser | Lightweight iframe tabs for embeddable HTTP(S) pages; it does not expose model tools. |
+| Official DSH Browser Use | Page inspection, clicking, typing, screenshots, and extraction through Playwright MCP. |
+| `@runzhliu/dsh-browser-desktop` | Real-browser lifecycle, persistent profile, visible desktop, and human takeover. |
+
+The plugin therefore does not grow a second click or extraction API. Models should use official Browser Use tools for page operation; `browser_open` only creates and activates a tab and reveals the desktop when the user asks to see or take over a page. The desktop remains useful for CSP/X-Frame-Options pages that reject iframe embedding, authenticated flows, CAPTCHAs, downloads, internal sites, and interactive debugging. Browser Use remains experimental: one provider instance gives one live Session exclusive attachment ownership. Other Sessions still have `browser_open` and manual desktop access, and a newly created or resumed Session can claim automation after the owner releases it. A Session disconnected by a Chromium restart must also be created or resumed again.
+
+Playwright MCP is the default. To select the official Chrome DevTools MCP or Stagehand provider yourself, set `DSH_BROWSER_USE_ENABLED=0` before startup and configure exactly one provider through the DSH Profile/plugin system; one composition cannot register two Browser Use providers. Setting `DSH_DESKTOP_ENABLED=0` disables both the built-in Browser Use attachment and the browser desktop.
+
+The public plugin uses Harness's `sidebar.footer.action` and `shell.overlay` extension points to add an always-visible **Browser desktop** action. It embeds the interactive desktop in the Web UI and also offers a separate-window fallback at <http://127.0.0.1:6080/novnc-debian-1.6.0-2/vnc.html?autoconnect=1>. The panel starts at roughly 68% of the page, moves by dragging its title bar, resizes from its bottom-right corner, and supports maximize/restore. Chromium restarts automatically after an unexpected exit or window close.
 
 ![Movable and resizable Chromium browser embedded in the Harness Web UI](assets/browser-desktop-webui.png)
 
 _Captured from the running stack: the browser panel is inside Harness and displays the public DeepSeek Harness GitHub repository._
 
-This follows the visible-desktop idea from [`docker-antigravity`](https://github.com/runzhliu/docker-antigravity) without adopting its amd64 base or Selkies. Debian's native packages keep the image usable on both Apple Silicon and x86 Linux. Port 6080 is loopback-only like 3080; the native noVNC endpoint has no authentication and must never be exposed directly. The optional LAN overlay carries the versioned `/novnc-*` route through the same HTTPS and authentication boundary as the Web UI.
+This follows the visible-desktop idea from [`docker-antigravity`](https://github.com/runzhliu/docker-antigravity) without adopting its amd64 base or Selkies. Debian's native packages keep the image usable on both Apple Silicon and x86 Linux. The official [Browser Use architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/browser-use.md) and [Sidebar Browser limitations](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/client/ui-sidebar-browser/README.md) describe the boundary between these layers. Port 6080 is loopback-only like 3080; the native noVNC endpoint has no authentication and must never be exposed directly. The optional LAN overlay carries the versioned `/novnc-*` route through the same HTTPS and authentication boundary as the Web UI.
 
 ```bash
 docker compose exec deepseek-harness chromium-docker --version
@@ -226,15 +238,15 @@ Compose gives Chromium a 1GB `/dev/shm`. The launcher adds `--no-sandbox` only t
 
 #### Optional ungoogled-chromium image
 
-The default image keeps Debian Chromium for Debian's security-update and distribution supply chain. Select the separate [`runzhliu/deepseek-harness:0.1.6-alpha.2-r1-ungoogled.1`](https://hub.docker.com/r/runzhliu/deepseek-harness/tags) variant only when idle browser egress must be minimized:
+The default image keeps Debian Chromium for Debian's security-update and distribution supply chain. Select the separate [`runzhliu/deepseek-harness:0.1.6-alpha.2-r2-ungoogled.1`](https://hub.docker.com/r/runzhliu/deepseek-harness/tags) variant only when idle browser egress must be minimized:
 
 ```bash
-export DSH_IMAGE_VERSION=0.1.6-alpha.2-r1-ungoogled.1
+export DSH_IMAGE_VERSION=0.1.6-alpha.2-r2-ungoogled.1
 docker compose pull
 DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
 ```
 
-This image pins `ungoogled-chromium@152.0.7977.82-1` and verifies distinct SHA256 values for the amd64 and arm64 downloads. Its smoke test starts the complete Harness/noVNC desktop, invokes `browser_open`, and then rejects any GCM port `5228` connection or `google_apis/gcm` log. It automatically uses `/home/node/.dsh/chrome-profile-ungoogled`, separate from the default Debian Chromium profile. GHCR uses the same tag; Helm users can explicitly set `--set image.tag=0.1.6-alpha.2-r1-ungoogled.1`.
+This image pins `ungoogled-chromium@152.0.7977.82-1` and verifies distinct SHA256 values for the amd64 and arm64 downloads. Its smoke test starts the complete Harness/noVNC desktop, verifies the official Browser Use attachment configuration, invokes `browser_open`, and then rejects any GCM port `5228` connection or `google_apis/gcm` log. It automatically uses `/home/node/.dsh/chrome-profile-ungoogled`, separate from the default Debian Chromium profile. GHCR uses the same tag; Helm users can explicitly set `--set image.tag=0.1.6-alpha.2-r2-ungoogled.1`.
 
 The variant uses the community [`ungoogled-chromium-portablelinux`](https://github.com/ungoogled-software/ungoogled-chromium-portablelinux) build, not a Debian package. The [upstream binary index](https://github.com/ungoogled-software/ungoogled-chromium-binaries) warns that contributor binaries may not be reproducible and their authenticity cannot be guaranteed; Google Safe Browsing, sync, push, Widevine, and Chrome Web Store integration may also be absent or require manual setup. It therefore never replaces the default image or receives a moving `latest` tag. Reproduce and test it locally with:
 
@@ -249,10 +261,10 @@ The plugin is a standalone DSH bundle under [`plugins/dsh-browser-desktop`](plug
 
 ```bash
 npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
-dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.2.tgz
+dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.3.tgz
 ```
 
-Plugin `0.1.2` targets the client module system introduced by DSH `0.1.2-alpha.3`; older DSH `0.1.0`/`0.1.1` release candidates should keep using plugin `0.1.1`. After npm publication, install it with `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`. The npm package supplies only the Harness host/Web integration; it does not install Chromium, Xvfb, or noVNC. This repository's image is the complete reference runtime. Official DSH discovers community plugins through npm/GitHub and the `dsh-plugin` GitHub topic.
+Plugin `0.1.3` keeps the client-module compatibility introduced by `0.1.2` and explicitly positions itself as the Browser Use visualization and human-takeover layer; older DSH `0.1.0`/`0.1.1` release candidates should keep using plugin `0.1.1`. After npm publication, install it with `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`. The npm package supplies only the Harness host/Web integration; it does not install Chromium, Xvfb, noVNC, or an official Browser Use provider. This repository's image is the complete reference runtime. Official DSH discovers community plugins through npm/GitHub and the `dsh-plugin` GitHub topic.
 
 ### Optional community plugin market
 
@@ -264,7 +276,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
   docker compose -f compose.yaml -f compose.market.yaml up -d --no-build
 ```
 
-The variant has the unambiguous `runzhliu/deepseek-harness:0.1.6-alpha.2-r1-market.1` tag and pins `dshmarket@1.38.1`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
+The variant has the unambiguous `runzhliu/deepseek-harness:0.1.6-alpha.2-r2-market.1` tag and pins `dshmarket@1.38.1`; it does not replace the default DSH tag or `latest`. It is an optional community integration, not a DeepSeek component, and neither DeepSeek nor this project audits or endorses catalog entries.
 
 The market package itself is pinned and copied at build time. Plugins installed through it and the pnpm store persist in the `dsh-home` volume. Installation needs container egress to npm/GitHub, and third-party build scripts should remain blocked until separately reviewed and approved. One-click market restart is disabled; apply lifecycle changes with `docker compose restart` or a Kubernetes rollout.
 
@@ -275,7 +287,7 @@ make market-build
 make market-smoke
 ```
 
-Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.6-alpha.2-r1-market.1`.
+Helm continues to default to the official-DSH image; it uses the market variant only when you explicitly pass `--set image.tag=0.1.6-alpha.2-r2-market.1`.
 
 A reused `dsh-home` previously managed by another pnpm major can fail installation with `ERR_PNPM_UNEXPECTED_STORE`. Stop DSH and run the explicit one-time migration:
 
@@ -306,7 +318,7 @@ docker compose down
 Build:
 
 ```bash
-docker build -t runzhliu/deepseek-harness:0.1.6-alpha.2-r1 .
+docker build -t runzhliu/deepseek-harness:0.1.6-alpha.2-r2 .
 ```
 
 Run the Web UI:
@@ -320,7 +332,7 @@ docker run --rm \
   --shm-size 1g \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.6-alpha.2-r1
+  runzhliu/deepseek-harness:0.1.6-alpha.2-r2
 ```
 
 The foreground command prints the tokenized startup URL; open that exact URL. Do not shorten the publication to `-p 3080:3080`, and do not place this service behind a public Ingress: Web has no TLS, and noVNC on 6080 has no authentication.
@@ -334,7 +346,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.1.6-alpha.2-r1 \
+  runzhliu/deepseek-harness:0.1.6-alpha.2-r2 \
   --profile headless "summarize this repository"
 ```
 
@@ -351,7 +363,7 @@ helm upgrade --install deepseek-harness charts/deepseek-harness \
   --namespace deepseek-harness \
   --create-namespace \
   --set image.repository=runzhliu/deepseek-harness \
-  --set image.tag=0.1.6-alpha.2-r1
+  --set image.tag=0.1.6-alpha.2-r2
 ```
 
 Kind or Minikube can pull the default `runzhliu/deepseek-harness` image directly, or you can load a local image under the same name first.
@@ -386,14 +398,14 @@ The build argument pins the package:
 ```bash
 docker build \
   --build-arg DSH_VERSION=0.1.6-alpha.2 \
-  --build-arg IMAGE_VERSION=0.1.6-alpha.2-r1 \
-  -t runzhliu/deepseek-harness:0.1.6-alpha.2-r1 .
+  --build-arg IMAGE_VERSION=0.1.6-alpha.2-r2 \
+  -t runzhliu/deepseek-harness:0.1.6-alpha.2-r2 .
 ```
 
 Compose keeps the upstream version and immutable container revision separate:
 
 ```bash
-DSH_VERSION=0.1.6-alpha.2 DSH_IMAGE_VERSION=0.1.6-alpha.2-r1 docker compose build --pull
+DSH_VERSION=0.1.6-alpha.2 DSH_IMAGE_VERSION=0.1.6-alpha.2-r2 docker compose build --pull
 ```
 
 Maintainers can run `make push` to build and publish the `linux/amd64` and `linux/arm64` manifests under the same immutable revision. The target refuses to overwrite an existing tag and does not create a `latest` tag.
@@ -421,9 +433,9 @@ See [SECURITY.md](SECURITY.md) before changing any network or privilege setting.
 Run at least these checks for every DSH upgrade:
 
 ```bash
-docker run --rm runzhliu/deepseek-harness:0.1.6-alpha.2-r1 --version
+docker run --rm runzhliu/deepseek-harness:0.1.6-alpha.2-r2 --version
 
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.6-alpha.2-r1 \
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.1.6-alpha.2-r2 \
   web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config
 
 docker compose up -d

@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Publish container revision `0.1.6-alpha.2-r2` with the official Playwright MCP Browser Use provider attached to the image's persistent Chromium CDP endpoint.
+- Reposition `@runzhliu/dsh-browser-desktop@0.1.3` as the visible browser runtime and human-takeover layer; keep `browser_open` as a reveal/handoff bridge while official Browser Use owns page automation.
+- Document the distinct official Sidebar Browser, Browser Use, and browser-desktop roles, including single-Session attachment ownership and reconnect behavior.
+- Advance the Helm chart to `0.1.13` for the new immutable image revision.
+
 ## 0.1.12 - 2026-09-18
 
 - Upgrade the official runtime to `@deepseek-ai/dsh@0.1.6-alpha.2` and publish the immutable container revision as `0.1.6-alpha.2-r1`.

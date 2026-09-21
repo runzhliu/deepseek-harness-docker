@@ -2,8 +2,21 @@
 # container's loopback interface. Keep the host-side publication on 127.0.0.1:
 # DeepSeek Harness has no authentication and its Web API can execute code.
 - insert:
+    # Official Browser Use owns model-facing page inspection and interaction.
+    # Attach it to the same persistent Chromium shown by the desktop plugin so
+    # Agent automation and human takeover share tabs, cookies, and login state.
+    - id: browser-use
+      name: '@deepseek-ai/dsh-browser-use'
+      disabled: !!js process.env.DSH_BROWSER_USE_ENABLED === '0' || process.env.DSH_DESKTOP_ENABLED === '0'
+    - id: browser-use-playwright-mcp
+      name: '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp'
+      disabled: !!js process.env.DSH_BROWSER_USE_ENABLED === '0' || process.env.DSH_DESKTOP_ENABLED === '0'
+      config:
+        mode: attach
+        endpoint: 'http://127.0.0.1:9222'
     - id: browser-desktop
       name: '@runzhliu/dsh-browser-desktop'
+      disabled: !!js process.env.DSH_DESKTOP_ENABLED === '0'
       config:
         cdpBaseUrl: 'http://127.0.0.1:9222'
         desktopPort: !!js Number(process.env.DSH_DESKTOP_PUBLIC_PORT ?? 6080)

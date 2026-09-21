@@ -1,13 +1,39 @@
 # `@runzhliu/dsh-browser-desktop`
 
-A DeepSeek Harness Web plugin that embeds a real Chromium desktop in a movable, resizable noVNC panel. It also registers the `browser_open` Agent tool so a model can open an HTTP or HTTPS URL and reveal the same interactive browser to the user.
+A visible Chromium desktop and human-takeover layer for DeepSeek Harness Browser Use. It embeds a real, persistent browser in a movable and resizable noVNC panel and registers the small `browser_open` bridge so an Agent can reveal the same browser to the user.
 
-The plugin is the Harness integration layer. It expects two companion services:
+This plugin complements the official browser features instead of replacing them:
+
+| Layer | Responsibility |
+| --- | --- |
+| DSH Sidebar Browser | Lightweight iframe tabs for embeddable HTTP(S) pages; it does not expose model tools. |
+| DSH Browser Use | Model-facing inspection and interaction through Playwright MCP, Chrome DevTools MCP, or Stagehand. |
+| Browser Desktop | Browser lifecycle, persistent profile, visible desktop, and human takeover for pages that need a real browser. |
+
+Use official Browser Use tools for navigation, inspection, clicking, and extraction. Use `browser_open` when a user explicitly asks to open, see, or take over a URL. This division avoids maintaining a second browser-automation API.
+
+The plugin is only the Harness integration layer. It expects two companion services:
 
 - a Chromium DevTools endpoint, defaulting to `http://127.0.0.1:9222` from the Harness host process;
 - a browser-accessible noVNC page, defaulting to port `6080` and `/vnc.html`.
 
-The parent [`deepseek-harness-docker`](https://github.com/runzhliu/deepseek-harness-docker) project provides Chromium, Xvfb, Openbox, x11vnc, websockify, and the required lifecycle supervision. Installing this npm package alone does not install or start that desktop stack.
+The parent [`deepseek-harness-docker`](https://github.com/runzhliu/deepseek-harness-docker) project provides Chromium, Xvfb, Openbox, x11vnc, websockify, and the required lifecycle supervision. Installing this npm package alone does not install or start that desktop stack or an official Browser Use provider.
+
+## Official Browser Use attachment
+
+The reference image mounts the official Playwright MCP provider in attachment mode:
+
+```yaml
+- id: browser-use
+  name: '@deepseek-ai/dsh-browser-use'
+- id: browser-use-playwright-mcp
+  name: '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp'
+  config:
+    mode: attach
+    endpoint: 'http://127.0.0.1:9222'
+```
+
+The model and the noVNC panel therefore operate the same Chromium tabs, cookies, and persisted login state. DSH currently gives one live Session exclusive ownership of an attached browser within one provider instance. Other Sessions continue without Browser Use until the owner releases it; `browser_open` and manual desktop access remain available. If Chromium restarts, create or resume a Session after the CDP endpoint is healthy because the experimental provider does not reconnect a disconnected Session automatically.
 
 ## Install
 
@@ -21,10 +47,10 @@ For local package testing:
 
 ```bash
 npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
-dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.2.tgz
+dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.3.tgz
 ```
 
-Version `0.1.2` targets the client module system shipped by DSH `0.1.2-alpha.3` and later compatible pre-releases. Keep using plugin `0.1.1` with the older DSH `0.1.0`/`0.1.1` release-candidate client runtime. The package declares a DSH bundle patch, so `dsh plugin` adds the host and Web client halves together. Restart the Web profile after installation.
+Version `0.1.3` retains the client-module compatibility introduced in `0.1.2` and clarifies its Browser Use / human-takeover role. Keep using plugin `0.1.1` with the older DSH `0.1.0`/`0.1.1` release-candidate client runtime. The package declares a DSH bundle patch, so `dsh plugin` adds the host and Web client halves together. Restart the Web profile after installation.
 
 ## Configuration
 

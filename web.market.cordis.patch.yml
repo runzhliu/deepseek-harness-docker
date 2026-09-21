@@ -1,8 +1,18 @@
 # Keep the official Web patch intact and add the optional package as one more
 # profile row. The image entrypoint supplies its profile-local package link.
 - insert:
+    - id: browser-use
+      name: '@deepseek-ai/dsh-browser-use'
+      disabled: !!js process.env.DSH_BROWSER_USE_ENABLED === '0' || process.env.DSH_DESKTOP_ENABLED === '0'
+    - id: browser-use-playwright-mcp
+      name: '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp'
+      disabled: !!js process.env.DSH_BROWSER_USE_ENABLED === '0' || process.env.DSH_DESKTOP_ENABLED === '0'
+      config:
+        mode: attach
+        endpoint: 'http://127.0.0.1:9222'
     - id: browser-desktop
       name: '@runzhliu/dsh-browser-desktop'
+      disabled: !!js process.env.DSH_DESKTOP_ENABLED === '0'
       config:
         cdpBaseUrl: 'http://127.0.0.1:9222'
         desktopPort: !!js Number(process.env.DSH_DESKTOP_PUBLIC_PORT ?? 6080)

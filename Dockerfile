@@ -24,6 +24,25 @@ RUN apt-get update \
     && test "$(pnpm --version)" = "${PNPM_VERSION}" \
     && npm cache clean --force
 
+# Browser Use is intentionally installed outside DSH's package prefix first.
+# Installing extra packages directly into the published DSH tree can make npm
+# prune packages that are part of DSH's generated distribution. The isolated
+# tree is merged only after DSH itself has been copied into the runtime image.
+RUN mkdir -p /opt/dsh-browser-use \
+    && npm install \
+      --prefix /opt/dsh-browser-use \
+      --package-lock=false \
+      --omit=dev \
+      --no-audit \
+      --no-fund \
+      --ignore-scripts \
+      --legacy-peer-deps \
+      "@deepseek-ai/dsh-browser-use@${DSH_VERSION}" \
+      "@deepseek-ai/dsh-experimental-browser-use-playwright-mcp@${DSH_VERSION}" \
+    && test "$(node -p 'require("/opt/dsh-browser-use/node_modules/@deepseek-ai/dsh-browser-use/package.json").version')" = "${DSH_VERSION}" \
+    && test "$(node -p 'require("/opt/dsh-browser-use/node_modules/@deepseek-ai/dsh-experimental-browser-use-playwright-mcp/package.json").version')" = "${DSH_VERSION}" \
+    && npm cache clean --force
+
 FROM ${NODE_IMAGE}
 
 ARG NODE_IMAGE
@@ -265,6 +284,7 @@ RUN chmod 0755 /usr/local/bin/wslpath /usr/local/bin/powershell.exe /usr/local/b
 
 COPY --from=installer /usr/local/lib/node_modules/@deepseek-ai/dsh /usr/local/lib/node_modules/@deepseek-ai/dsh
 COPY --from=installer /usr/local/lib/node_modules/pnpm /usr/local/lib/node_modules/pnpm
+COPY --from=installer /opt/dsh-browser-use/node_modules/. /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/
 COPY scripts/chromium-docker /usr/local/bin/chromium-docker
 COPY scripts/dsh-container /usr/local/bin/dsh
 COPY scripts/deepseek-harness-entrypoint /usr/local/bin/deepseek-harness-entrypoint
@@ -290,6 +310,9 @@ RUN chmod 0755 /usr/local/bin/chromium-docker \
     fi \
     && test "$(dsh --version)" = "${DSH_VERSION}" \
     && test "$(pnpm --version)" = "${PNPM_VERSION}" \
+    && test "$(node -p 'require("/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-browser-use/package.json").version')" = "${DSH_VERSION}" \
+    && test "$(node -p 'require("/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-experimental-browser-use-playwright-mcp/package.json").version')" = "${DSH_VERSION}" \
+    && node -e "Promise.all([import('/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-browser-use/lib/index.js'), import('/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-experimental-browser-use-playwright-mcp/lib/index.js')])" \
     && chromium-docker --version
 
 ENV DSH_HOME=/home/node/.dsh \
@@ -321,7 +344,7 @@ EXPOSE 3080 6080
 # Keep source metadata after every filesystem-producing instruction so a new
 # commit revision updates only image configuration instead of invalidating the
 # large Debian/Chromium installation layers.
-ARG IMAGE_VERSION=0.1.6-alpha.2-r1
+ARG IMAGE_VERSION=0.1.6-alpha.2-r2
 ARG IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
       org.opencontainers.image.description="Community container image for the DeepSeek Harness CLI, Web UI, and browser-accessible Chromium desktop" \
@@ -335,6 +358,8 @@ LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
       io.github.runzhliu.deepseek-harness.debian-codename="trixie" \
       io.github.runzhliu.deepseek-harness.chromium.flavor="${CHROMIUM_FLAVOR}" \
       io.github.runzhliu.deepseek-harness.chromium.ungoogled.version="${UNGOOGLED_CHROMIUM_VERSION}" \
+      io.github.runzhliu.deepseek-harness.browser-use.provider="playwright-mcp" \
+      io.github.runzhliu.deepseek-harness.browser-use.mode="attach" \
       io.github.runzhliu.deepseek-harness.upstream.repository="https://github.com/deepseek-ai/deepseek-harness" \
       io.github.runzhliu.deepseek-harness.upstream.release="https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v${DSH_VERSION}" \
       io.github.runzhliu.deepseek-harness.upstream.npm="@deepseek-ai/dsh@${DSH_VERSION}"

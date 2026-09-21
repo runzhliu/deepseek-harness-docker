@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-image="${1:-runzhliu/deepseek-harness:0.1.6-alpha.2-r1}"
+image="${1:-runzhliu/deepseek-harness:0.1.6-alpha.2-r2}"
 expected_version="${2:-0.1.6-alpha.2}"
 expected_pnpm_version="${3:-10.15.1}"
 expected_market_version="${4:-}"
@@ -26,6 +26,17 @@ fi
 actual_pnpm_version="$(docker run --rm --entrypoint pnpm "${image}" --version)"
 if [[ "${actual_pnpm_version}" != "${expected_pnpm_version}" ]]; then
   echo "expected pnpm ${expected_pnpm_version}, got ${actual_pnpm_version}" >&2
+  exit 1
+fi
+
+browser_use_versions="$(docker run --rm --entrypoint node "${image}" -e '
+  const root = "/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai"
+  const core = require(`${root}/dsh-browser-use/package.json`).version
+  const provider = require(`${root}/dsh-experimental-browser-use-playwright-mcp/package.json`).version
+  process.stdout.write(`${core}\n${provider}`)
+')"
+if [[ "${browser_use_versions}" != "${expected_version}"$'\n'"${expected_version}" ]]; then
+  echo "official Browser Use packages do not match DSH ${expected_version}: ${browser_use_versions}" >&2
   exit 1
 fi
 
@@ -100,6 +111,13 @@ else
 fi
 if [[ "${config}" != *"host: 0.0.0.0"* && "${config}" != *"host: '0.0.0.0'"* ]]; then
   echo "container Web patch did not set host to 0.0.0.0" >&2
+  exit 1
+fi
+if [[ "${config}" != *"name: '@deepseek-ai/dsh-browser-use'"* ]] \
+    || [[ "${config}" != *"name: '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp'"* ]] \
+    || [[ "${config}" != *"mode: attach"* ]] \
+    || [[ "${config}" != *"endpoint: http://127.0.0.1:9222"* ]]; then
+  echo "container Web patch did not attach official Playwright Browser Use to Chromium" >&2
   exit 1
 fi
 if [[ -n "${expected_market_version}" ]]; then
@@ -341,11 +359,11 @@ for attempt in $(seq 1 30); do
       exit 1
     fi
     if [[ -n "${expected_market_version}" ]]; then
-      features="Harness, optional plugin market, and noVNC desktop"
+      features="Harness, official Browser Use, optional plugin market, and noVNC desktop"
     elif [[ "${expected_chromium_flavor}" == ungoogled ]]; then
-      features="official Harness integration, noVNC desktop, and no GCM port 5228 activity"
+      features="official Harness Browser Use, noVNC desktop, and no GCM port 5228 activity"
     else
-      features="official Harness integration and noVNC desktop"
+      features="official Harness Browser Use and noVNC desktop"
     fi
     echo "smoke test passed for ${image} (${features}) on 127.0.0.1:${port}"
     exit 0

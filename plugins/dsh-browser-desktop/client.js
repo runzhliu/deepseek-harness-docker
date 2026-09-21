@@ -6,13 +6,13 @@ window.__ModuleLoader__.load({
 
     const zh = window.navigator.language.toLowerCase().startsWith('zh')
     const messages = {
-      browser: zh ? '浏览器' : 'Browser',
-      browserDialog: zh ? '容器浏览器' : 'Container browser',
+      browser: zh ? '浏览器桌面' : 'Browser desktop',
+      browserDialog: zh ? '浏览器桌面 · 人工接管' : 'Browser desktop · Human takeover',
       browserFrame: zh ? '容器 Chromium 桌面' : 'Container Chromium desktop',
       close: zh ? '关闭' : 'Close',
       maximize: zh ? '最大化' : 'Maximize',
       openNew: zh ? '新窗口打开' : 'Open in new window',
-      openTitle: zh ? '打开容器浏览器' : 'Open container browser',
+      openTitle: zh ? '打开浏览器桌面并人工接管' : 'Open browser desktop for human takeover',
       resize: zh ? '调整浏览器窗口大小' : 'Resize browser window',
       resizeHint: zh ? '拖动标题栏 · 右下角缩放' : 'Drag title bar · resize from corner',
       resizeTitle: zh ? '拖动调整窗口大小' : 'Drag to resize',

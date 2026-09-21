@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 image_repository="${1:-runzhliu/deepseek-harness}"
-image_version="${2:-0.1.6-alpha.2-r1}"
+image_version="${2:-0.1.6-alpha.2-r2}"
 caddy_image="${CADDY_IMAGE:-caddy:2.11.4-alpine}"
 lan_host="dsh-lan.test"
 lan_username="smoke"
