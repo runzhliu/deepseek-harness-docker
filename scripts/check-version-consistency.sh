@@ -51,6 +51,7 @@ require_literal .env.example "PNPM_VERSION=${pnpm_version}"
 require_literal .env.example 'DSH_IMAGE_REPOSITORY=docker.io/runzhliu/deepseek-harness'
 require_literal .env.example 'NODE_IMAGE=docker.io/library/node:24-trixie'
 require_literal .env.lan.example "CADDY_IMAGE=docker.io/library/caddy:${caddy_version}-alpine"
+require_literal .env.lan.example "DSH_IMAGE_VERSION=${image_version}"
 require_literal charts/deepseek-harness/Chart.yaml "appVersion: \"${dsh_version}\""
 require_literal charts/deepseek-harness/Chart.yaml "image: docker.io/runzhliu/deepseek-harness:${image_version}"
 require_literal charts/deepseek-harness/values.yaml 'repository: docker.io/runzhliu/deepseek-harness'

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-image="${1:-docker.io/runzhliu/deepseek-harness:0.1.7-alpha.1-r1}"
-expected_dsh_version="${2:-0.1.7-alpha.1}"
+image="${1:-docker.io/runzhliu/deepseek-harness:0.1.7-alpha.2-r1}"
+expected_dsh_version="${2:-0.1.7-alpha.2}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_dir="$(cd "${script_dir}/.." && pwd)"
 temporary_dir="$(mktemp -d "${TMPDIR:-/tmp}/dsh-podman-smoke.XXXXXX")"

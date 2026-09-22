@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.1.7-alpha.2`, published as immutable container revision `0.1.7-alpha.2-r1`.
+- Include upstream fixes for conversation scrolling, history pagination, successive background-task wakeups, Web restart reconnection, Excel previews, model discovery, and plugin Registry selection.
+- Document the `spill-policy.maxInlineBytes` to `maxInlineTokens` compatibility migration.
+- Advance the Helm chart to `0.1.15` while retaining the visible Chromium/noVNC human-takeover layer alongside official Browser Use.
+
+## 0.1.14 - 2026-09-22
+
 - Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.1.7-alpha.1`, published as immutable container revision `0.1.7-alpha.1-r1`.
 - Adopt Session Format V4, Profile-owned plugin settings, declarative Agent Preset bundles, and the official DeepSeek Messages-only adapter.
 - Include upstream session/archive, long-conversation, compaction, background-job, file-review, spreadsheet-preview, reverse-proxy subpath, and Playwright Browser Use fixes.
