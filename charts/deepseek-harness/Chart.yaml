@@ -2,8 +2,8 @@ apiVersion: v2
 name: deepseek-harness
 description: Community Helm chart for a single-user DeepSeek Harness Web instance
 type: application
-version: 0.1.13
-appVersion: "0.1.6-alpha.2"
+version: 0.1.14
+appVersion: "0.1.7-alpha.1"
 kubeVersion: ">=1.27.0-0"
 home: https://github.com/runzhliu/deepseek-harness-docker
 keywords:
@@ -21,9 +21,11 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/images: |
     - name: deepseek-harness
-      image: docker.io/runzhliu/deepseek-harness:0.1.6-alpha.2-r2
+      image: docker.io/runzhliu/deepseek-harness:0.1.7-alpha.1-r1
   artifacthub.io/changes: |
-    - kind: added
-      description: Add the official Playwright MCP Browser Use provider attached to the image's persistent Chromium desktop.
     - kind: changed
-      description: Reposition the browser plugin as the visible human-takeover layer while official Browser Use owns model automation.
+      description: Upgrade the official runtime and Browser Use packages to 0.1.7-alpha.1.
+    - kind: changed
+      description: Adopt Session V4 and the Profile-owned settings migration.
+    - kind: fixed
+      description: Include the upstream Playwright Browser Use Agent-creation fix.

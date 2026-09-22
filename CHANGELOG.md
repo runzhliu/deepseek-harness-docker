@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.1.7-alpha.1`, published as immutable container revision `0.1.7-alpha.1-r1`.
+- Adopt Session Format V4, Profile-owned plugin settings, declarative Agent Preset bundles, and the official DeepSeek Messages-only adapter.
+- Include upstream session/archive, long-conversation, compaction, background-job, file-review, spreadsheet-preview, reverse-proxy subpath, and Playwright Browser Use fixes.
+- Advance the Helm chart to `0.1.14` and retain the visible Chromium/noVNC human-takeover layer alongside official Browser Use.
+
+## 0.1.13 - 2026-09-21
+
 - Publish container revision `0.1.6-alpha.2-r2` with the official Playwright MCP Browser Use provider attached to the image's persistent Chromium CDP endpoint.
 - Reposition `@runzhliu/dsh-browser-desktop@0.1.3` as the visible browser runtime and human-takeover layer; keep `browser_open` as a reveal/handoff bridge while official Browser Use owns page automation.
 - Document the distinct official Sidebar Browser, Browser Use, and browser-desktop roles, including single-Session attachment ownership and reconnect behavior.
