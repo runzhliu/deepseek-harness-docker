@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.1.7-rc.2`, published as immutable container revision `0.1.7-rc.2-r1`.
+- Refresh the optional community market variant to `dshmarket@1.65.1` and validate it against the RC2 plugin runtime.
+- Add upstream persistent scheduled tasks, Web/Desktop shortcut management, and hot-enabling tools in active conversations.
+- Include upstream fixes for long-conversation send failures, malformed long tool output, and plugin installation or settings-save failures after interrupted installs or crashes.
+- Track RC2 defaults for scheduled tasks and time context, the separately installed Inspector plugin, and split account/API-key model entries.
+- Advance the Helm chart to `0.1.17` while retaining the visible Chromium/noVNC human-takeover layer alongside official Browser Use.
+
+## 0.1.16 - 2026-09-24
+
 - Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.1.7-rc.1`, published as immutable container revision `0.1.7-rc.1-r1`.
 - Refresh the optional community market variant to `dshmarket@1.61.0` and validate it against the RC1 plugin runtime.
 - Add upstream Web terminals, session archive management, MCP Resources, resumable Headless sessions with JSON events, remote SSH workspaces, and experimental Browser Use, Computer Use, and Auto review.

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-# DSH 0.1.7-rc.1 materializes native addons in a runtime cache before
+# DSH 0.1.7-rc.2 materializes native addons in a runtime cache before
 # loading them. The hardened container intentionally mounts /tmp with noexec,
 # while the packaged addon tree under /usr/local is immutable and executable.
 # Load directly from that tree unless an operator explicitly selects either
