@@ -1,10 +1,10 @@
 IMAGE ?= docker.io/runzhliu/deepseek-harness
 GHCR_IMAGE ?= ghcr.io/runzhliu/deepseek-harness
-DSH_VERSION ?= 0.1.7-alpha.2
+DSH_VERSION ?= 0.1.7-rc.1
 IMAGE_VERSION ?= $(DSH_VERSION)-r1
 NODE_IMAGE ?= docker.io/library/node:24-trixie
 PNPM_VERSION ?= 10.15.1
-DSH_MARKET_VERSION ?= 1.38.1
+DSH_MARKET_VERSION ?= 1.61.0
 MARKET_IMAGE_VERSION ?= $(IMAGE_VERSION)-market.1
 BROWSER_PLUGIN_VERSION ?= 0.1.3
 UNGOOGLED_CHROMIUM_VERSION ?= 152.0.7977.82-1

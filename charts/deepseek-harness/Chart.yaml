@@ -2,8 +2,8 @@ apiVersion: v2
 name: deepseek-harness
 description: Community Helm chart for a single-user DeepSeek Harness Web instance
 type: application
-version: 0.1.15
-appVersion: "0.1.7-alpha.2"
+version: 0.1.16
+appVersion: "0.1.7-rc.1"
 kubeVersion: ">=1.27.0-0"
 home: https://github.com/runzhliu/deepseek-harness-docker
 keywords:
@@ -21,11 +21,11 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/images: |
     - name: deepseek-harness
-      image: docker.io/runzhliu/deepseek-harness:0.1.7-alpha.2-r1
+      image: docker.io/runzhliu/deepseek-harness:0.1.7-rc.1-r1
   artifacthub.io/changes: |
     - kind: changed
-      description: Upgrade the official runtime and Browser Use packages to 0.1.7-alpha.2.
-    - kind: fixed
-      description: Include upstream conversation, background-task, Web reconnect, Excel preview, and plugin Registry fixes.
+      description: Upgrade the official runtime and Browser Use packages to 0.1.7-rc.1.
+    - kind: added
+      description: Include upstream Web terminals, session archive management, MCP Resources, resumable Headless sessions, remote SSH workspaces, Browser Use, and Computer Use.
     - kind: changed
-      description: Rename custom spill-policy maxInlineBytes configuration to maxInlineTokens.
+      description: Track the renamed PTC/workflow services and removal of the legacy E2B execution backend.
