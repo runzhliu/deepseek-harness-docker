@@ -2,8 +2,8 @@ apiVersion: v2
 name: deepseek-harness
 description: Community Helm chart for a single-user DeepSeek Harness Web instance
 type: application
-version: 0.1.17
-appVersion: "0.1.7-rc.2"
+version: 0.1.18
+appVersion: "0.2.0-rc.2"
 kubeVersion: ">=1.27.0-0"
 home: https://github.com/runzhliu/deepseek-harness-docker
 keywords:
@@ -21,11 +21,11 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/images: |
     - name: deepseek-harness
-      image: docker.io/runzhliu/deepseek-harness:0.1.7-rc.2-r1
+      image: docker.io/runzhliu/deepseek-harness:0.2.0-rc.2-r1
   artifacthub.io/changes: |
     - kind: changed
-      description: Upgrade the official runtime and Browser Use packages to 0.1.7-rc.2.
+      description: Upgrade the official runtime and Browser Use packages to 0.2.0-rc.2.
     - kind: added
-      description: Include persistent scheduled tasks, shortcut management, and tools enabled in active conversations.
+      description: Include model search, graphical login-shell environment inheritance, and experimental asynchronous questions.
     - kind: changed
-      description: Track scheduled-task/time-context defaults, separately installed Inspector, and split account/API-key model entries.
+      description: Track automation tasks moving to an optional plugin bundle and removed legacy model IDs in pi-ai 0.87.1.

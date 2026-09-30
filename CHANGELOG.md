@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Update `@runzhliu/dsh-browser-desktop` to `0.1.4`, declaring compatibility with both the DSH `0.1.2` and `0.2.0` client-module runtimes.
+- Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.2.0-rc.2`, published as immutable container revision `0.2.0-rc.2-r1`.
+- Refresh the optional community market variant to `dshmarket@1.66.7` and validate it against the 0.2.0 RC2 plugin runtime.
+- Include upstream plugin-management, expired-image retry, tool-scheduling recovery, Linux npm installation, model-search, and graphical login-shell environment improvements.
+- Track automation tasks moving to an optional plugin bundle and the pi-ai 0.87.1 model catalog removing some older model IDs.
+- Document the experimental asynchronous-question mode and the safer Bash/PowerShell path-verification guidance.
+- Advance the Helm chart to `0.1.18` while retaining the visible Chromium/noVNC human-takeover layer alongside official Browser Use.
+
+## 0.1.17 - 2026-09-25
+
 - Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.1.7-rc.2`, published as immutable container revision `0.1.7-rc.2-r1`.
 - Refresh the optional community market variant to `dshmarket@1.65.1` and validate it against the RC2 plugin runtime.
 - Add upstream persistent scheduled tasks, Web/Desktop shortcut management, and hot-enabling tools in active conversations.
