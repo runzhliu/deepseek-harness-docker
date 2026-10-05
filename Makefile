@@ -1,12 +1,13 @@
 IMAGE ?= docker.io/runzhliu/deepseek-harness
 GHCR_IMAGE ?= ghcr.io/runzhliu/deepseek-harness
-DSH_VERSION ?= 0.2.0-rc.2
+DSH_VERSION ?= 0.2.1-alpha.1
 IMAGE_VERSION ?= $(DSH_VERSION)-r1
 NODE_IMAGE ?= docker.io/library/node:24-trixie
 PNPM_VERSION ?= 10.15.1
-DSH_MARKET_VERSION ?= 1.66.7
+DSH_MARKET_VERSION ?= 1.66.9
 MARKET_IMAGE_VERSION ?= $(IMAGE_VERSION)-market.1
-BROWSER_PLUGIN_VERSION ?= 0.1.4
+BROWSER_PLUGIN_VERSION ?= 0.1.5
+BWRAP_IMAGE_VERSION ?= $(IMAGE_VERSION)-bwrap.1
 UNGOOGLED_CHROMIUM_VERSION ?= 152.0.7977.82-1
 UNGOOGLED_CHROMIUM_AMD64_SHA256 ?= 2c6e464e030f87145e42553c5aa539f6e62163ce677d3eace3c51b4fcbd5e347
 UNGOOGLED_CHROMIUM_ARM64_SHA256 ?= 1909f42dcc3661bc213f2cf3b5232a9d3c850913b36efa7267ed6499f6cbf87d
@@ -18,7 +19,7 @@ PODMAN_COMPOSE ?= podman-compose
 LAN_ENV_FILE ?= .env.lan
 PLATFORMS ?= linux/amd64,linux/arm64
 
-.PHONY: help build multiarch-build push pull ghcr-pull ungoogled-build ungoogled-multiarch-build ungoogled-push ungoogled-pull ungoogled-smoke ungoogled-inspect market-build market-push market-pull up down logs lan-up lan-down lan-logs lan-smoke podman-up podman-down podman-logs podman-smoke compose-check helm-check plugin-check dockerhub-check version-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
+.PHONY: help build multiarch-build push pull ghcr-pull bwrap-build bwrap-push bwrap-pull bwrap-smoke bwrap-inspect ungoogled-build ungoogled-multiarch-build ungoogled-push ungoogled-pull ungoogled-smoke ungoogled-inspect market-build market-push market-pull up down logs lan-up lan-down lan-logs lan-smoke podman-up podman-down podman-logs podman-smoke compose-check helm-check plugin-check dockerhub-check version-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
 
 help:
 	@echo "build            Build the local platform image"
@@ -26,6 +27,9 @@ help:
 	@echo "push             Build and push the versioned multi-platform image (or dispatch publish-dockerhub.yml)"
 	@echo "pull             Pull the published image"
 	@echo "ghcr-pull        Pull the GHCR mirror of the published image"
+	@echo "bwrap-build      Build the opt-in bubblewrap sandbox variant"
+	@echo "bwrap-push       Build and push its versioned multi-platform image"
+	@echo "bwrap-smoke      Verify workspace writes and denial outside it"
 	@echo "ungoogled-build  Build the privacy-focused Chromium variant"
 	@echo "ungoogled-push   Build and push its versioned multi-platform image"
 	@echo "ungoogled-smoke  Test Harness/noVNC and reject GCM port 5228 activity"
@@ -59,6 +63,16 @@ pull:
 
 ghcr-pull:
 	docker pull $(GHCR_IMAGE):$(IMAGE_VERSION)
+
+bwrap-build:
+	docker build --pull --file Dockerfile.bwrap --build-arg BASE_IMAGE=$(IMAGE):$(IMAGE_VERSION) --build-arg BWRAP_IMAGE_VERSION=$(BWRAP_IMAGE_VERSION) --tag $(IMAGE):$(BWRAP_IMAGE_VERSION) .
+
+bwrap-push:
+	@if docker buildx imagetools inspect $(IMAGE):$(BWRAP_IMAGE_VERSION) >/dev/null 2>&1; then echo "refusing to overwrite existing image tag: $(IMAGE):$(BWRAP_IMAGE_VERSION)" >&2; exit 1; fi
+	docker buildx build --platform $(PLATFORMS) --file Dockerfile.bwrap --build-arg BASE_IMAGE=$(IMAGE):$(IMAGE_VERSION) --build-arg BWRAP_IMAGE_VERSION=$(BWRAP_IMAGE_VERSION) --tag $(IMAGE):$(BWRAP_IMAGE_VERSION) --push .
+
+bwrap-pull:
+	docker pull $(IMAGE):$(BWRAP_IMAGE_VERSION)
 
 ungoogled-build:
 	docker build --pull --build-arg DSH_VERSION=$(DSH_VERSION) --build-arg IMAGE_VERSION=$(UNGOOGLED_IMAGE_VERSION) --build-arg IMAGE_REVISION=$$(git describe --always --dirty) --build-arg NODE_IMAGE=$(NODE_IMAGE) --build-arg PNPM_VERSION=$(PNPM_VERSION) --build-arg CHROMIUM_FLAVOR=ungoogled --build-arg UNGOOGLED_CHROMIUM_VERSION=$(UNGOOGLED_CHROMIUM_VERSION) --build-arg UNGOOGLED_CHROMIUM_AMD64_SHA256=$(UNGOOGLED_CHROMIUM_AMD64_SHA256) --build-arg UNGOOGLED_CHROMIUM_ARM64_SHA256=$(UNGOOGLED_CHROMIUM_ARM64_SHA256) --tag $(IMAGE):$(UNGOOGLED_IMAGE_VERSION) .
@@ -105,6 +119,7 @@ lan-logs:
 compose-check:
 	docker compose config --quiet
 	docker compose -f compose.yaml -f compose.market.yaml config --quiet
+	docker compose -f compose.yaml -f compose.bwrap.yaml config --quiet
 	docker compose -f compose.yaml -f compose.podman.yaml config --quiet
 	DSH_LAN_BIND_ADDRESS=127.0.0.1 DSH_LAN_HOST=dsh-lan.test DSH_LAN_USERNAME=smoke DSH_LAN_PASSWORD_HASH=not-used CADDY_IMAGE=$(CADDY_IMAGE) docker compose -f compose.yaml -f compose.lan.yaml config --quiet
 	DSH_LAN_BIND_ADDRESS=127.0.0.1 DSH_LAN_HOST=dsh-lan.test DSH_LAN_USERNAME=smoke DSH_LAN_PASSWORD_HASH=not-used CADDY_IMAGE=$(CADDY_IMAGE) docker compose -f compose.yaml -f compose.market.yaml -f compose.lan.yaml config --quiet
@@ -123,6 +138,7 @@ plugin-check:
 	sh -n scripts/deepseek-harness-market-entrypoint
 	bash -n scripts/check-upstream-dsh.sh
 	bash -n scripts/check-version-consistency.sh
+	bash -n scripts/bwrap-smoke.sh
 	bash -n scripts/lan-smoke.sh
 	bash -n scripts/podman-smoke.sh
 	bash -n scripts/smoke.sh
@@ -133,7 +149,7 @@ dockerhub-check:
 	bash scripts/render-dockerhub-readme.sh README.md /dev/null
 
 version-check:
-	./scripts/check-version-consistency.sh $(DSH_VERSION) $(IMAGE_VERSION) $(PNPM_VERSION) $(DSH_MARKET_VERSION) $(MARKET_IMAGE_VERSION) $(BROWSER_PLUGIN_VERSION) $(UNGOOGLED_CHROMIUM_VERSION) $(UNGOOGLED_IMAGE_VERSION) $(UNGOOGLED_CHROMIUM_AMD64_SHA256) $(UNGOOGLED_CHROMIUM_ARM64_SHA256) $(CADDY_VERSION)
+	./scripts/check-version-consistency.sh $(DSH_VERSION) $(IMAGE_VERSION) $(PNPM_VERSION) $(DSH_MARKET_VERSION) $(MARKET_IMAGE_VERSION) $(BROWSER_PLUGIN_VERSION) $(UNGOOGLED_CHROMIUM_VERSION) $(UNGOOGLED_IMAGE_VERSION) $(UNGOOGLED_CHROMIUM_AMD64_SHA256) $(UNGOOGLED_CHROMIUM_ARM64_SHA256) $(BWRAP_IMAGE_VERSION) $(CADDY_VERSION)
 
 verify: compose-check helm-check plugin-check dockerhub-check version-check
 
@@ -159,6 +175,9 @@ podman-logs:
 podman-smoke:
 	./scripts/podman-smoke.sh $(IMAGE):$(IMAGE_VERSION) $(DSH_VERSION)
 
+bwrap-smoke:
+	./scripts/bwrap-smoke.sh $(IMAGE):$(BWRAP_IMAGE_VERSION)
+
 ungoogled-smoke:
 	./scripts/smoke.sh $(IMAGE):$(UNGOOGLED_IMAGE_VERSION) $(DSH_VERSION) $(PNPM_VERSION) "" ungoogled $(UNGOOGLED_CHROMIUM_VERSION)
 
@@ -176,3 +195,6 @@ market-inspect:
 
 ungoogled-inspect:
 	docker buildx imagetools inspect $(IMAGE):$(UNGOOGLED_IMAGE_VERSION)
+
+bwrap-inspect:
+	docker buildx imagetools inspect $(IMAGE):$(BWRAP_IMAGE_VERSION)

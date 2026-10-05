@@ -12,10 +12,11 @@ concurrency:
 
 env:
   IMAGE: runzhliu/deepseek-harness
-  DSH_VERSION: 0.2.0-rc.2
-  IMAGE_VERSION: 0.2.0-rc.2-r1
-  MARKET_IMAGE_VERSION: 0.2.0-rc.2-r1-market.1
-  UNGOOGLED_IMAGE_VERSION: 0.2.0-rc.2-r1-ungoogled.1
+  DSH_VERSION: 0.2.1-alpha.1
+  IMAGE_VERSION: 0.2.1-alpha.1-r1
+  MARKET_IMAGE_VERSION: 0.2.1-alpha.1-r1-market.1
+  BWRAP_IMAGE_VERSION: 0.2.1-alpha.1-r1-bwrap.1
+  UNGOOGLED_IMAGE_VERSION: 0.2.1-alpha.1-r1-ungoogled.1
   UNGOOGLED_CHROMIUM_VERSION: 152.0.7977.82-1
   UNGOOGLED_CHROMIUM_AMD64_SHA256: 2c6e464e030f87145e42553c5aa539f6e62163ce677d3eace3c51b4fcbd5e347
   UNGOOGLED_CHROMIUM_ARM64_SHA256: 1909f42dcc3661bc213f2cf3b5232a9d3c850913b36efa7267ed6499f6cbf87d
@@ -37,7 +38,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Refuse to overwrite immutable tags
         run: |
-          for tag in "${IMAGE_VERSION}" "${MARKET_IMAGE_VERSION}" "${UNGOOGLED_IMAGE_VERSION}"; do
+          for tag in "${IMAGE_VERSION}" "${MARKET_IMAGE_VERSION}" "${BWRAP_IMAGE_VERSION}" "${UNGOOGLED_IMAGE_VERSION}"; do
             if docker buildx imagetools inspect "${IMAGE}:${tag}" >/dev/null 2>&1; then
               echo "refusing to overwrite existing image tag: ${IMAGE}:${tag}" >&2
               exit 1
@@ -69,6 +70,19 @@ jobs:
           build-args: |
             BASE_IMAGE=${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
             MARKET_IMAGE_VERSION=${{ env.MARKET_IMAGE_VERSION }}
+      - name: Publish optional bubblewrap sandbox image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.bwrap
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ env.BWRAP_IMAGE_VERSION }}
+          cache-from: type=gha,scope=release-bwrap
+          cache-to: type=gha,mode=max,scope=release-bwrap
+          build-args: |
+            BASE_IMAGE=${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
+            BWRAP_IMAGE_VERSION=${{ env.BWRAP_IMAGE_VERSION }}
       - name: Publish optional ungoogled-chromium image
         uses: docker/build-push-action@v7
         with:
@@ -90,4 +104,5 @@ jobs:
         run: |
           docker buildx imagetools inspect "${IMAGE}:${IMAGE_VERSION}"
           docker buildx imagetools inspect "${IMAGE}:${MARKET_IMAGE_VERSION}"
+          docker buildx imagetools inspect "${IMAGE}:${BWRAP_IMAGE_VERSION}"
           docker buildx imagetools inspect "${IMAGE}:${UNGOOGLED_IMAGE_VERSION}"

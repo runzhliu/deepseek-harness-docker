@@ -1,6 +1,6 @@
 {
   "name": "@runzhliu/dsh-browser-desktop",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Visible Chromium desktop and human takeover layer for DeepSeek Harness Browser Use.",
   "license": "MIT",
   "type": "module",
@@ -62,9 +62,9 @@
     "@deepseek-ai/schemastery": "^3.18.1"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-client-modules": "^0.1.2-alpha.3 || ^0.2.0-rc.1",
-    "@deepseek-ai/dsh-client-ui-layout": "^0.1.2-alpha.3 || ^0.2.0-rc.1",
-    "@deepseek-ai/dsh-client-ui-sidebar": "^0.1.2-alpha.3 || ^0.2.0-rc.1",
+    "@deepseek-ai/dsh-client-modules": "^0.1.2-alpha.3 || ^0.2.0-rc.1 || ^0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-layout": "^0.1.2-alpha.3 || ^0.2.0-rc.1 || ^0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-sidebar": "^0.1.2-alpha.3 || ^0.2.0-rc.1 || ^0.2.1-alpha.1",
     "react": "^18.2.0"
   }
 }

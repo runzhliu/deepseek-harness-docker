@@ -3,14 +3,15 @@
 ARG NODE_IMAGE=docker.io/library/node:24-trixie
 FROM ${NODE_IMAGE} AS installer
 
-ARG DSH_VERSION=0.2.0-rc.2
+ARG DSH_VERSION=0.2.1-alpha.1
 ARG PNPM_VERSION=10.15.1
 
 # node-pty publishes prebuilds for only some Linux architectures. Keep the
 # installer requirements explicit so linux/arm64 can fall back to node-gyp,
 # even if a maintainer experiments with another NODE_IMAGE. The default
 # non-slim runtime separately retains its development toolchain on purpose.
-RUN apt-get update \
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update \
     && apt-get install --yes --no-install-recommends \
       build-essential \
       ca-certificates \
@@ -46,7 +47,7 @@ RUN mkdir -p /opt/dsh-browser-use \
 FROM ${NODE_IMAGE}
 
 ARG NODE_IMAGE
-ARG DSH_VERSION=0.2.0-rc.2
+ARG DSH_VERSION=0.2.1-alpha.1
 ARG PNPM_VERSION=10.15.1
 ARG CHROMIUM_FLAVOR=debian
 ARG UNGOOGLED_CHROMIUM_VERSION=152.0.7977.82-1
@@ -67,6 +68,7 @@ RUN set -eux; \
       debian|ungoogled) ;; \
       *) echo "unsupported Chromium flavor: ${CHROMIUM_FLAVOR}" >&2; exit 1 ;; \
     esac; \
+    sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
     apt-get update; \
     apt-get install --yes --no-install-recommends \
       ca-certificates \
@@ -344,7 +346,7 @@ EXPOSE 3080 6080
 # Keep source metadata after every filesystem-producing instruction so a new
 # commit revision updates only image configuration instead of invalidating the
 # large Debian/Chromium installation layers.
-ARG IMAGE_VERSION=0.2.0-rc.2-r1
+ARG IMAGE_VERSION=0.2.1-alpha.1-r1
 ARG IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.title="DeepSeek Harness Docker (Community)" \
       org.opencontainers.image.description="Community container image for the DeepSeek Harness CLI, Web UI, and browser-accessible Chromium desktop" \

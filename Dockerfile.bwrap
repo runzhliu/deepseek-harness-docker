@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1.7
+
+ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:0.2.1-alpha.1-r1
+FROM ${BASE_IMAGE}
+
+USER root
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update \
+    && apt-get install --yes --no-install-recommends bubblewrap \
+    && rm -rf /var/lib/apt/lists/* \
+    && command -v bwrap >/dev/null
+
+ARG BWRAP_IMAGE_VERSION=0.2.1-alpha.1-r1-bwrap.1
+LABEL org.opencontainers.image.version="${BWRAP_IMAGE_VERSION}" \
+      io.github.runzhliu.deepseek-harness.variant="bubblewrap-sandbox" \
+      io.github.runzhliu.deepseek-harness.sandbox.backend="bubblewrap"
+
+USER node

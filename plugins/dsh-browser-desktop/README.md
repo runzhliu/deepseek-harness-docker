@@ -47,10 +47,10 @@ For local package testing:
 
 ```bash
 npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
-dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.4.tgz
+dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.5.tgz
 ```
 
-Version `0.1.4` adds compatibility with the DSH `0.2.0` client-module runtime while retaining the `0.1.2` compatibility introduced in plugin `0.1.2`. Keep using plugin `0.1.1` with the older DSH `0.1.0`/`0.1.1` release-candidate client runtime. The package declares a DSH bundle patch, so `dsh plugin` adds the host and Web client halves together. Restart the Web profile after installation.
+Version `0.1.5` adds compatibility with the DSH `0.2.1` client-module runtime while retaining the `0.1.2` and `0.2.0` compatibility declared by earlier plugin versions. Keep using plugin `0.1.1` with the older DSH `0.1.0`/`0.1.1` release-candidate client runtime. The package declares a DSH bundle patch, so `dsh plugin` adds the host and Web client halves together. Restart the Web profile after installation.
 
 ## Configuration
 

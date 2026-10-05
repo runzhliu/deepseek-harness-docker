@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.1.19 - 2026-10-05
+
+- Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.2.1-alpha.1`, published as immutable container revision `0.2.1-alpha.1-r1`.
+- Refresh the optional community market variant to `dshmarket@1.66.9` and validate it against the 0.2.1 alpha plugin runtime.
+- Update `@runzhliu/dsh-browser-desktop` to `0.1.5`, extending its client-module compatibility declaration to DSH `0.2.1-alpha.1`.
+- Add upstream experimental Claude Code Mods compatibility, Agent-assisted plugin creation, draft-preserving initial prompts, Markdown frontmatter previews, `--public-url`, and the optional Developer Tools bundle.
+- Include upstream fixes for goal/queued-message editing, queued messages after goal restarts, expandable tool output, plugin style/dependency mapping, and large session lists.
+- Track Automation tasks returning to the Web bundle and the breaking removal of runtime invariant exports, subpath `package.json` metadata, and the former composer `stats` entry.
+- Add an opt-in `bubblewrap` image and Docker Compose overlay for kernels without Landlock, retaining the non-root user, read-only root, dropped capabilities, and `no-new-privileges`; verify that `/workspace` remains writable while other outer writable mounts are denied.
+- Use HTTPS for Debian package downloads so builds remain reliable on networks that block or intercept plain HTTP mirrors.
+- Advance the Helm chart to `0.1.19` while retaining the visible Chromium/noVNC human-takeover layer alongside official Browser Use.
+
+## 0.1.18 - 2026-09-30
+
 - Update `@runzhliu/dsh-browser-desktop` to `0.1.4`, declaring compatibility with both the DSH `0.1.2` and `0.2.0` client-module runtimes.
 - Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.2.0-rc.2`, published as immutable container revision `0.2.0-rc.2-r1`.
 - Refresh the optional community market variant to `dshmarket@1.66.7` and validate it against the 0.2.0 RC2 plugin runtime.

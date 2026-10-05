@@ -12,6 +12,8 @@ Trusted-LAN access is supported only through the opt-in `compose.lan.yaml` gatew
 
 Rootless Podman deployments must use `compose.podman.yaml` with `podman-compose 1.6.0` or newer. Its `keep-id` mapping preserves the image's non-root UID 1000 while making a selected host workspace writable, and its `:Z` suffix privately relabels that workspace on SELinux hosts. Never aim that bind mount at a shared home directory, filesystem root, or directory used by unrelated containers.
 
+On Docker hosts where Landlock is genuinely unavailable, the optional `compose.bwrap.yaml` overlay selects the separately tagged bubblewrap image. It retains the non-root user, read-only root filesystem, dropped capabilities, and `no-new-privileges`, but relaxes the container seccomp and system-path masks so bubblewrap can create its inner namespaces. Prefer enabling Landlock when the kernel already provides it, and use this fallback only on trusted single-user Docker hosts with unprivileged user namespaces enabled. The fallback is not supported for rootless Podman or Kubernetes.
+
 The gateway does not make Harness multi-tenant. All authenticated users share the same settings, credentials, sessions, workspace access, and Agent code-execution authority. Mutually untrusted users require separate instances and separate state/workspace volumes.
 
 Public Ingress, LoadBalancer, NodePort, unrestricted `-p 3080:3080`, direct publication of noVNC, Internet forwarding of the LAN gateway, shared untrusted-user access, Docker socket mounts, and privileged containers are outside the supported security model.

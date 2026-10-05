@@ -8,7 +8,7 @@ on:
       version:
         description: Immutable container revision already published to Docker Hub
         required: true
-        default: 0.2.0-rc.2-r1
+        default: 0.2.1-alpha.1-r1
         type: string
       include_market:
         description: Also mirror the version-market.1 image
@@ -17,6 +17,11 @@ on:
         type: boolean
       include_ungoogled:
         description: Also mirror the version-ungoogled.1 image
+        required: true
+        default: true
+        type: boolean
+      include_bwrap:
+        description: Also mirror the version-bwrap.1 image
         required: true
         default: true
         type: boolean
@@ -46,6 +51,7 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_INCLUDE_MARKET: ${{ inputs.include_market }}
           INPUT_INCLUDE_UNGOOGLED: ${{ inputs.include_ungoogled }}
+          INPUT_INCLUDE_BWRAP: ${{ inputs.include_bwrap }}
         run: |
           if [[ "${EVENT_NAME}" == "release" ]]; then
             if [[ "${RELEASE_TAG}" != image-v* ]]; then
@@ -55,10 +61,12 @@ jobs:
             version="${RELEASE_TAG#image-v}"
             include_market=false
             include_ungoogled=true
+            include_bwrap=true
           else
             version="${INPUT_VERSION}"
             include_market="${INPUT_INCLUDE_MARKET}"
             include_ungoogled="${INPUT_INCLUDE_UNGOOGLED}"
+            include_bwrap="${INPUT_INCLUDE_BWRAP}"
           fi
 
           if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
@@ -69,6 +77,7 @@ jobs:
           echo "version=${version}" >>"${GITHUB_OUTPUT}"
           echo "include_market=${include_market}" >>"${GITHUB_OUTPUT}"
           echo "include_ungoogled=${include_ungoogled}" >>"${GITHUB_OUTPUT}"
+          echo "include_bwrap=${include_bwrap}" >>"${GITHUB_OUTPUT}"
       - uses: docker/setup-buildx-action@v4
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -81,6 +90,7 @@ jobs:
           VERSION: ${{ steps.refs.outputs.version }}
           INCLUDE_MARKET: ${{ steps.refs.outputs.include_market }}
           INCLUDE_UNGOOGLED: ${{ steps.refs.outputs.include_ungoogled }}
+          INCLUDE_BWRAP: ${{ steps.refs.outputs.include_bwrap }}
         run: |
           docker buildx imagetools inspect "${SOURCE_IMAGE}:${VERSION}"
           if [[ "${INCLUDE_MARKET}" == "true" ]]; then
@@ -89,11 +99,15 @@ jobs:
           if [[ "${INCLUDE_UNGOOGLED}" == "true" ]]; then
             docker buildx imagetools inspect "${SOURCE_IMAGE}:${VERSION}-ungoogled.1"
           fi
+          if [[ "${INCLUDE_BWRAP}" == "true" ]]; then
+            docker buildx imagetools inspect "${SOURCE_IMAGE}:${VERSION}-bwrap.1"
+          fi
       - name: Mirror immutable manifests
         env:
           VERSION: ${{ steps.refs.outputs.version }}
           INCLUDE_MARKET: ${{ steps.refs.outputs.include_market }}
           INCLUDE_UNGOOGLED: ${{ steps.refs.outputs.include_ungoogled }}
+          INCLUDE_BWRAP: ${{ steps.refs.outputs.include_bwrap }}
         run: |
           docker buildx imagetools create \
             --progress plain \
@@ -111,11 +125,18 @@ jobs:
               --tag "${TARGET_IMAGE}:${VERSION}-ungoogled.1" \
               "${SOURCE_IMAGE}:${VERSION}-ungoogled.1"
           fi
+          if [[ "${INCLUDE_BWRAP}" == "true" ]]; then
+            docker buildx imagetools create \
+              --progress plain \
+              --tag "${TARGET_IMAGE}:${VERSION}-bwrap.1" \
+              "${SOURCE_IMAGE}:${VERSION}-bwrap.1"
+          fi
       - name: Verify mirrored manifest digests
         env:
           VERSION: ${{ steps.refs.outputs.version }}
           INCLUDE_MARKET: ${{ steps.refs.outputs.include_market }}
           INCLUDE_UNGOOGLED: ${{ steps.refs.outputs.include_ungoogled }}
+          INCLUDE_BWRAP: ${{ steps.refs.outputs.include_bwrap }}
         run: |
           verify_copy() {
             local source_ref="$1"
@@ -149,4 +170,10 @@ jobs:
               "${SOURCE_IMAGE}:${VERSION}-ungoogled.1" \
               "${TARGET_IMAGE}:${VERSION}-ungoogled.1" \
               ungoogled
+          fi
+          if [[ "${INCLUDE_BWRAP}" == "true" ]]; then
+            verify_copy \
+              "${SOURCE_IMAGE}:${VERSION}-bwrap.1" \
+              "${TARGET_IMAGE}:${VERSION}-bwrap.1" \
+              bwrap
           fi

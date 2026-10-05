@@ -11,7 +11,8 @@ ungoogled_chromium_version="${7:?missing ungoogled-chromium version}"
 ungoogled_image_version="${8:?missing ungoogled image version}"
 ungoogled_amd64_sha256="${9:?missing ungoogled-chromium amd64 sha256}"
 ungoogled_arm64_sha256="${10:?missing ungoogled-chromium arm64 sha256}"
-caddy_version="${11:?missing Caddy version}"
+bwrap_image_version="${11:?missing bubblewrap image version}"
+caddy_version="${12:?missing Caddy version}"
 
 require_literal() {
   local file="$1"
@@ -36,11 +37,17 @@ require_literal Dockerfile.market "ARG NODE_IMAGE=docker.io/library/node:24-trix
 require_literal Dockerfile.market "ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:${image_version}"
 require_literal Dockerfile.market "ARG DSH_MARKET_VERSION=${market_version}"
 require_literal Dockerfile.market "ARG MARKET_IMAGE_VERSION=${market_image_version}"
+require_literal Dockerfile.bwrap "ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:${image_version}"
+require_literal Dockerfile.bwrap "ARG BWRAP_IMAGE_VERSION=${bwrap_image_version}"
+require_literal Dockerfile.bwrap 'apt-get install --yes --no-install-recommends bubblewrap'
 require_literal compose.yaml "DSH_IMAGE_VERSION:-${image_version}"
 require_literal compose.yaml 'DSH_IMAGE_REPOSITORY:-docker.io/runzhliu/deepseek-harness'
 require_literal compose.yaml 'NODE_IMAGE:-docker.io/library/node:24-trixie'
 require_literal compose.yaml 'DSH_BROWSER_USE_ENABLED: ${DSH_BROWSER_USE_ENABLED:-1}'
 require_literal compose.market.yaml "MARKET_IMAGE_VERSION:-${market_image_version}"
+require_literal compose.bwrap.yaml "BWRAP_IMAGE_VERSION:-${bwrap_image_version}"
+require_literal compose.bwrap.yaml 'seccomp=unconfined'
+require_literal compose.bwrap.yaml 'systempaths=unconfined'
 require_literal compose.lan.yaml "docker.io/library/caddy:${caddy_version}-alpine"
 require_literal compose.podman.yaml 'userns_mode: "keep-id:uid=1000,gid=1000"'
 require_literal compose.podman.yaml 'in_pod: false'
@@ -63,6 +70,9 @@ require_literal scripts/deepseek-harness-entrypoint 'dsh-experimental-browser-us
 require_literal scripts/podman-smoke.sh "docker.io/runzhliu/deepseek-harness:${image_version}"
 require_literal scripts/podman-smoke.sh 'command -v podman-compose'
 require_literal scripts/podman-smoke.sh 'podman-compose 1.6.0 or newer is required'
+require_literal scripts/bwrap-smoke.sh "docker.io/runzhliu/deepseek-harness:${bwrap_image_version}"
+require_literal scripts/bwrap-smoke.sh '--security-opt seccomp=unconfined'
+require_literal scripts/bwrap-smoke.sh '--security-opt systempaths=unconfined'
 require_literal .github/workflows/ci.yml "IMAGE_VERSION=${image_version}"
 require_literal .github/workflows/ci.yml "MARKET_IMAGE_VERSION=${market_image_version}"
 require_literal .github/workflows/ci.yml "IMAGE_VERSION=${ungoogled_image_version}"
@@ -73,11 +83,14 @@ require_literal .github/workflows/ci.yml "${dsh_version} ${pnpm_version} ${marke
 require_literal .github/workflows/ci.yml './scripts/podman-smoke.sh localhost/deepseek-harness:ci-amd64'
 require_literal .github/workflows/ci.yml 'podman-compose/bin/podman-compose'
 require_literal .github/workflows/ci.yml 'podman-compose==1.6.0'
+require_literal .github/workflows/ci.yml "BWRAP_IMAGE_VERSION=${bwrap_image_version}"
+require_literal .github/workflows/ci.yml './scripts/bwrap-smoke.sh deepseek-harness:ci-bwrap'
 require_literal .github/workflows/publish-ghcr.yml "default: ${image_version}"
 require_literal .github/workflows/publish-dockerhub.yml "DSH_VERSION: ${dsh_version}"
 require_literal .github/workflows/publish-dockerhub.yml "IMAGE_VERSION: ${image_version}"
 require_literal .github/workflows/publish-dockerhub.yml "MARKET_IMAGE_VERSION: ${market_image_version}"
 require_literal .github/workflows/publish-dockerhub.yml "UNGOOGLED_IMAGE_VERSION: ${ungoogled_image_version}"
+require_literal .github/workflows/publish-dockerhub.yml "BWRAP_IMAGE_VERSION: ${bwrap_image_version}"
 require_literal .github/workflows/upstream-dsh.yml "./scripts/check-upstream-dsh.sh ${dsh_version}"
 require_literal plugins/dsh-browser-desktop/package.json "\"version\": \"${browser_plugin_version}\""
 require_literal plugins/dsh-browser-desktop/package.json '"@deepseek-ai/dsh-client-modules"'
@@ -87,21 +100,27 @@ require_literal web.cordis.patch.yml "endpoint: 'http://127.0.0.1:9222'"
 require_literal README.md "runzhliu/deepseek-harness:${image_version}"
 require_literal README.md "runzhliu/deepseek-harness:${market_image_version}"
 require_literal README.md "runzhliu/deepseek-harness:${ungoogled_image_version}"
+require_literal README.md "runzhliu/deepseek-harness:${bwrap_image_version}"
 require_literal README.md "ungoogled-chromium@${ungoogled_chromium_version}"
 require_literal README.md "runzhliu-dsh-browser-desktop-${browser_plugin_version}.tgz"
 require_literal README.md "caddy:${caddy_version}-alpine"
 require_literal README.en.md "runzhliu/deepseek-harness:${image_version}"
 require_literal README.en.md "runzhliu/deepseek-harness:${market_image_version}"
 require_literal README.en.md "runzhliu/deepseek-harness:${ungoogled_image_version}"
+require_literal README.en.md "runzhliu/deepseek-harness:${bwrap_image_version}"
 require_literal README.en.md "ungoogled-chromium@${ungoogled_chromium_version}"
 require_literal README.en.md "runzhliu-dsh-browser-desktop-${browser_plugin_version}.tgz"
 require_literal README.en.md "caddy:${caddy_version}-alpine"
 require_literal SKILL.md "runzhliu/deepseek-harness:${image_version}"
 require_literal SKILL.md "${ungoogled_image_version}"
+require_literal SKILL.md "${bwrap_image_version}"
 require_literal SKILL.md "caddy:${caddy_version}-alpine"
 require_literal README.md 'compose.podman.yaml'
 require_literal README.en.md 'compose.podman.yaml'
 require_literal SKILL.md 'compose.podman.yaml'
+require_literal README.md 'compose.bwrap.yaml'
+require_literal README.en.md 'compose.bwrap.yaml'
+require_literal SKILL.md 'compose.bwrap.yaml'
 
-printf 'versions are consistent: image=%s dsh=%s pnpm=%s market=%s browser-plugin=%s ungoogled-chromium=%s caddy=%s\n' \
-  "${image_version}" "${dsh_version}" "${pnpm_version}" "${market_version}" "${browser_plugin_version}" "${ungoogled_chromium_version}" "${caddy_version}"
+printf 'versions are consistent: image=%s dsh=%s pnpm=%s market=%s browser-plugin=%s ungoogled-chromium=%s bwrap=%s caddy=%s\n' \
+  "${image_version}" "${dsh_version}" "${pnpm_version}" "${market_version}" "${browser_plugin_version}" "${ungoogled_chromium_version}" "${bwrap_image_version}" "${caddy_version}"
