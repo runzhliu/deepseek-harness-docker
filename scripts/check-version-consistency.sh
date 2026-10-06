@@ -40,6 +40,7 @@ require_literal Dockerfile.market "ARG MARKET_IMAGE_VERSION=${market_image_versi
 require_literal Dockerfile.bwrap "ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:${image_version}"
 require_literal Dockerfile.bwrap "ARG BWRAP_IMAGE_VERSION=${bwrap_image_version}"
 require_literal Dockerfile.bwrap 'apt-get install --yes --no-install-recommends bubblewrap'
+require_literal Dockerfile.bwrap 'COPY scripts/deepseek-harness-bwrap-entrypoint /usr/local/bin/deepseek-harness-bwrap-entrypoint'
 require_literal compose.yaml "DSH_IMAGE_VERSION:-${image_version}"
 require_literal compose.yaml 'DSH_IMAGE_REPOSITORY:-docker.io/runzhliu/deepseek-harness'
 require_literal compose.yaml 'NODE_IMAGE:-docker.io/library/node:24-trixie'
@@ -48,6 +49,11 @@ require_literal compose.market.yaml "MARKET_IMAGE_VERSION:-${market_image_versio
 require_literal compose.bwrap.yaml "BWRAP_IMAGE_VERSION:-${bwrap_image_version}"
 require_literal compose.bwrap.yaml 'seccomp=unconfined'
 require_literal compose.bwrap.yaml 'systempaths=unconfined'
+require_literal compose.bwrap.yaml 'apparmor=unconfined'
+require_literal compose.bwrap.yaml 'SYS_ADMIN'
+require_literal compose.bwrap.yaml 'SETUID'
+require_literal compose.bwrap.yaml 'SETGID'
+require_literal compose.bwrap.yaml '/usr/local/bin/deepseek-harness-bwrap-entrypoint'
 require_literal compose.lan.yaml "docker.io/library/caddy:${caddy_version}-alpine"
 require_literal compose.podman.yaml 'userns_mode: "keep-id:uid=1000,gid=1000"'
 require_literal compose.podman.yaml 'in_pod: false'
@@ -73,6 +79,10 @@ require_literal scripts/podman-smoke.sh 'podman-compose 1.6.0 or newer is requir
 require_literal scripts/bwrap-smoke.sh "docker.io/runzhliu/deepseek-harness:${bwrap_image_version}"
 require_literal scripts/bwrap-smoke.sh '--security-opt seccomp=unconfined'
 require_literal scripts/bwrap-smoke.sh '--security-opt systempaths=unconfined'
+require_literal scripts/bwrap-smoke.sh '--security-opt apparmor=unconfined'
+require_literal scripts/bwrap-smoke.sh '--cap-add SYS_ADMIN'
+require_literal scripts/bwrap-smoke.sh '--user root'
+require_literal scripts/bwrap-smoke.sh 'NoNewPrivs:'
 require_literal .github/workflows/ci.yml "IMAGE_VERSION=${image_version}"
 require_literal .github/workflows/ci.yml "MARKET_IMAGE_VERSION=${market_image_version}"
 require_literal .github/workflows/ci.yml "IMAGE_VERSION=${ungoogled_image_version}"

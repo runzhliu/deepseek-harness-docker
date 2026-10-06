@@ -12,7 +12,7 @@ All notable changes to this project are documented here.
 - Add upstream experimental Claude Code Mods compatibility, Agent-assisted plugin creation, draft-preserving initial prompts, Markdown frontmatter previews, `--public-url`, and the optional Developer Tools bundle.
 - Include upstream fixes for goal/queued-message editing, queued messages after goal restarts, expandable tool output, plugin style/dependency mapping, and large session lists.
 - Track Automation tasks returning to the Web bundle and the breaking removal of runtime invariant exports, subpath `package.json` metadata, and the former composer `stats` entry.
-- Add an opt-in `bubblewrap` image and Docker Compose overlay for kernels without Landlock, retaining the non-root user, read-only root, dropped capabilities, and `no-new-privileges`; verify that `/workspace` remains writable while other outer writable mounts are denied.
+- Add an opt-in `bubblewrap` image and Docker Compose overlay for kernels without Landlock. Its startup-only mount preflight handles shared root propagation, immediately drops to UID 1000 with zero effective capabilities and `no-new-privileges`, and verifies that `/workspace` remains writable while other outer writable mounts are denied.
 - Use HTTPS for Debian package downloads so builds remain reliable on networks that block or intercept plain HTTP mirrors.
 - Advance the Helm chart to `0.1.19` while retaining the visible Chromium/noVNC human-takeover layer alongside official Browser Use.
 

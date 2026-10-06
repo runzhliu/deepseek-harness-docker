@@ -15,13 +15,20 @@ docker run --rm \
   --tmpfs /workspace:rw,nosuid,nodev,size=128m,uid=1000,gid=1000 \
   --tmpfs /outside:rw,nosuid,nodev,size=16m,uid=1000,gid=1000 \
   --cap-drop ALL \
+  --cap-add SYS_ADMIN \
+  --cap-add SETUID \
+  --cap-add SETGID \
   --security-opt no-new-privileges:true \
+  --security-opt apparmor=unconfined \
   --security-opt seccomp=unconfined \
   --security-opt systempaths=unconfined \
   --pids-limit 128 \
-  --entrypoint sh \
-  "${image}" -ec '
+  --user root \
+  --entrypoint /usr/bin/tini \
+  "${image}" -- /usr/local/bin/deepseek-harness-bwrap-entrypoint sh -ec '
     test "$(id -u)" = 1000
+    test "$(awk '\''$1 == "CapEff:" { print $2 }'\'' /proc/self/status)" = 0000000000000000
+    test "$(awk '\''$1 == "NoNewPrivs:" { print $2 }'\'' /proc/self/status)" = 1
     command -v bwrap >/dev/null
     bwrap \
       --ro-bind / / \

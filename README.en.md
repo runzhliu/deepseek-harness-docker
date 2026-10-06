@@ -107,7 +107,7 @@ These are complementary layers:
 - Docker or Kubernetes decides which host paths, Linux capabilities, and resources the process can see.
 - Harness decides what Agent tools may do inside that already constrained filesystem.
 
-Linux Landlock, user namespaces, and native helpers depend on the host kernel and container runtime. This project will not hide sandbox failures with `--privileged`, a Docker socket, or extra capabilities. A release check must include a real filesystem and shell tool call in the target environment; a successfully authenticated page proves only that the UI started.
+Linux Landlock, user namespaces, and native helpers depend on the host kernel and container runtime. The default image will not hide sandbox failures with `--privileged`, a Docker socket, or extra capabilities; the explicitly selected bwrap variant below is a narrowly scoped exception. A release check must include a real filesystem and shell tool call in the target environment; a successfully authenticated page proves only that the UI started.
 
 #### Optional bubblewrap backend for kernels without Landlock
 
@@ -120,7 +120,7 @@ DSH_WORKSPACE=/absolute/path/to/project \
   docker compose -f compose.yaml -f compose.bwrap.yaml up -d --no-build
 ```
 
-The overlay selects immutable image `runzhliu/deepseek-harness:0.2.1-alpha.1-r1-bwrap.1` and adds `seccomp=unconfined` plus `systempaths=unconfined`, allowing non-root `bwrap` to create its inner user/mount/PID namespace and mount a fresh `/proc`. UID 1000, a read-only root filesystem, `cap_drop: ALL`, `no-new-privileges`, and minimal mounts remain in force. The two options still widen the outer container's syscall and `/proc` surface, so this variant never becomes the default. The host must also permit unprivileged user namespaces.
+The overlay selects immutable image `runzhliu/deepseek-harness:0.2.1-alpha.1-r1-bwrap.1`. To handle Docker hosts whose root mount has shared propagation, the startup preflight temporarily receives `SYS_ADMIN`, `SETUID`, and `SETGID`, with AppArmor, seccomp, and system-path masks relaxed. Its entrypoint performs only `mount --make-rprivate /`, then immediately starts DSH as UID/GID 1000 with `no-new-privileges`; model commands have zero effective capabilities. A read-only root filesystem, minimal mounts, and the outer `cap_drop: ALL` remain. These exceptions broaden the startup boundary, so this variant never becomes the default and should run only on trusted single-user Docker hosts. The host must also permit unprivileged user namespaces.
 
 This path is supported only for Docker Compose, not rootless Podman or Kubernetes. On Podman hosts where Landlock exists in the kernel, enable that LSM instead. Reproduce the confinement boundary on the target Docker host with:
 
@@ -129,7 +129,7 @@ make bwrap-build
 make bwrap-smoke
 ```
 
-The test proves that `/workspace` is writable inside bubblewrap while another writable outer mount remains denied to the model command. See [Issue #35](https://github.com/runzhliu/deepseek-harness-docker/issues/35) for the host analysis and reports.
+The test proves that DSH has dropped to UID 1000 with zero effective capabilities and `NoNewPrivs=1`, then verifies that `/workspace` is writable inside bubblewrap while another writable outer mount remains denied to the model command. See [Issue #35](https://github.com/runzhliu/deepseek-harness-docker/issues/35) for the host analysis and reports.
 
 ### Why the Helm chart uses a StatefulSet
 
