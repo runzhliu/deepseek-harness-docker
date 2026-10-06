@@ -10,14 +10,9 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.l
     && rm -rf /var/lib/apt/lists/* \
     && command -v bwrap >/dev/null
 
-COPY scripts/deepseek-harness-bwrap-entrypoint /usr/local/bin/deepseek-harness-bwrap-entrypoint
-RUN chmod 0755 /usr/local/bin/deepseek-harness-bwrap-entrypoint
-
 ARG BWRAP_IMAGE_VERSION=0.2.1-alpha.1-r1-bwrap.1
 LABEL org.opencontainers.image.version="${BWRAP_IMAGE_VERSION}" \
       io.github.runzhliu.deepseek-harness.variant="bubblewrap-sandbox" \
       io.github.runzhliu.deepseek-harness.sandbox.backend="bubblewrap"
 
-# Keep the safe base-image default. The opt-in Compose overlay alone runs the
-# root-only mount preflight with its narrowly scoped startup capabilities.
 USER node

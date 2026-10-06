@@ -169,4 +169,9 @@ jobs:
           --tag deepseek-harness:ci-bwrap
           .
       - run: ./scripts/smoke.sh deepseek-harness:ci-bwrap 0.2.1-alpha.1 10.15.1
+      # GitHub's nested hosted runner exposes / with shared propagation, while
+      # the target Docker/NAS hosts use a private container root mount. Align
+      # the ephemeral runner before exercising the exact capability-free
+      # Compose security options reported and reproduced in issue #35.
+      - run: sudo mount --make-rprivate /
       - run: ./scripts/bwrap-smoke.sh deepseek-harness:ci-bwrap

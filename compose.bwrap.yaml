@@ -7,20 +7,9 @@ services:
         BWRAP_IMAGE_VERSION: ${BWRAP_IMAGE_VERSION:-0.2.1-alpha.1-r1-bwrap.1}
     image: ${DSH_IMAGE_REPOSITORY:-docker.io/runzhliu/deepseek-harness}:${BWRAP_IMAGE_VERSION:-0.2.1-alpha.1-r1-bwrap.1}
     # Opt in only on Docker hosts whose kernel cannot enforce Landlock. These
-    # settings let the root-only image preflight make / private, after which it
-    # immediately drops to UID 1000 with no-new-privileges before DSH starts.
-    # Bubblewrap can then create its inner user/mount/PID namespace without
-    # leaving model commands privileged.
-    user: "0:0"
-    entrypoint:
-      - /usr/bin/tini
-      - --
-      - /usr/local/bin/deepseek-harness-bwrap-entrypoint
-    cap_add:
-      - SYS_ADMIN
-      - SETUID
-      - SETGID
+    # settings permit bwrap to create its inner user/mount/PID namespace while
+    # retaining the base service's non-root user, read-only root filesystem,
+    # dropped capabilities, and no-new-privileges setting.
     security_opt:
-      - apparmor=unconfined
       - seccomp=unconfined
       - systempaths=unconfined

@@ -107,7 +107,7 @@ flowchart TB
 - Docker/Kubernetes 限制进程能看到哪些宿主目录、Linux capabilities 和资源；
 - Harness 沙箱限制 Agent 工具在已进入容器的文件系统中能够执行什么。
 
-Linux Landlock、用户命名空间和原生 helper 的可用性会受宿主内核与容器运行时影响。默认镜像不会用 `--privileged`、Docker socket 或额外 capabilities 掩盖沙箱失败；下面的 bwrap 变体是范围明确、显式选择的例外。发布前除“页面能打开”外，还必须在目标平台验证一次真实 bash/文件工具调用。
+Linux Landlock、用户命名空间和原生 helper 的可用性会受宿主内核与容器运行时影响。本项目不会用 `--privileged`、Docker socket 或额外 capabilities 掩盖沙箱失败。发布前除“页面能打开”外，还必须在目标平台验证一次真实 bash/文件工具调用。
 
 #### 无 Landlock 内核的可选 bubblewrap 后端
 
@@ -120,7 +120,7 @@ DSH_WORKSPACE=/absolute/path/to/project \
   docker compose -f compose.yaml -f compose.bwrap.yaml up -d --no-build
 ```
 
-该 overlay 使用不可变镜像 `runzhliu/deepseek-harness:0.2.1-alpha.1-r1-bwrap.1`。为兼容根挂载采用 shared propagation 的 Docker 主机，它在启动预检阶段临时授予 `SYS_ADMIN`、`SETUID`、`SETGID`，并放宽 AppArmor、seccomp 和 system-path mask：入口脚本只执行一次 `mount --make-rprivate /`，随后立刻以 UID/GID 1000 和 `no-new-privileges` 启动 DSH；模型命令运行时的 effective capabilities 为零。只读根文件系统、最小挂载和外层 `cap_drop: ALL` 仍保留，但这些例外扩大了容器启动阶段的权限边界，因此该变体不会成为默认配置，只应运行在受信任的单用户 Docker 主机上。宿主还必须允许非特权用户命名空间。
+该 overlay 使用不可变镜像 `runzhliu/deepseek-harness:0.2.1-alpha.1-r1-bwrap.1`，并增加 `seccomp=unconfined` 与 `systempaths=unconfined`，使非 root 的 `bwrap` 可以创建内部 user/mount/PID namespace 和挂载新的 `/proc`。它仍保留 UID 1000、只读根文件系统、`cap_drop: ALL`、`no-new-privileges` 和最小挂载；但两项设置确实扩大了外层容器可见的系统调用与 `/proc` 表面，因此不会成为默认配置。宿主还必须允许非特权用户命名空间。
 
 此方案当前只承诺 Docker Compose，不应用于 rootless Podman 或 Kubernetes。Podman 主机若内核已有 Landlock，应优先在启动参数中启用对应 LSM。可以在目标 Docker 主机复现隔离边界测试：
 
@@ -129,7 +129,7 @@ make bwrap-build
 make bwrap-smoke
 ```
 
-测试会同时证明 DSH 进程已经降到 UID 1000、effective capabilities 为零、`NoNewPrivs=1`，并证明 bubblewrap 内 `/workspace` 可写，而外层额外挂载的可写目录无法写入。相关背景和宿主案例见 [Issue #35](https://github.com/runzhliu/deepseek-harness-docker/issues/35)。
+测试会证明 bubblewrap 内 `/workspace` 可写，同时即使外层额外挂载一个可写目录，模型命令也无法写入该目录。相关背景和宿主案例见 [Issue #35](https://github.com/runzhliu/deepseek-harness-docker/issues/35)。
 
 ### 为什么 Kubernetes 使用 StatefulSet
 
