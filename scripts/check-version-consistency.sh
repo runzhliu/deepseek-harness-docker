@@ -85,6 +85,7 @@ require_literal .github/workflows/ci.yml 'podman-compose/bin/podman-compose'
 require_literal .github/workflows/ci.yml 'podman-compose==1.6.0'
 require_literal .github/workflows/ci.yml "BWRAP_IMAGE_VERSION=${bwrap_image_version}"
 require_literal .github/workflows/ci.yml './scripts/bwrap-smoke.sh deepseek-harness:ci-bwrap'
+require_literal .github/workflows/ci.yml 'bwrap: Failed to make / slave: Permission denied'
 require_literal .github/workflows/publish-ghcr.yml "default: ${image_version}"
 require_literal .github/workflows/publish-dockerhub.yml "DSH_VERSION: ${dsh_version}"
 require_literal .github/workflows/publish-dockerhub.yml "IMAGE_VERSION: ${image_version}"
