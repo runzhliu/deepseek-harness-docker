@@ -2,8 +2,8 @@ apiVersion: v2
 name: deepseek-harness
 description: Community Helm chart for a single-user DeepSeek Harness Web instance
 type: application
-version: 0.1.19
-appVersion: "0.2.1-alpha.1"
+version: 0.1.20
+appVersion: "0.2.1-alpha.2"
 kubeVersion: ">=1.27.0-0"
 home: https://github.com/runzhliu/deepseek-harness-docker
 keywords:
@@ -21,11 +21,11 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/images: |
     - name: deepseek-harness
-      image: docker.io/runzhliu/deepseek-harness:0.2.1-alpha.1-r1
+      image: docker.io/runzhliu/deepseek-harness:0.2.1-alpha.2-r1
   artifacthub.io/changes: |
     - kind: changed
-      description: Upgrade the official runtime and Browser Use packages to 0.2.1-alpha.1.
+      description: Upgrade the official runtime and Browser Use packages to 0.2.1-alpha.2.
     - kind: added
-      description: Include Claude Code Mods compatibility, Agent-assisted plugin creation, public URLs, and optional Developer Tools.
+      description: Include working-directory switching, shared agent instructions, Git Worktrees, and font settings.
     - kind: changed
-      description: Track built-in Automation tasks and the removal of runtime invariant extension exports.
+      description: Document PTC, agent-instructions, subagent SDK, and Agent Team migration requirements without changing network exposure.

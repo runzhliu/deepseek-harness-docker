@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.1.20 - 2026-10-09
+
+- Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.2.1-alpha.2`, with immutable container revision `0.2.1-alpha.2-r1` and Helm chart `0.1.20`.
+- Include upstream working-directory switching, shared `AGENTS.md` instructions, experimental Git Worktrees and reasoning translation, font settings, and on-demand Official bundles.
+- Include upstream fixes for stuck model streams, stale model settings, background-task status, watcher shutdown, and long-line previews; update the bundled pi-ai adapter to `1.0.2` through the official distribution.
+- Document removal of the `both` tool mode and per-row `agent-instructions.dshHome`, Python PTC sandbox requirements, and subagent SDK / Agent Team migrations.
+- Keep the existing loopback-only ports and authenticated Caddy LAN gateway despite upstream adding native Web HTTPS. Retain browser-desktop `0.1.5`, optional market `1.66.9`, and the dated Light screenshot provenance.
+
 ## 0.1.19 - 2026-10-05
 
 - Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.2.1-alpha.1`, published as immutable container revision `0.2.1-alpha.1-r1`.

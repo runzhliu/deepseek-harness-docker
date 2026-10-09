@@ -3,9 +3,9 @@ services:
     build:
       dockerfile: Dockerfile.bwrap
       args:
-        BASE_IMAGE: ${DSH_IMAGE_REPOSITORY:-docker.io/runzhliu/deepseek-harness}:${DSH_IMAGE_VERSION:-0.2.1-alpha.1-r1}
-        BWRAP_IMAGE_VERSION: ${BWRAP_IMAGE_VERSION:-0.2.1-alpha.1-r1-bwrap.1}
-    image: ${DSH_IMAGE_REPOSITORY:-docker.io/runzhliu/deepseek-harness}:${BWRAP_IMAGE_VERSION:-0.2.1-alpha.1-r1-bwrap.1}
+        BASE_IMAGE: ${DSH_IMAGE_REPOSITORY:-docker.io/runzhliu/deepseek-harness}:${DSH_IMAGE_VERSION:-0.2.1-alpha.2-r1}
+        BWRAP_IMAGE_VERSION: ${BWRAP_IMAGE_VERSION:-0.2.1-alpha.2-r1-bwrap.1}
+    image: ${DSH_IMAGE_REPOSITORY:-docker.io/runzhliu/deepseek-harness}:${BWRAP_IMAGE_VERSION:-0.2.1-alpha.2-r1-bwrap.1}
     # Opt in only on Docker hosts whose kernel cannot enforce Landlock. These
     # settings permit bwrap to create its inner user/mount/PID namespace while
     # retaining the base service's non-root user, read-only root filesystem,

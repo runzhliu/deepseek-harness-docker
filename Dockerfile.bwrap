@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:0.2.1-alpha.1-r1
+ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:0.2.1-alpha.2-r1
 FROM ${BASE_IMAGE}
 
 USER root
@@ -10,7 +10,7 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.l
     && rm -rf /var/lib/apt/lists/* \
     && command -v bwrap >/dev/null
 
-ARG BWRAP_IMAGE_VERSION=0.2.1-alpha.1-r1-bwrap.1
+ARG BWRAP_IMAGE_VERSION=0.2.1-alpha.2-r1-bwrap.1
 LABEL org.opencontainers.image.version="${BWRAP_IMAGE_VERSION}" \
       io.github.runzhliu.deepseek-harness.variant="bubblewrap-sandbox" \
       io.github.runzhliu.deepseek-harness.sandbox.backend="bubblewrap"

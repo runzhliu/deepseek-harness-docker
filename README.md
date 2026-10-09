@@ -12,17 +12,19 @@
 
 这是一个可直接构建的 DeepSeek Harness 社区容器方案，默认运行官方 `@deepseek-ai/dsh` 的 Web UI。它不构建或修改 DeepSeek Harness 源码，只把官方 npm 发行物装入一个精简、非 root 的 Node.js 24 运行时。
 
-> 当前基线：`@deepseek-ai/dsh@0.2.1-alpha.1`。DeepSeek Harness 仍处于预发布阶段；升级前应重新完成本文的构建和 Smoke Test。
+> 当前基线：`@deepseek-ai/dsh@0.2.1-alpha.2`。DeepSeek Harness 仍处于预发布阶段；升级前应重新完成本文的构建和 Smoke Test。
 
-`0.2.1-alpha.1` 直接对应官方 [`dsh-v0.2.1-alpha.1`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.1) Release 与 npm Registry 的 [`@deepseek-ai/dsh@0.2.1-alpha.1`](https://www.npmjs.com/package/@deepseek-ai/dsh/v/0.2.1-alpha.1)，并非本项目自定义版本。本项目封装 npm 成品而不从源码构建，因此以可安装的官方发行物为基线，并故意不发布漂移的 Docker `latest` 标签。
+`0.2.1-alpha.2` 直接对应官方 [`dsh-v0.2.1-alpha.2`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.2) Release 与 npm Registry 的 [`@deepseek-ai/dsh@0.2.1-alpha.2`](https://www.npmjs.com/package/@deepseek-ai/dsh/v/0.2.1-alpha.2)，并非本项目自定义版本。本项目封装 npm 成品而不从源码构建，因此以可安装的官方发行物为基线，并故意不发布漂移的 Docker `latest` 标签。
 
-上游已发布可安装的显式 npm 版本；Registry 镜像与 dist-tag 的更新可能短暂滞后，本项目始终固定完整版本，避免 dist-tag 漂移。`0.2.1-alpha.1` 新增实验性 Claude Code Mods 兼容层、Agent 辅助创建插件、预填草稿、Markdown frontmatter 预览、`--public-url` 和可选开发者工具组合包，并修复目标编辑、排队消息、工具输出、插件样式及依赖映射等问题。
+上游已发布可安装的显式 npm 版本；Registry 镜像与 dist-tag 的更新可能短暂滞后，本项目始终固定完整版本，避免 dist-tag 漂移。`0.2.1-alpha.2` 新增工作目录切换、共享 `AGENTS.md`、实验性 Git Worktrees 和思考过程翻译、字体设置，以及 Web 指定地址绑定与原生 HTTPS；同时修复模型流空闲超时仍挂起、模型配置刷新、后台任务状态和资源清理等问题，pi-ai 更新至 `1.0.2`。
 
 > **升级提醒：** `0.1.7-alpha.1` 起 Session 日志为 V4。若从更早版本升级，必须先备份 `dsh-home`；依赖旧日志结构的工具需要适配 V4，降级前也应恢复升级前的卷备份，而不是让旧版直接读取已迁移数据。
 
 > **兼容性提醒：** 自定义 `spill-policy` 配置必须把 `maxInlineBytes` 改为按估算 Token 计数的 `maxInlineTokens`。内置 E2B 执行后端已移除，PTC 与 Workflow 服务已重命名；若从 `0.1.7-alpha.1` 以前升级，还需处理 Messages-only adapter、Profile-owned 设置、Bundle Agent Preset 和 Remote `readBytes` 迁移。详见[官方 Release](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.1)。
 
 > **0.2.1 兼容性提醒：** 自动化任务重新成为 Web 内置能力，旧实验组合包选择会自动清理但已有任务保留。运行时 invariant 插件及各包的 `./invariant` 导出已移除；子路径插件不再读取独立 `package.json`；输入区原 `stats` 扩展拆为 `activity` 与 `usage`。依赖这些入口的自定义插件必须先适配。
+
+> **alpha.2 迁移提醒：** 工具展示模式移除 `both`，仅保留 `native` 与 `ptc`；自定义 Python PTC 组合需提供 `sandbox` 和 `sandboxPolicy`。`agent-instructions` 不再接受逐行 `dshHome`，应使用进程级 `DSH_HOME`；自定义子代理 SDK runtime 需支持 `session/wait`，Agent Team 的 outbox、重试和去重配置也需迁移。本镜像继续保留回环端口与现有 Caddy LAN 入口，不会因上游新增原生 HTTPS 而自动开放网络访问。详见[官方更新说明](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.2)。
 
 > 上游版本跟踪：每日运行的 [Upstream DSH version watch](.github/workflows/upstream-dsh.yml) 会同时检查 GitHub Release 与 npm。若新版 Release 已发布但 npm 制品尚不可用，工作流会创建或刷新等待 Issue 并保留当前可安装基线；同版本 npm 包可安装后，Issue 会自动切换为升级提醒，固定版本追平后再自动关闭。
 
@@ -122,7 +124,7 @@ DSH_WORKSPACE=/absolute/path/to/project \
   docker compose -f compose.yaml -f compose.bwrap.yaml up -d --no-build
 ```
 
-该 overlay 使用不可变镜像 `runzhliu/deepseek-harness:0.2.1-alpha.1-r1-bwrap.1`，并增加 `seccomp=unconfined` 与 `systempaths=unconfined`，使非 root 的 `bwrap` 可以创建内部 user/mount/PID namespace 和挂载新的 `/proc`。它仍保留 UID 1000、只读根文件系统、`cap_drop: ALL`、`no-new-privileges` 和最小挂载；但两项设置确实扩大了外层容器可见的系统调用与 `/proc` 表面，因此不会成为默认配置。宿主还必须允许非特权用户命名空间。
+该 overlay 使用不可变镜像 `runzhliu/deepseek-harness:0.2.1-alpha.2-r1-bwrap.1`，并增加 `seccomp=unconfined` 与 `systempaths=unconfined`，使非 root 的 `bwrap` 可以创建内部 user/mount/PID namespace 和挂载新的 `/proc`。它仍保留 UID 1000、只读根文件系统、`cap_drop: ALL`、`no-new-privileges` 和最小挂载；但两项设置确实扩大了外层容器可见的系统调用与 `/proc` 表面，因此不会成为默认配置。宿主还必须允许非特权用户命名空间。
 
 此方案当前只承诺 Docker Compose，不应用于 rootless Podman 或 Kubernetes。Podman 主机若内核已有 Landlock，应优先在启动参数中启用对应 LSM。可以在目标 Docker 主机复现隔离边界测试：
 
@@ -165,7 +167,7 @@ docker compose logs --no-color deepseek-harness | grep 'dsh web:'
 
 未设置 `DSH_WORKSPACE` 时，Compose 使用独立的 `dsh-workspace` 命名卷，避免 Agent 意外修改本仓库。只有准备好明确的项目目录后，才通过 `DSH_WORKSPACE=/absolute/path/to/project` 改用 bind mount。
 
-默认镜像修订版为 Docker Hub 上的 [`runzhliu/deepseek-harness:0.2.1-alpha.1-r1`](https://hub.docker.com/r/runzhliu/deepseek-harness)，同一份多架构制品也会发布到 GitHub Container Registry：[`ghcr.io/runzhliu/deepseek-harness:0.2.1-alpha.1-r1`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness)。`r1` 将同版本官方 Playwright MCP Browser Use attach 到可视 Chromium，并继续使用带版本的 noVNC 静态资源路径，避免升级后浏览器缓存混用不兼容的 ES Module。Compose 同时保留 `build` 配置，方便审查并从本目录复现镜像；如需本地构建，执行 `docker compose build --pull` 后再启动。
+默认镜像修订版为 Docker Hub 上的 [`runzhliu/deepseek-harness:0.2.1-alpha.2-r1`](https://hub.docker.com/r/runzhliu/deepseek-harness)，同一份多架构制品也会发布到 GitHub Container Registry：[`ghcr.io/runzhliu/deepseek-harness:0.2.1-alpha.2-r1`](https://github.com/users/runzhliu/packages/container/package/deepseek-harness)。`r1` 将同版本官方 Playwright MCP Browser Use attach 到可视 Chromium，并继续使用带版本的 noVNC 静态资源路径，避免升级后浏览器缓存混用不兼容的 ES Module。Compose 同时保留 `build` 配置，方便审查并从本目录复现镜像；如需本地构建，执行 `docker compose build --pull` 后再启动。
 
 ### Rootless Podman
 
@@ -263,15 +265,15 @@ Compose 为 Chromium 配置了 1GB `/dev/shm`。启动器只对浏览器进程�
 
 #### 可选的 ungoogled-chromium 镜像
 
-默认镜像继续使用 Debian Chromium，以保留 Debian 安全更新与发行版供应链。对浏览器空闲后台连接有严格要求时，可显式选择独立的 [`runzhliu/deepseek-harness:0.2.1-alpha.1-r1-ungoogled.1`](https://hub.docker.com/r/runzhliu/deepseek-harness/tags) 变体：
+默认镜像继续使用 Debian Chromium，以保留 Debian 安全更新与发行版供应链。对浏览器空闲后台连接有严格要求时，可显式选择独立的 [`runzhliu/deepseek-harness:0.2.1-alpha.2-r1-ungoogled.1`](https://hub.docker.com/r/runzhliu/deepseek-harness/tags) 变体：
 
 ```bash
-export DSH_IMAGE_VERSION=0.2.1-alpha.1-r1-ungoogled.1
+export DSH_IMAGE_VERSION=0.2.1-alpha.2-r1-ungoogled.1
 docker compose pull
 DSH_WORKSPACE=/absolute/path/to/your/project docker compose up -d --no-build
 ```
 
-该镜像固定 `ungoogled-chromium@152.0.7977.82-1`，分别校验 amd64 与 arm64 下载包的 SHA256。Smoke Test 会启动完整 Harness/noVNC 桌面、验证官方 Browser Use attach 配置并调用 `browser_open`，随后断言不存在 GCM `5228` 连接与 `google_apis/gcm` 日志。它还自动使用 `/home/node/.dsh/chrome-profile-ungoogled`，不会与默认 Debian Chromium 的 Profile 混用。GHCR 使用相同标签；Helm 可显式设置 `--set image.tag=0.2.1-alpha.1-r1-ungoogled.1`。
+该镜像固定 `ungoogled-chromium@152.0.7977.82-1`，分别校验 amd64 与 arm64 下载包的 SHA256。Smoke Test 会启动完整 Harness/noVNC 桌面、验证官方 Browser Use attach 配置并调用 `browser_open`，随后断言不存在 GCM `5228` 连接与 `google_apis/gcm` 日志。它还自动使用 `/home/node/.dsh/chrome-profile-ungoogled`，不会与默认 Debian Chromium 的 Profile 混用。GHCR 使用相同标签；Helm 可显式设置 `--set image.tag=0.2.1-alpha.2-r1-ungoogled.1`。
 
 这个变体采用 [`ungoogled-chromium-portablelinux`](https://github.com/ungoogled-software/ungoogled-chromium-portablelinux) 的社区 portable 构建，并非 Debian 官方软件包。[上游二进制索引](https://github.com/ungoogled-software/ungoogled-chromium-binaries)明确提示贡献者二进制不一定可复现、真实性无法完全保证；同时 Google Safe Browsing、同步、推送、Widevine 和扩展商店集成可能缺失或需要手动配置。因此它不会替换默认镜像，也不会发布为 `latest`。本地复现与验证：
 
@@ -301,7 +303,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
   docker compose -f compose.yaml -f compose.market.yaml up -d --no-build
 ```
 
-该变体使用明确区分的 `runzhliu/deepseek-harness:0.2.1-alpha.1-r1-market.1` 标签，固定 `dshmarket@1.66.9`，不会替换默认 DSH 标签或 `latest`。它属于社区可选集成，不是 DeepSeek 官方组件，也不代表本项目对市场条目的审核或背书。
+该变体使用明确区分的 `runzhliu/deepseek-harness:0.2.1-alpha.2-r1-market.1` 标签，固定 `dshmarket@1.66.9`，不会替换默认 DSH 标签或 `latest`。它属于社区可选集成，不是 DeepSeek 官方组件，也不代表本项目对市场条目的审核或背书。
 
 ![可选 market 镜像中的浅色社区插件市场](assets/plugin-market-webui.png)
 
@@ -316,7 +318,7 @@ make market-build
 make market-smoke
 ```
 
-Helm 仍默认官方 DSH 镜像；只有明确设置 `--set image.tag=0.2.1-alpha.1-r1-market.1` 时才使用市场变体。
+Helm 仍默认官方 DSH 镜像；只有明确设置 `--set image.tag=0.2.1-alpha.2-r1-market.1` 时才使用市场变体。
 
 如果复用的 `dsh-home` 曾被另一个 pnpm 主版本处理，安装时可能看到 `ERR_PNPM_UNEXPECTED_STORE`。先停止 DSH，再显式执行一次迁移：
 
@@ -347,7 +349,7 @@ docker compose down
 构建镜像：
 
 ```bash
-docker build -t runzhliu/deepseek-harness:0.2.1-alpha.1-r1 .
+docker build -t runzhliu/deepseek-harness:0.2.1-alpha.2-r1 .
 ```
 
 启动 Web UI：
@@ -361,7 +363,7 @@ docker run --rm \
   --shm-size 1g \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.2.1-alpha.1-r1
+  runzhliu/deepseek-harness:0.2.1-alpha.2-r1
 ```
 
 启动命令会直接打印带 token 的访问地址，请打开该完整地址。不要把端口参数改成 `-p 3080:3080`，也不要把它部署到公开 Ingress；Web 没有 TLS，6080 上的 noVNC 也没有认证。
@@ -375,7 +377,7 @@ docker run --rm \
   --env DEEPSEEK_API_KEY \
   --mount type=volume,src=dsh-home,dst=/home/node/.dsh \
   --mount type=bind,src="$PWD",dst=/workspace \
-  runzhliu/deepseek-harness:0.2.1-alpha.1-r1 \
+  runzhliu/deepseek-harness:0.2.1-alpha.2-r1 \
   --profile headless "summarize this repository"
 ```
 
@@ -392,7 +394,7 @@ helm upgrade --install deepseek-harness charts/deepseek-harness \
   --namespace deepseek-harness \
   --create-namespace \
   --set image.repository=runzhliu/deepseek-harness \
-  --set image.tag=0.2.1-alpha.1-r1
+  --set image.tag=0.2.1-alpha.2-r1
 ```
 
 本机开发集群也可以直接拉取默认的 `runzhliu/deepseek-harness`，或先用 `kind load docker-image` / `minikube image load` 导入同名本地镜像。
@@ -431,15 +433,15 @@ kubectl -n deepseek-harness get pvc
 
 ```bash
 docker build \
-  --build-arg DSH_VERSION=0.2.1-alpha.1 \
-  --build-arg IMAGE_VERSION=0.2.1-alpha.1-r1 \
-  -t runzhliu/deepseek-harness:0.2.1-alpha.1-r1 .
+  --build-arg DSH_VERSION=0.2.1-alpha.2 \
+  --build-arg IMAGE_VERSION=0.2.1-alpha.2-r1 \
+  -t runzhliu/deepseek-harness:0.2.1-alpha.2-r1 .
 ```
 
 Compose 分别使用上游版本和不可变镜像修订版：
 
 ```bash
-DSH_VERSION=0.2.1-alpha.1 DSH_IMAGE_VERSION=0.2.1-alpha.1-r1 docker compose build --pull
+DSH_VERSION=0.2.1-alpha.2 DSH_IMAGE_VERSION=0.2.1-alpha.2-r1 docker compose build --pull
 ```
 
 维护者可用 `make push` 构建并推送同一个不可变修订标签下的 `linux/amd64` 与 `linux/arm64` manifest。目标标签已经存在时命令会拒绝覆盖，也不会创建 `latest` 标签。
@@ -465,9 +467,9 @@ DSH_VERSION=0.2.1-alpha.1 DSH_IMAGE_VERSION=0.2.1-alpha.1-r1 docker compose buil
 每次升级至少完成以下检查：
 
 ```bash
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.2.1-alpha.1-r1 --version
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.2.1-alpha.2-r1 --version
 
-docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.2.1-alpha.1-r1 \
+docker run --rm --entrypoint dsh runzhliu/deepseek-harness:0.2.1-alpha.2-r1 \
   web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config
 
 docker compose up -d

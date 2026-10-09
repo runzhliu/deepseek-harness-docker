@@ -6,7 +6,7 @@ Only the DSH version currently pinned by the default `DSH_VERSION` build argumen
 
 ## Deployment boundary
 
-DeepSeek Harness Web uses a process launch token, signed browser cookie, and Host/Origin checks, but its native endpoint has no TLS and can initiate code execution through Agent tools. The default supported deployment is a trusted, single-user instance accessed through host loopback or `kubectl port-forward`.
+DeepSeek Harness Web uses a process launch token, signed browser cookie, and Host/Origin checks, and can initiate code execution through Agent tools. This image's native endpoint uses HTTP by default; upstream supports opt-in native TLS from `0.2.1-alpha.2`, but this project's supported LAN configuration continues to terminate HTTPS at Caddy. The default supported deployment is a trusted, single-user instance accessed through host loopback or `kubectl port-forward`.
 
 Trusted-LAN access is supported only through the opt-in `compose.lan.yaml` gateway. It binds Caddy to one explicit LAN address, terminates HTTPS, requires Basic Auth, passes the declared host to DSH's trusted-host check, and proxies versioned noVNC routes through that same protected origin. Ports 3080 and 6080 remain bound to host loopback. The bundled internal CA root must be installed on each authorized client, and a host firewall should restrict source networks.
 
