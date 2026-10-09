@@ -109,8 +109,8 @@ if [[ -n "${expected_market_version}" ]]; then
 else
   config="$(docker run --rm "${image}" web --patch /opt/deepseek-harness/web.cordis.patch.yml --dump-config)"
 fi
-if [[ "${config}" != *"host: 0.0.0.0"* && "${config}" != *"host: '0.0.0.0'"* ]]; then
-  echo "container Web patch did not set host to 0.0.0.0" >&2
+if [[ "${config}" != *"host: 127.0.0.1"* && "${config}" != *"host: '127.0.0.1'"* ]]; then
+  echo "container Web patch must retain the upstream loopback listener" >&2
   exit 1
 fi
 if [[ "${config}" != *"name: '@deepseek-ai/dsh-browser-use'"* ]] \
@@ -233,6 +233,16 @@ for attempt in $(seq 1 30); do
     if ! curl --fail --silent --cookie "${cookie_jar}" "http://127.0.0.1:${port}/" \
       | grep --quiet '"id":"@runzhliu/dsh-browser-desktop"'; then
       echo "Harness boot manifest did not include the browser desktop client plugin" >&2
+      exit 1
+    fi
+    if ! docker exec "${container}" node -e '
+      const fs = require("node:fs")
+      const rows = ["/proc/net/tcp", "/proc/net/tcp6"].flatMap(file => fs.readFileSync(file, "utf8").trim().split("\n").slice(1))
+      const listeners = rows.map(row => row.trim().split(/\s+/)).filter(row => row[3] === "0A" && row[1].endsWith(":0C08")).map(row => row[1].split(":")[0])
+      if (listeners.some(address => /^0+$/.test(address))) throw new Error("wildcard Web listener")
+      if (!listeners.includes("0100007F") || listeners.length !== 2) throw new Error("expected DSH loopback plus exactly one concrete relay listener")
+    '; then
+      echo "Web listener boundary check failed" >&2
       exit 1
     fi
     if ! docker exec "${container}" node -e '

@@ -93,8 +93,8 @@ User code lives separately at `/workspace`. Compose combines a named `dsh-home` 
 | --- | --- | --- |
 | Node / glibc | Requires Node 22.19+ or 24+; some user binaries require a newer glibc | Pin the official non-slim `node:24-trixie`, Debian 13 with glibc 2.41 |
 | Native dependencies and Agent tools | `node-pty` or third-party plugins may need native builds; the Agent needs common development commands | Install DSH in a separate stage; intentionally retain the buildpack-deps toolchain at runtime and add `jq`, `less`, `ripgrep`, `rsync`, `zip`, and related tools |
-| Web bind | The CLI intentionally rejects `--host 0.0.0.0` | Use a Cordis overlay; bind 3080/6080 to `127.0.0.1`, with an optional LAN gateway on one explicit interface |
-| Web security | Launch-token authentication and Host/Origin checks, but native ports have no TLS; noVNC is unauthenticated and tools can execute code | Loopback by default; optional Caddy HTTPS + Basic Auth; no public Ingress/LoadBalancer |
+| Web bind | Both CLI and configuration reject wildcard addresses from `0.2.1-alpha.2` | Keep DSH on loopback; relay one concrete container IP; host ports 3080/6080 remain on `127.0.0.1` |
+| Web security | Launch-token authentication, Host/Origin checks, and optional native TLS; noVNC is unauthenticated and tools can execute code | HTTP with loopback publication by default; optional Caddy HTTPS + Basic Auth; no public Ingress/LoadBalancer |
 | HMR | A config watcher needs Node internals after boot | Pass `--expose-internals` only to the DSH process, never through inherited `NODE_OPTIONS` |
 | Directory browser | Starts at `os.homedir()` | Point `HOME` at writable `/workspace` instead of read-only `/home/node` |
 | Child processes | Agents can create shell and PTY subprocesses | Use `tini` for signal forwarding and orphan reaping |
@@ -102,7 +102,9 @@ User code lives separately at `/workspace`. Compose combines a named `dsh-home` 
 
 Choosing the non-slim base is an explicit coding-agent trade-off rather than a smallest-image goal. Debian 13 Trixie raises glibc from Bookworm's 2.36 to 2.41, allowing more binaries built on recent systems to run. The official non-slim Node variant is based on `buildpack-deps` and already includes the compiler, `make`, `git`, `curl`, `file`, `unzip`, `wget`, and `xz`; this project explicitly adds `jq`, `less`, `ripgrep`, `rsync`, and `zip`. The trade-off is roughly 330 MB more compressed base-image data than slim. The smoke test asserts Trixie, glibc 2.41, and the complete command contract so a later upgrade cannot silently regress them.
 
-The Web bind is the most important trade-off. Docker bridge publication requires the process to listen beyond the container loopback interface, while Harness deliberately rejects `--host 0.0.0.0` to prevent accidental exposure of a code-execution surface. The container overlay changes only the internal listener. The deployment boundary then restores the intended posture: default Compose binds the host side to `127.0.0.1`, and Kubernetes access uses `kubectl port-forward`. An explicit `compose.lan.yaml` overlay is available for trusted-LAN access: Caddy terminates HTTPS on one selected LAN address, adds Basic Auth, and carries noVNC through the same authenticated origin while DSH continues to enforce its launch token, signed cookie, and Host/Origin checks. Changing the native ports to `-p 3080:3080`, NodePort, LoadBalancer, or a public Ingress still breaks the security model.
+From `0.2.1-alpha.2`, both the Harness CLI and configuration reject wildcard listeners. This image keeps DSH on `127.0.0.1:3080` and starts a raw TCP relay on **one concrete container IP**. It does not modify DSH source or rewrite tokens, cookies, Host/Origin headers, or WebSocket traffic. This supports Docker/Podman port publication while preserving Kubernetes port-forward and in-container health checks. The relay selects a unique non-loopback IPv4 address, or a unique non-link-local IPv6 address on IPv6-only networks. Ambiguous multi-interface setups fail closed and require an explicit `DSH_WEB_RELAY_INTERFACE`. Host networking and `--port 0` are unsupported.
+
+Default Compose still publishes only on host `127.0.0.1`. The opt-in `compose.lan.yaml` gateway terminates HTTPS on one selected LAN address, adds Basic Auth, and carries noVNC through the same authenticated origin while DSH continues to enforce its launch token, signed cookie, and Host/Origin checks. Changing the native ports to `-p 3080:3080`, NodePort, LoadBalancer, or a public Ingress still breaks the security model.
 
 ### Container isolation versus the Harness sandbox
 
@@ -151,7 +153,7 @@ This image handles the container boundaries that a one-line image misses:
 - compiles native modules in a disposable builder stage;
 - uses a container-only Cordis bind overlay while keeping host publication on loopback.
 
-DeepSeek Harness Web exchanges a launch token for a signed browser cookie and checks Host/Origin, but its native port has no TLS, its API can initiate code execution, and this image's noVNC port is unauthenticated. The default is therefore a **trusted, local, single-user development environment**. LAN access must use the explicit protected gateway below; public exposure is unsupported.
+DeepSeek Harness Web exchanges a launch token for a signed browser cookie and checks Host/Origin, but this image uses HTTP by default, its API can initiate code execution, and its noVNC port is unauthenticated. The default is therefore a **trusted, local, single-user development environment**. LAN access must use the explicit protected gateway below; public exposure is unsupported.
 
 ## Quick start with Docker Compose
 
@@ -367,7 +369,7 @@ docker run --rm \
   runzhliu/deepseek-harness:0.2.1-alpha.2-r1
 ```
 
-The foreground command prints the tokenized startup URL; open that exact URL. Do not shorten the publication to `-p 3080:3080`, and do not place this service behind a public Ingress: Web has no TLS, and noVNC on 6080 has no authentication.
+The foreground command prints the tokenized startup URL; open that exact URL. Do not shorten the publication to `-p 3080:3080`, and do not place this service behind a public Ingress: this configuration does not enable Web TLS, and noVNC on 6080 has no authentication.
 
 ## Headless mode
 
@@ -502,7 +504,8 @@ The last command must print `/workspace`. An `EACCES` under `/workspace` instead
 | `Dockerfile` | Pinned, non-root DSH runtime with Web as the default command |
 | `Dockerfile.market` | Optional derivative that pins a third-party market version on top of the default image |
 | `Dockerfile.bwrap` | Optional bubblewrap derivative for Docker hosts that cannot enforce Landlock |
-| `web.cordis.patch.yml` | Docker-bridge-only Web listener override |
+| `web.cordis.patch.yml` | Loopback Web listener and official Browser Use / browser-desktop integration |
+| `scripts/dsh-web-relay.cjs` | Raw TCP relay from one concrete container IP to DSH loopback |
 | `compose.yaml` | Persistent, loopback-only, hardened local deployment |
 | `compose.market.yaml` | Optional Compose overlay that explicitly selects the third-party community market image |
 | `compose.bwrap.yaml` | Optional overlay that selects the bubblewrap image and permits its required namespace operations |

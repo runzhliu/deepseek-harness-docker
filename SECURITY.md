@@ -20,6 +20,8 @@ Public Ingress, LoadBalancer, NodePort, unrestricted `-p 3080:3080`, direct publ
 
 The optional `market` image variant contains a third-party community catalog and installer. It is not part of the default image and does not imply review or endorsement of listed plugins. Keep package build scripts blocked until reviewed, restrict container egress where practical, and treat every installed plugin as code running with the Harness process's access to the workspace and persisted profile.
 
+From DSH `0.2.1-alpha.2`, the application itself binds container loopback. The entrypoint adds a raw TCP relay on one concrete container interface address, never a wildcard Web listener. It preserves authentication and Host/Origin headers and forwards WebSockets unchanged. Ambiguous address selection fails closed; use `DSH_WEB_RELAY_INTERFACE` only to select the intended container interface. Host networking is unsupported. This relay is not an authentication or TLS gateway and must not be published directly beyond host loopback.
+
 ## Reporting
 
 Do not publish credentials, session content, private workspace paths, or exploitable deployment details in a public issue. Report vulnerabilities privately to the repository owner through GitHub Security Advisories. Report vulnerabilities in DeepSeek Harness itself through the upstream project's security channel.

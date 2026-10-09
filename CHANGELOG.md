@@ -6,6 +6,7 @@ All notable changes to this project are documented here.
 
 ## 0.1.20 - 2026-10-09
 
+- Adapt to upstream rejecting wildcard listeners at the configuration layer: keep DSH on loopback and relay one concrete container interface without rewriting authentication or modifying upstream source. Add address-selection, byte-preservation, half-close, and actual listener-boundary tests.
 - Upgrade the official runtime and Browser Use packages to `@deepseek-ai/dsh@0.2.1-alpha.2`, with immutable container revision `0.2.1-alpha.2-r1` and Helm chart `0.1.20`.
 - Include upstream working-directory switching, shared `AGENTS.md` instructions, experimental Git Worktrees and reasoning translation, font settings, and on-demand Official bundles.
 - Include upstream fixes for stuck model streams, stale model settings, background-task status, watcher shutdown, and long-line previews; update the bundled pi-ai adapter to `1.0.2` through the official distribution.

@@ -1,6 +1,6 @@
-# Docker publishes a container port only when the process listens beyond the
-# container's loopback interface. Keep the host-side publication on 127.0.0.1:
-# DeepSeek Harness has no authentication and its Web API can execute code.
+# DSH stays on loopback. The entrypoint relays one concrete container interface
+# to it without rewriting authentication or Host/Origin headers. Host-side
+# ports must remain loopback-only; this Web API can execute code.
 - insert:
     # Official Browser Use owns model-facing page inspection and interaction.
     # Attach it to the same persistent Chromium shown by the desktop plugin so
@@ -25,5 +25,5 @@
 - id: webserver
   name: '@deepseek-ai/dsh-host-webserver'
   config:
-    host: '0.0.0.0'
+    host: '127.0.0.1'
     port: !!js ctx.webStartup.port ?? 3080

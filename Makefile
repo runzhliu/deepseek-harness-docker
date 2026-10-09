@@ -130,6 +130,8 @@ helm-check:
 	helm template deepseek-harness charts/deepseek-harness --set persistence.enabled=false --set credentials.existingSecret=dsh-provider-credentials --set workspace.existingClaim=dsh-workspace >/dev/null
 
 plugin-check:
+	node --check scripts/dsh-web-relay.cjs
+	node --test scripts/dsh-web-relay.test.cjs
 	node --check plugins/dsh-browser-desktop/index.js
 	node --check plugins/dsh-browser-desktop/client.js
 	node --check scripts/dsh-market-repair-store

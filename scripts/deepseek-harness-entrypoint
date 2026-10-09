@@ -3,6 +3,7 @@ set -u
 
 dsh_pid=""
 desktop_pids=""
+relay_pid=""
 
 if [ -z "${CHROME_USER_DATA_DIR:-}" ]; then
   if [ "${CHROMIUM_FLAVOR:-debian}" = ungoogled ]; then
@@ -51,6 +52,9 @@ stop_children() {
   if [ -n "${dsh_pid}" ]; then
     kill -TERM "${dsh_pid}" 2>/dev/null || true
   fi
+  if [ -n "${relay_pid}" ]; then
+    kill -TERM "${relay_pid}" 2>/dev/null || true
+  fi
   for child_pid in ${desktop_pids}; do
     kill -TERM "${child_pid}" 2>/dev/null || true
   done
@@ -60,6 +64,9 @@ stop_children() {
   for child_pid in ${desktop_pids}; do
     wait "${child_pid}" 2>/dev/null || true
   done
+  if [ -n "${relay_pid}" ]; then
+    wait "${relay_pid}" 2>/dev/null || true
+  fi
 }
 
 handle_signal() {
@@ -171,7 +178,22 @@ trap handle_signal INT TERM HUP
 
 install_browser_plugins
 
-if { [ "${1:-}" = "web" ] || { [ "${1:-}" = "--profile" ] && [ "${2:-}" = "web" ]; }; } \
+is_web=0
+if [ "${1:-}" = web ] || { [ "${1:-}" = --profile ] && [ "${2:-}" = web ]; }; then
+  is_web=1
+fi
+for argument in "$@"; do
+  case "${argument}" in
+    --help|-h|--version|--dump-config|--dump-config-schema) is_web=0 ;;
+  esac
+done
+
+if [ "${is_web}" = 1 ]; then
+  node /opt/deepseek-harness/dsh-web-relay.cjs "$$" "$@" &
+  relay_pid=$!
+fi
+
+if [ "${is_web}" = 1 ] \
     && [ "${DSH_DESKTOP_ENABLED:-1}" = "1" ]; then
   start_desktop || {
     stop_children

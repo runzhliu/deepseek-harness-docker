@@ -93,8 +93,8 @@ flowchart TB
 | --- | --- | --- |
 | Node / glibc | 要求 Node 22.19+ 或 24+；部分用户二进制需要较新 glibc | 固定官方 `node:24-trixie` 非 slim，Debian 13 / glibc 2.41 |
 | 原生依赖与 Agent 工具 | `node-pty` 或第三方插件可能需要本机构建；Agent 需要常见开发命令 | 多阶段安装 DSH；runtime 有意保留 buildpack-deps 工具链，并补齐 `jq`、`less`、`ripgrep`、`rsync`、`zip` 等命令 |
-| Web 监听 | CLI 主动拒绝 `--host 0.0.0.0` | 使用 Cordis overlay；3080/6080 只绑定 `127.0.0.1`，可选 LAN gateway 单独绑定指定网卡 |
-| Web 安全 | 有启动 token 认证与 Host/Origin 检查，但原生端口无 TLS；noVNC 无认证，工具可触发代码执行 | 默认回环发布；可选 Caddy HTTPS + Basic Auth；不提供公网 Ingress/LoadBalancer |
+| Web 监听 | `0.2.1-alpha.2` 起配置层也拒绝通配地址 | DSH 监听回环；单个具体容器 IP 做 TCP 转发；宿主 3080/6080 只发布到 `127.0.0.1` |
+| Web 安全 | 有启动 token 认证与 Host/Origin 检查，可选原生 TLS；noVNC 无认证，工具可触发代码执行 | 容器默认 HTTP、回环发布；可选 Caddy HTTPS + Basic Auth；不提供公网 Ingress/LoadBalancer |
 | HMR | 启动后挂载配置 watcher，需要 Node internals | 仅给 DSH 主进程传 `--expose-internals`，不通过 `NODE_OPTIONS` 传播给 Agent 子进程 |
 | 目录选择器 | 浏览模式以 `os.homedir()` 为首页 | 将 `HOME` 指向可写 `/workspace`，避免只读 `/home/node` 的 EROFS |
 | 信号和子进程 | Agent 会创建 shell/PTY 子进程 | 使用 `tini` 转发信号和回收孤儿进程 |
@@ -102,7 +102,9 @@ flowchart TB
 
 默认基础镜像选择非 slim 是面向 coding agent 的明确取舍，而不是追求最小体积。Debian 13 Trixie 将 glibc 从 Bookworm 的 2.36 提升到 2.41，能运行更多按新系统构建的二进制；官方 Node 非 slim 变体基于 `buildpack-deps`，自带编译器、`make`、`git`、`curl`、`file`、`unzip`、`wget`、`xz` 等开发工具，本项目再显式安装 `jq`、`less`、`ripgrep`、`rsync` 和 `zip`。代价是基础镜像压缩体积比 slim 大约增加 330 MB；Smoke Test 会同时检查 Trixie、glibc 2.41 和完整命令清单，避免后续升级意外退化。
 
-这里最需要强调的是 Web 监听：Docker bridge 端口转发要求容器进程监听非 loopback 地址，但 Harness 的 CLI 会拒绝 `--host 0.0.0.0`，防止具备代码执行能力的 Web surface 被误暴露。本项目只在容器内部用官方 patch 机制改监听地址，并把安全责任收回到部署边界：默认 Compose 只发布 `127.0.0.1`，Kubernetes 只建议 `kubectl port-forward`。需要受信任局域网访问时，显式叠加 `compose.lan.yaml`，由 Caddy 在指定 LAN 地址上终止 HTTPS、增加 Basic Auth，并把 noVNC 收进同一认证入口；DSH 仍执行自己的启动 token、签名 Cookie 与 Host/Origin 检查。直接改成 `-p 3080:3080`、NodePort、LoadBalancer 或公开 Ingress 仍会破坏这个安全模型。
+这里最需要强调的是 Web 监听：`0.2.1-alpha.2` 开始，Harness 的 CLI 和配置层都拒绝通配地址。本项目让 DSH 保持监听 `127.0.0.1:3080`，由入口脚本在**单个具体容器 IP** 上启动 TCP 中继，原样转发到回环地址，不修改 DSH 源码，也不改写 token、Cookie、Host/Origin 或 WebSocket 流量。这样既支持 Docker/Podman 端口映射，也保留 Kubernetes port-forward 和容器内健康检查。默认自动选择唯一的非回环 IPv4 地址（仅 IPv6 时选唯一的非链路本地地址）；多网卡存在歧义时拒绝启动，需显式设置 `DSH_WEB_RELAY_INTERFACE`。不支持 host networking 或 `--port 0`。
+
+默认 Compose 仍只发布宿主 `127.0.0.1`。需要受信任局域网访问时，显式叠加 `compose.lan.yaml`，由 Caddy 在指定 LAN 地址上终止 HTTPS、增加 Basic Auth，并把 noVNC 收进同一认证入口；DSH 仍执行自己的启动 token、签名 Cookie 与 Host/Origin 检查。直接改成 `-p 3080:3080`、NodePort、LoadBalancer 或公开 Ingress 仍会破坏这个安全模型。
 
 ### 容器与 Harness 沙箱的关系
 
@@ -150,7 +152,7 @@ Harness 的 profile、模型设置、凭据、会话和 Workspace 索引都具�
 - 把容器用户的交互主目录指向 `/workspace`，让 Web 目录选择器的新建操作落在可写工作区；
 - 通过容器专用 Cordis overlay 监听容器网络，同时只把宿主端口发布到 `127.0.0.1`。
 
-DeepSeek Harness Web 会用启动 token 换取签名浏览器 Cookie，并检查 Host/Origin；但原生端口没有 TLS，Web API 可以执行代码，本镜像的 noVNC 端口也没有认证。因此默认方案是**本机单用户开发环境**。局域网访问必须使用下方显式启用的受保护入口；公网暴露不在支持范围内。
+DeepSeek Harness Web 会用启动 token 换取签名浏览器 Cookie，并检查 Host/Origin；但本镜像默认使用 HTTP，Web API 可以执行代码，noVNC 端口也没有认证。因此默认方案是**本机单用户开发环境**。局域网访问必须使用下方显式启用的受保护入口；公网暴露不在支持范围内。
 
 ## 快速开始
 
@@ -366,7 +368,7 @@ docker run --rm \
   runzhliu/deepseek-harness:0.2.1-alpha.2-r1
 ```
 
-启动命令会直接打印带 token 的访问地址，请打开该完整地址。不要把端口参数改成 `-p 3080:3080`，也不要把它部署到公开 Ingress；Web 没有 TLS，6080 上的 noVNC 也没有认证。
+启动命令会直接打印带 token 的访问地址，请打开该完整地址。不要把端口参数改成 `-p 3080:3080`，也不要把它部署到公开 Ingress；这里的 Web 默认未配置 TLS，6080 上的 noVNC 也没有认证。
 
 ## Headless 模式
 
@@ -501,7 +503,8 @@ docker compose exec deepseek-harness node -e "console.log(require('node:os').hom
 | `Dockerfile` | 固定版本的非 root DSH 运行时，默认启动 Web UI |
 | `Dockerfile.market` | 从默认镜像派生、固定第三方市场版本的可选镜像 |
 | `Dockerfile.bwrap` | 为缺少 Landlock 的 Docker 主机提供 bubblewrap 的可选派生镜像 |
-| `web.cordis.patch.yml` | 只用于 Docker bridge 网络的 Web 监听覆盖 |
+| `web.cordis.patch.yml` | 回环 Web 监听与官方 Browser Use / 浏览器桌面集成 |
+| `scripts/dsh-web-relay.cjs` | 单个具体容器 IP 到 DSH 回环监听的原始 TCP 中继 |
 | `compose.yaml` | 持久化、回环端口和收紧后的运行时配置 |
 | `compose.market.yaml` | 显式选择第三方社区市场镜像的可选 Compose overlay |
 | `compose.bwrap.yaml` | 显式选择 bubblewrap 沙箱镜像并开放其所需命名空间操作的可选 overlay |

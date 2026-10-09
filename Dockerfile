@@ -290,6 +290,7 @@ COPY --from=installer /opt/dsh-browser-use/node_modules/. /usr/local/lib/node_mo
 COPY scripts/chromium-docker /usr/local/bin/chromium-docker
 COPY scripts/dsh-container /usr/local/bin/dsh
 COPY scripts/deepseek-harness-entrypoint /usr/local/bin/deepseek-harness-entrypoint
+COPY scripts/dsh-web-relay.cjs /opt/deepseek-harness/dsh-web-relay.cjs
 COPY plugins/dsh-browser-desktop /opt/deepseek-harness/plugins/dsh-browser-desktop
 
 RUN chmod 0755 /usr/local/bin/chromium-docker \

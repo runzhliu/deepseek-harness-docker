@@ -29,6 +29,9 @@ require_literal Dockerfile "ARG PNPM_VERSION=${pnpm_version}"
 require_literal Dockerfile '"@deepseek-ai/dsh-browser-use@${DSH_VERSION}"'
 require_literal Dockerfile '"@deepseek-ai/dsh-experimental-browser-use-playwright-mcp@${DSH_VERSION}"'
 require_literal Dockerfile 'COPY scripts/dsh-container /usr/local/bin/dsh'
+require_literal Dockerfile 'COPY scripts/dsh-web-relay.cjs /opt/deepseek-harness/dsh-web-relay.cjs'
+require_literal web.cordis.patch.yml "host: '127.0.0.1'"
+require_literal web.market.cordis.patch.yml "host: '127.0.0.1'"
 require_literal Dockerfile "ARG NODE_IMAGE=docker.io/library/node:24-trixie"
 require_literal Dockerfile "ARG UNGOOGLED_CHROMIUM_VERSION=${ungoogled_chromium_version}"
 require_literal Dockerfile "ARG UNGOOGLED_CHROMIUM_AMD64_SHA256=${ungoogled_amd64_sha256}"
