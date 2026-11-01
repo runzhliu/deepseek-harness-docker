@@ -10,9 +10,11 @@ English | [简体中文](README.md)
 [![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**One of the earliest unofficial Docker image projects for DeepSeek Harness, maintained since [August 13, 2026](https://github.com/runzhliu/deepseek-harness-docker/commit/0d12e3bdb6dc5c0f408870b73b1914359a4f9aca).** It provides AMD64/ARM64 images on Docker Hub and GHCR, Docker Compose, rootless Podman, and Helm deployments, with ongoing upstream release tracking.
+DSH is designed around local use, and its desktop edition follows the same approach. Bringing Agents into everyday enterprise workflows requires runtime environments that can be created on demand in the cloud, assigned resources for each task, and improved through rapid iteration. **Cloud execution, dynamic provisioning, and rapid iteration are foundations for adopting Agents across an enterprise.**
 
-The default image runs the official `@deepseek-ai/dsh` Web UI in a non-root Node.js 24 runtime, with a visible Chromium/noVNC desktop, an optional community plugin market, and a protected LAN gateway. It packages official npm artifacts without modifying DeepSeek Harness source.
+This project packages the official DSH npm distribution into a reproducible Docker runtime, providing a foundation for deploying and managing independent Agent instances through Kubernetes. It includes the Web UI, a non-root Node.js 24 runtime, and a visible Chromium/noVNC desktop, with an optional community plugin market and protected LAN gateway. It does not modify DSH source.
+
+**One of the earliest unofficial Docker image projects for DeepSeek Harness, maintained since [August 13, 2026](https://github.com/runzhliu/deepseek-harness-docker/commit/0d12e3bdb6dc5c0f408870b73b1914359a4f9aca).** It provides AMD64/ARM64 images on Docker Hub and GHCR, Docker Compose, rootless Podman, and Helm deployments, with ongoing upstream release tracking.
 
 > Current baseline: `@deepseek-ai/dsh@0.2.2-alpha.2`. DeepSeek Harness is still a pre-release. Re-run the build and smoke tests before every version upgrade.
 

@@ -10,9 +10,11 @@
 [![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**DeepSeek Harness 最早一批非官方 Docker 镜像项目之一，自 [2026 年 8 月 13 日](https://github.com/runzhliu/deepseek-harness-docker/commit/0d12e3bdb6dc5c0f408870b73b1914359a4f9aca) 起持续维护。** 提供 Docker Hub / GHCR 双架构镜像、Docker Compose、Rootless Podman 和 Helm 部署，持续跟进官方版本。
+DeepSeek Harness（DSH）以本地使用为中心，桌面版也延续了这一形态。企业内部推进 Agent 化，需要把运行环境部署到云上，按任务创建实例、动态分配资源，并支持快速迭代。**云上运行、动态供给、快速迭代，是企业内部 Agent 化的基础。**
 
-默认运行官方 `@deepseek-ai/dsh` 的 Web UI，将官方 npm 发行物装入非 root 的 Node.js 24 运行时，集成可视 Chromium/noVNC 桌面，并提供可选的插件市场和受保护局域网入口。镜像不修改 DeepSeek Harness 源码。
+本项目将官方 DSH npm 发行物封装为可复现的 Docker 运行环境，为通过 Kubernetes 部署和管理独立的 Agent 实例提供基础。默认提供 Web UI、非 root 的 Node.js 24 运行时与可视 Chromium/noVNC 桌面，可选插件市场和受保护局域网入口，不修改 DSH 源码。
+
+**DeepSeek Harness 最早一批非官方 Docker 镜像项目之一，自 [2026 年 8 月 13 日](https://github.com/runzhliu/deepseek-harness-docker/commit/0d12e3bdb6dc5c0f408870b73b1914359a4f9aca) 起持续维护。** 提供 Docker Hub / GHCR 双架构镜像、Docker Compose、Rootless Podman 和 Helm 部署，持续跟进官方版本。
 
 > 当前基线：`@deepseek-ai/dsh@0.2.2-alpha.2`。DeepSeek Harness 仍处于预发布阶段；升级前应重新完成本文的构建和 Smoke Test。
 
