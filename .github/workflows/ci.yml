@@ -124,9 +124,9 @@ jobs:
       - run: ./scripts/smoke.sh deepseek-harness:ci-ungoogled-${{ matrix.suffix }} 0.2.2-alpha.2 10.15.1 "" ungoogled 152.0.7977.82-1
 
   optional-market:
-    name: Optional market smoke (${{ matrix.platform }})
+    name: Market and Super Agent smoke (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -148,6 +148,17 @@ jobs:
           --tag deepseek-harness:ci-market-${{ matrix.suffix }}
           .
       - run: ./scripts/smoke.sh deepseek-harness:ci-market-${{ matrix.suffix }} 0.2.2-alpha.2 10.15.1 1.66.9
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Build the optional Super Agent variant
+        run: >-
+          docker build --file Dockerfile.superagent
+          --build-arg BASE_IMAGE=deepseek-harness:ci-market-${{ matrix.suffix }}
+          --build-arg IMAGE_REVISION=${{ github.sha }}
+          --tag deepseek-harness:ci-superagent-${{ matrix.suffix }} .
+      - run: ./scripts/smoke.sh deepseek-harness:ci-superagent-${{ matrix.suffix }} 0.2.2-alpha.2 10.15.1 1.66.9
+      - run: node scripts/superagent-smoke.cjs deepseek-harness:ci-superagent-${{ matrix.suffix }}
 
   bwrap-sandbox:
     name: Bubblewrap sandbox fallback

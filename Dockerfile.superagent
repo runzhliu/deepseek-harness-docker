@@ -1,0 +1,83 @@
+# syntax=docker/dockerfile:1.7
+
+ARG NODE_IMAGE=docker.io/library/node:24-trixie
+ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:0.2.2-alpha.2-r1-market.1
+FROM ${NODE_IMAGE} AS superagent-builder
+ARG SUPERAGENT_REVISION=6337fc823ce20251c8de8085948165c81aaa701e
+ARG SUPERAGENT_SOURCE_SHA256=09a0de081f43a0b3347fa0ea116ae9e0c2437d02866b000e41a1e6d4a1a9cb65
+ARG SUPERAGENT_PNPM_VERSION=11.7.0
+WORKDIR /build/superagent
+RUN curl --fail --location --retry 3 --output /tmp/superagent.tar.gz \
+      "https://codeload.github.com/deepseek-ai/dsh-superagent-prototype/tar.gz/${SUPERAGENT_REVISION}" \
+    && echo "${SUPERAGENT_SOURCE_SHA256}  /tmp/superagent.tar.gz" | sha256sum --check --strict - \
+    && tar --extract --gzip --file /tmp/superagent.tar.gz --strip-components=1 --directory /build/superagent \
+    && npm install --global --ignore-scripts --no-audit --no-fund "pnpm@${SUPERAGENT_PNPM_VERSION}" \
+    && pnpm install --frozen-lockfile --ignore-scripts
+COPY superagent/container-compat.patch /tmp/container-compat.patch
+RUN patch -p1 < /tmp/container-compat.patch \
+    && pnpm exec tsc --noEmit \
+    && pnpm exec vitest run --maxWorkers=2 \
+    && pnpm run build \
+    && mkdir -p /out/package /out/defaults \
+    && npm pack --pack-destination /out \
+    && tar --extract --gzip --file /out/dsh-superagent-0.1.0.tgz --strip-components=1 --directory /out/package \
+    && node --experimental-transform-types --input-type=module -e \
+      "import { Store } from './src/app/store.ts'; const s = new Store('/out/defaults/orchestrator.sqlite'); s.saveSettings({paused:true, eval:{mode:'off'}, sources:{github:{enabled:false,config:{}},feishu:{enabled:false,config:{}}}}); s.close();"
+
+# A tiny, locked production tree avoids shipping the prototype's dev SDKs and
+# build/test tools. Its SDK peers resolve to the installed DSH runtime below.
+COPY superagent/runtime/package.json superagent/runtime/package-lock.json /out/runtime/
+RUN npm ci --prefix /out/runtime --omit=dev --ignore-scripts --no-audit --no-fund \
+    && node -e "const a=require('./package.json').dependencies,b=require('/out/runtime/package.json').dependencies; if(JSON.stringify(a)!==JSON.stringify(b)) throw Error('Update the production dependency lock for this upstream revision')"
+
+FROM ${BASE_IMAGE}
+ARG TARGETARCH
+ARG GH_VERSION=2.103.3
+ARG GH_AMD64_SHA256=4c806978ffce1cec70853302a56d70ac6da4f19bae7adca4e1a8ab00633dd91d
+ARG GH_ARM64_SHA256=ee32df2323c8847f5fac6cb6b4b69ca75828e9329a8f22f677021f7b3306ce63
+USER root
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends tmux git-lfs \
+    && rm -rf /var/lib/apt/lists/* \
+    && case "${TARGETARCH}" in amd64) checksum="${GH_AMD64_SHA256}";; arm64) checksum="${GH_ARM64_SHA256}";; *) exit 1;; esac \
+    && curl --fail --location --retry 3 --output /tmp/gh.tar.gz \
+      "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${TARGETARCH}.tar.gz" \
+    && echo "${checksum}  /tmp/gh.tar.gz" | sha256sum --check --strict - \
+    && tar --extract --gzip --file /tmp/gh.tar.gz --directory /tmp "gh_${GH_VERSION}_linux_${TARGETARCH}/bin/gh" \
+    && install -m 0755 "/tmp/gh_${GH_VERSION}_linux_${TARGETARCH}/bin/gh" /usr/local/bin/gh \
+    && rm -rf /tmp/gh.tar.gz "/tmp/gh_${GH_VERSION}_linux_${TARGETARCH}" \
+    && mkdir -p /opt/dsh-superagent /opt/deepseek-harness/superagent-template \
+    && chown node:node /opt/dsh-superagent /opt/deepseek-harness/superagent-template
+COPY --from=superagent-builder --chown=node:node /out/package/ /opt/dsh-superagent/
+COPY --from=superagent-builder --chown=node:node /out/runtime/node_modules/ /opt/dsh-superagent/node_modules/
+COPY --from=superagent-builder --chown=node:node /out/defaults/ /opt/deepseek-harness/superagent-defaults/
+RUN ln -s /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai /opt/dsh-superagent/node_modules/@deepseek-ai
+
+USER node
+RUN DSH_HOME=/opt/deepseek-harness/superagent-template dsh web --dump-config >/dev/null \
+    && DSH_HOME=/opt/deepseek-harness/superagent-template dsh plugin --profile web add --ignore-scripts link:/opt/dsh-superagent \
+    && ln -sfn /opt/dsh-superagent /opt/deepseek-harness/superagent-template/profiles/web/node_modules/dsh-superagent \
+    && sed -i '/^\[\][[:space:]]*$/d' /opt/deepseek-harness/superagent-template/profiles/web/cordis.patch.yml \
+    && printf '\n- id: dsh-superagent\n  config:\n    stateDir: !!js process.env.DSH_HOME + "/state/superagent"\n' \
+      >> /opt/deepseek-harness/superagent-template/profiles/web/cordis.patch.yml \
+    && node -e "const f=require('node:fs'),p=require('node:path'); for(const [root,keep] of [['/opt/deepseek-harness/superagent-template',['profiles']],['/home/node/.dsh',[]]]) for(const name of f.readdirSync(root)) if(!keep.includes(name)) f.rmSync(p.join(root,name),{recursive:true,force:true})"
+
+USER root
+COPY scripts/superagent-init.cjs /opt/deepseek-harness/superagent-init.cjs
+COPY scripts/deepseek-harness-superagent-entrypoint /usr/local/bin/deepseek-harness-superagent-entrypoint
+RUN chmod 0755 /usr/local/bin/deepseek-harness-superagent-entrypoint
+USER node
+ENV GH_CONFIG_DIR=/home/node/.dsh/gh-superagent
+WORKDIR /workspace
+ARG SUPERAGENT_REVISION=6337fc823ce20251c8de8085948165c81aaa701e
+ARG SUPERAGENT_SOURCE_SHA256=09a0de081f43a0b3347fa0ea116ae9e0c2437d02866b000e41a1e6d4a1a9cb65
+ARG SUPERAGENT_IMAGE_VERSION=0.2.2-alpha.2-r1-superagent.1
+ARG IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.version="${SUPERAGENT_IMAGE_VERSION}" \
+      org.opencontainers.image.revision="${IMAGE_REVISION}" \
+      io.github.runzhliu.deepseek-harness.variant="superagent-prototype" \
+      io.github.runzhliu.deepseek-harness.superagent-revision="${SUPERAGENT_REVISION}" \
+      io.github.runzhliu.deepseek-harness.superagent-compatibility="dsh-0.2.2-and-explicit-loopback-published-port" \
+      io.github.runzhliu.deepseek-harness.superagent-source-sha256="${SUPERAGENT_SOURCE_SHA256}"
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/deepseek-harness-superagent-entrypoint"]
+CMD ["--profile", "web", "--patch", "/opt/deepseek-harness/web.cordis.patch.yml", "--no-open"]

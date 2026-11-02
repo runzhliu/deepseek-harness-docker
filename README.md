@@ -305,6 +305,34 @@ dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.6.tgz
 
 `0.1.6` 插件新增对 DSH `0.2.2` client module runtime 的兼容，同时保留 `0.1.2`、`0.2.0` 与 `0.2.1` 系列兼容；旧 DSH `0.1.0`/`0.1.1` RC 应继续使用插件 `0.1.1`。发布到 npm 后可直接执行 `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`。该 npm 包只负责 Harness Host/WebUI 集成，不会自行安装 Chromium、Xvfb、noVNC 或官方 Browser Use provider；本仓库 Docker 镜像是完整的参考运行时。官方 DSH 通过 npm/GitHub 和 `dsh-plugin` GitHub topic 发现社区插件。
 
+### 可选的 Super Agent 预装镜像
+
+镜像 `runzhliu/deepseek-harness:0.2.2-alpha.2-r1-superagent.1` 在插件市场版基础上预装 [DeepSeek Super Agent 原型](https://github.com/deepseek-ai/dsh-superagent-prototype) `0.1.0`，固定源码提交 [`6337fc8`](https://github.com/deepseek-ai/dsh-superagent-prototype/commit/6337fc823ce20251c8de8085948165c81aaa701e)。包含 GitHub CLI `2.103.3`、tmux 和 Git LFS；同名双架构镜像同时提供于 Docker Hub / GHCR。
+
+上游将它定位为研究原型，并非正式 DeepSeek 产品。这个变体提供预安装环境：**首次启动暂停处理、关闭来源和自动评估，未连接仓库或模型**，需要你在 Superagent 面板完成配置。公开镜像使用上游代码及可审查的[容器兼容补丁](superagent/container-compat.patch)，不包含本机的公司 GitLab 适配、内部模型、会话或凭据。
+
+使用独立项目和数据卷；下面的端口可以与普通 3080 实例并存：
+
+```bash
+DSH_PORT=3082 DSH_DESKTOP_PORT=6082 make superagent-pull
+DSH_PORT=3082 DSH_DESKTOP_PORT=6082 make superagent-up
+docker compose -p dsh-superagent -f compose.yaml -f compose.superagent.yaml logs --no-color deepseek-harness
+```
+
+从日志中取当前 `dsh web:` 的 token，在浏览器打开 `http://127.0.0.1:3082/?token=...`。进入侧栏 **Superagent**；首次显示“尚未配置仓库”等提示属于待配置状态。使用 `DSH_SUPERAGENT_WORKSPACE=/absolute/path/to/project` 指定专用于它的项目目录，或保留默认独立工作区卷。GHCR 用户可在上述 Make 命令前加 `DSH_IMAGE_REPOSITORY=ghcr.io/runzhliu/deepseek-harness`。
+
+1. 在 DSH 设置中配置自己的模型；镜像不内置任何 API Key。
+2. 在专用容器内登录 Agent 的 GitHub 账号：`docker compose -p dsh-superagent -f compose.yaml -f compose.superagent.yaml exec deepseek-harness gh auth login --web --git-protocol https`。CLI 配置保存在此实例的数据卷中。
+3. 在 Superagent → 设置 → 来源中填写 GitHub 仓库与 `/usr/local/bin/gh`，配置允许发起工作的账号、规则和执行目录。先用仅观察模式核对行为，再按需要启用处理。飞书还需要额外安装、配置上游要求的 `lark-cli`。
+
+该原型的 Executor 在容器内使用 `danger-full-access`；只挂载它需要的项目目录，不挂载 Docker Socket 或个人整个 home。它应单独运行，不与个人 DSH 混用。镜像会拒绝初始化已有普通 DSH 数据的卷；后续重启保留已保存的配置，不自动覆盖或重新暂停你的设置。`make superagent-down` 停止专用实例并保留数据。
+
+容器适配增加当前 DSH 预发布版兼容声明、显式配置的宿主回环端口校验，并为原型管理 API 接入 DSH 的 cookie 登录校验；保留同源检查。仅支持回环入口，Super Agent 管理面不承诺现有 LAN overlay / Ingress 接入。构建验证源码 SHA-256，使用上游锁文件，并运行原型测试；运行时只保留插件发行文件与锁定的生产依赖。维护者执行 `make superagent-build` / `make superagent-smoke`，或运行 **Publish Super Agent images** 工作流，在 amd64 / arm64 原生测试后发布不可变标签。
+
+![Superagent 预装镜像的浅色初始界面](assets/deepseek-harness-superagent.png)
+
+_使用独立空白实例拍摄；未登录 GitHub、未配置模型、未发送工单或模型请求。_
+
 ### 可选的社区插件市场
 
 默认镜像、默认 Compose 和 Helm Chart **不包含也不加载插件市场**，它们只跟随官方 `@deepseek-ai/dsh` 发行物。需要图形化浏览和安装社区插件时，可以显式选择独立的 [`dshmarket`](https://github.com/dsh-market/dsh-market) 变体：

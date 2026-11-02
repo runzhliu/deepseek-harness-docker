@@ -306,6 +306,34 @@ dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.6.tgz
 
 Plugin `0.1.6` adds compatibility with the DSH `0.2.2` client-module runtime while retaining `0.1.2`, `0.2.0` and `0.2.1` compatibility; older DSH `0.1.0`/`0.1.1` release candidates should keep using plugin `0.1.1`. After npm publication, install it with `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`. The npm package supplies only the Harness host/Web integration; it does not install Chromium, Xvfb, noVNC, or an official Browser Use provider. This repository's image is the complete reference runtime. Official DSH discovers community plugins through npm/GitHub and the `dsh-plugin` GitHub topic.
 
+### Optional preinstalled Super Agent image
+
+`runzhliu/deepseek-harness:0.2.2-alpha.2-r1-superagent.1` extends the market image with the [DeepSeek Super Agent prototype](https://github.com/deepseek-ai/dsh-superagent-prototype) `0.1.0`, pinned to commit [`6337fc8`](https://github.com/deepseek-ai/dsh-superagent-prototype/commit/6337fc823ce20251c8de8085948165c81aaa701e). It includes GitHub CLI `2.103.3`, tmux and Git LFS, with matching amd64/arm64 images on Docker Hub and GHCR.
+
+Upstream describes it as a research prototype, not an official DeepSeek product. This variant preinstalls the environment: **processing, Sources and automatic evaluation are off on first startup, with no repository or model connected**. Complete setup in the Superagent panel. It contains upstream code plus a reviewable [container compatibility patch](superagent/container-compat.patch); the local company GitLab adapter, internal models, Sessions and credentials are excluded.
+
+Use a dedicated Compose project and volumes. These ports can coexist with the ordinary 3080 instance:
+
+```bash
+DSH_PORT=3082 DSH_DESKTOP_PORT=6082 make superagent-pull
+DSH_PORT=3082 DSH_DESKTOP_PORT=6082 make superagent-up
+docker compose -p dsh-superagent -f compose.yaml -f compose.superagent.yaml logs --no-color deepseek-harness
+```
+
+Take the current `dsh web:` token from the logs and open `http://127.0.0.1:3082/?token=...`. Select **Superagent** in the sidebar. Missing-repository messages are expected before configuration. Set `DSH_SUPERAGENT_WORKSPACE=/absolute/path/to/project` for a dedicated project checkout, or keep the isolated workspace volume. To pull from GHCR, prefix the Make commands with `DSH_IMAGE_REPOSITORY=ghcr.io/runzhliu/deepseek-harness`.
+
+1. Configure your own model in DSH settings; the image contains no API keys.
+2. Sign in as the agent's GitHub account inside its dedicated container: `docker compose -p dsh-superagent -f compose.yaml -f compose.superagent.yaml exec deepseek-harness gh auth login --web --git-protocol https`. The CLI configuration persists in this instance's volume.
+3. Under Superagent → Settings → Sources, configure the GitHub repository and `/usr/local/bin/gh`, allowed accounts, rules and execution directory. Start in observe mode and enable processing when ready. Feishu additionally requires installing and configuring upstream's `lark-cli` prerequisite.
+
+The prototype's Executors use `danger-full-access` inside the container. Mount only their project directory, without a Docker socket or your entire personal home. Run this instance separately from personal DSH. Initialization refuses a volume containing ordinary DSH data; subsequent restarts retain settings without replacing or pausing them again. `make superagent-down` stops the dedicated project and retains its volumes.
+
+The container patch declares compatibility with this DSH prerelease, accepts an explicitly configured published loopback port, and protects management APIs with DSH cookie authentication while retaining same-origin checks. Only loopback access is supported; the Super Agent management surface does not promise compatibility with the LAN overlay or Ingress. Builds verify the source SHA-256, use upstream's lockfile and run its tests. The runtime retains only distribution files and locked production dependencies. Maintainers can run `make superagent-build` / `make superagent-smoke`, or use **Publish Super Agent images** to publish immutable tags after native amd64/arm64 verification.
+
+![Light-theme initial Superagent interface](assets/deepseek-harness-superagent.png)
+
+_Captured from an isolated blank instance, without GitHub sign-in, a configured model, work requests or model calls._
+
 ### Optional community plugin market
 
 The default image, Compose stack, and Helm chart **do not contain or load a plugin market**; they follow only the official `@deepseek-ai/dsh` distribution. Explicitly select the separate [`dshmarket`](https://github.com/dsh-market/dsh-market) variant when you want a visual community-plugin browser and installer:

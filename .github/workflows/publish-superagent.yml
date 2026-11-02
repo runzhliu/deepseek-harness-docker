@@ -1,0 +1,120 @@
+name: Publish Super Agent images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: superagent-image-release
+  cancel-in-progress: false
+
+env:
+  IMAGE: runzhliu/deepseek-harness
+  GHCR_IMAGE: ghcr.io/runzhliu/deepseek-harness
+  SUPERAGENT_IMAGE_VERSION: 0.2.2-alpha.2-r1-superagent.1
+
+jobs:
+  platform:
+    name: Test and publish Super Agent (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: make version-check
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          username: runzhliu
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Refuse immutable tag overwrite
+        run: |
+          for registry in "${IMAGE}" "${GHCR_IMAGE}"; do
+            for tag in "${SUPERAGENT_IMAGE_VERSION}" "${SUPERAGENT_IMAGE_VERSION}-${{ matrix.arch }}"; do
+              if docker buildx imagetools inspect "${registry}:${tag}" >/dev/null 2>&1; then
+                echo "refusing to overwrite ${registry}:${tag}" >&2
+                exit 1
+              fi
+            done
+          done
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.superagent
+          platforms: linux/${{ matrix.arch }}
+          load: true
+          tags: localhost/deepseek-harness:superagent-${{ matrix.arch }}
+          cache-from: type=gha,scope=superagent-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=superagent-${{ matrix.arch }}
+          build-args: |
+            SUPERAGENT_IMAGE_VERSION=${{ env.SUPERAGENT_IMAGE_VERSION }}
+            IMAGE_REVISION=${{ github.sha }}
+      - name: Verify the inherited runtime
+        run: ./scripts/smoke.sh localhost/deepseek-harness:superagent-${{ matrix.arch }} 0.2.2-alpha.2 10.15.1 1.66.9
+      - name: Verify setup defaults, authentication and persistence
+        run: node scripts/superagent-smoke.cjs localhost/deepseek-harness:superagent-${{ matrix.arch }}
+      - name: Push only tested platform images
+        run: |
+          for registry in "${IMAGE}" "${GHCR_IMAGE}"; do
+            ref="${registry}:${SUPERAGENT_IMAGE_VERSION}-${{ matrix.arch }}"
+            docker tag localhost/deepseek-harness:superagent-${{ matrix.arch }} "${ref}"
+            docker push "${ref}"
+          done
+
+  manifest:
+    name: Publish verified multi-platform manifests
+    needs: platform
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          username: runzhliu
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Merge tested platforms without overwriting a release
+        run: |
+          for registry in "${IMAGE}" "${GHCR_IMAGE}"; do
+            ref="${registry}:${SUPERAGENT_IMAGE_VERSION}"
+            if docker buildx imagetools inspect "${ref}" >/dev/null 2>&1; then
+              echo "refusing to overwrite ${ref}" >&2
+              exit 1
+            fi
+            docker buildx imagetools create --tag "${ref}" \
+              "${registry}:${SUPERAGENT_IMAGE_VERSION}-amd64" \
+              "${registry}:${SUPERAGENT_IMAGE_VERSION}-arm64"
+          done
+      - name: Verify registry parity
+        run: |
+          for registry in "${IMAGE}" "${GHCR_IMAGE}"; do
+            docker buildx imagetools inspect --raw "${registry}:${SUPERAGENT_IMAGE_VERSION}" \
+              | jq -r '.manifests[] | [.platform.os,.platform.architecture,.digest] | @tsv' | sort \
+              > "/tmp/$(echo "${registry}" | tr / _).tsv"
+          done
+          source="/tmp/$(echo "${IMAGE}" | tr / _).tsv"
+          target="/tmp/$(echo "${GHCR_IMAGE}" | tr / _).tsv"
+          diff -u "${source}" "${target}"
+          grep -q $'linux\tamd64\t' "${target}"
+          grep -q $'linux\tarm64\t' "${target}"

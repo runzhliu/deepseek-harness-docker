@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Add the optional `0.2.2-alpha.2-r1-superagent.1` image, based on the market variant and the checksum-pinned Super Agent research prototype `6337fc8`.
+- Include GitHub CLI, tmux and Git LFS; initialize only a dedicated empty volume with processing, Sources and evaluation off, and preserve configured settings on restart.
+- Publish a reviewable plugin patch for DSH 0.2.2 prereleases and explicit published loopback ports; add DSH cookie authentication to management APIs and retain same-origin enforcement without changing DSH core.
+- Add native amd64/arm64 CI, immutable Docker Hub / GHCR publication, setup/persistence/data-protection smoke tests, bilingual instructions and a clean Light screenshot.
+
 ## 0.1.27 - 2026-10-28
 
 - Upgrade the official runtime and matching Browser Use packages to `@deepseek-ai/dsh@0.2.2-alpha.2`, with immutable container revision `0.2.2-alpha.2-r1` and Helm chart `0.1.27`.

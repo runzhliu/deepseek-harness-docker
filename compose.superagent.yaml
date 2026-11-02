@@ -1,0 +1,18 @@
+# Run as a separate project: docker compose -p dsh-superagent -f compose.yaml -f compose.superagent.yaml up -d --no-build
+services:
+  deepseek-harness:
+    build:
+      dockerfile: Dockerfile.superagent
+      args:
+        BASE_IMAGE: ${DSH_IMAGE_REPOSITORY:-docker.io/runzhliu/deepseek-harness}:${MARKET_IMAGE_VERSION:-0.2.2-alpha.2-r1-market.1}
+        SUPERAGENT_IMAGE_VERSION: ${SUPERAGENT_IMAGE_VERSION:-0.2.2-alpha.2-r1-superagent.1}
+    image: ${DSH_IMAGE_REPOSITORY:-docker.io/runzhliu/deepseek-harness}:${SUPERAGENT_IMAGE_VERSION:-0.2.2-alpha.2-r1-superagent.1}
+    environment:
+      DSH_SUPERAGENT_PUBLIC_PORT: ${DSH_PORT:-3080}
+    volumes:
+      - dsh-superagent-home:/home/node/.dsh
+      - ${DSH_SUPERAGENT_WORKSPACE:-dsh-superagent-workspace}:/workspace
+
+volumes:
+  dsh-superagent-home:
+  dsh-superagent-workspace:

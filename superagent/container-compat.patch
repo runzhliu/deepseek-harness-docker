@@ -1,0 +1,148 @@
+--- a/package.json
++++ b/package.json
+@@ -52,7 +52,7 @@
+   },
+   "engines": {
+     "node": "^22.19.0 || >=24.0.0",
+-    "dsh": "^0.2.1-alpha.2"
++    "dsh": "^0.2.1-alpha.2 || ^0.2.2-alpha.2"
+   },
+   "packageManager": "pnpm@11.7.0",
+   "dependencies": {
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -5,7 +5,7 @@
+ import { Config, machineOf, type DeploymentConfig } from './deployment.ts'
+
+ export const name = 'dsh-superagent'
+-export const inject = ['agents', 'sessionController', 'sessionPersistence', 'workspaceRegistry', 'permissionPresets', 'tools', 'systemPrompt', 'skills', 'webServer', 'llm', 'subprocess']
++export const inject = ['agents', 'sessionController', 'sessionPersistence', 'workspaceRegistry', 'permissionPresets', 'tools', 'systemPrompt', 'skills', 'webServer', 'connection', 'llm', 'subprocess']
+ export { Config }
+ export async function apply(ctx: Context, config: DeploymentConfig): Promise<void> {
+   const machine = machineOf(config)
+--- a/src/app/http.ts
++++ b/src/app/http.ts
+@@ -74,7 +74,10 @@
+ }
+ export function sameOrigin(req: Pick<IncomingMessage, 'headers'>, port: number): boolean {
+   const host = req.headers.host
+-  if (host !== `127.0.0.1:${port}` && host !== `localhost:${port}`) return false
++  // Container publishing may use a different, explicitly configured loopback port.
++  const published = process.env.DSH_SUPERAGENT_PUBLIC_PORT
++  const ports = [port, ...(published && /^[1-9]\d{0,4}$/.test(published) && Number(published) <= 65535 ? [Number(published)] : [])]
++  if (!ports.some(value => host === `127.0.0.1:${value}` || host === `localhost:${value}`)) return false
+   return req.headers['x-orchestrator-request'] === '1' && (req.headers.origin === undefined || req.headers.origin === `http://${host}`)
+ }
+ /** Maps errors to HTTP status codes and structured payloads that the panel localizes in the interface language. */
+@@ -235,6 +238,12 @@
+       const url = new URL(req.url ?? '/', 'http://localhost')
+       if (!url.pathname.startsWith('/orchestrator/api/')) { res.writeHead(404); res.end(); return }
+       if (!sameOrigin(req, ctx.webServer.port)) { json(res, 403, { error: 'Same-origin management request required' }); return }
++      // Named Web routes do not inherit the SPA's authentication guard.
++      // Reuse DSH's cookie/authority verifier, and fail closed if unavailable.
++      const connection = (ctx as Context & { connection?: { requestRejection(request: Pick<IncomingMessage, 'headers'>): 401 | 403 | undefined } }).connection
++      if (!connection || typeof connection.requestRejection !== 'function') { json(res, 503, { error: 'DSH authentication unavailable' }); return }
++      const rejection = connection.requestRejection(req)
++      if (rejection !== undefined) { json(res, rejection, { error: 'DSH authentication required' }); return }
+       try {
+         await runtime.ready
+         const route = match(table, req.method ?? 'GET', url.pathname.slice('/orchestrator/api/'.length).split('/'))
+--- a/tests/http.spec.ts
++++ b/tests/http.spec.ts
+@@ -10,9 +10,9 @@
+ type Handler = (req: unknown, res: unknown) => Promise<void>
+ type Headers = Record<string, string | undefined>
+ /** Mount management HTTP routes on a fake web server and return a request helper that includes default panel headers. */
+-function serve(runtime: Partial<Record<keyof HttpHost, unknown>>, host = '127.0.0.1') {
++function serve(runtime: Partial<Record<keyof HttpHost, unknown>>, host = '127.0.0.1', authenticated: boolean | null = true) {
+   let handler: Handler = async () => {}
+-  const ctx = { webServer: { host, port: 3082, register: (route: { handler: Handler }) => { handler = route.handler; return () => {} } } }
++  const ctx = { connection: authenticated === null ? undefined : { requestRejection: () => authenticated ? undefined : 401 }, webServer: { host, port: 3082, register: (route: { handler: Handler }) => { handler = route.handler; return () => {} } } }
+   registerHttp(ctx as never, { ready: Promise.resolve(), ...runtime } as unknown as HttpHost)
+   return async (method: string, path: string, body?: unknown, headers: Headers = {}) => {
+     let status = 0, text = ''
+@@ -96,3 +96,31 @@
+     body: { error: `Request exceeds ${128 * 1024} bytes` } })
+   expect(saves).toEqual([])
+ })
++
++
++it('accepts only the explicit container-published loopback port with a matching Origin', async () => {
++  const previous = process.env.DSH_SUPERAGENT_PUBLIC_PORT
++  const call = serve({ sessions: { delivery: async () => 'injected' }, engine: { unsubscribe: () => true } })
++  try {
++    process.env.DSH_SUPERAGENT_PUBLIC_PORT = '3179'
++    expect(await call('POST', 'threads/github%3A1/unsubscribe', undefined,
++      { host: '127.0.0.1:3179', origin: 'http://127.0.0.1:3179' })).toMatchObject({ status: 200 })
++    for (const headers of [{ host: '127.0.0.1:3179', origin: 'http://evil.example' },
++      { host: 'evil.example:3179' }, { host: '127.0.0.1:9999' }])
++      expect(await call('POST', 'threads/github%3A1/unsubscribe', undefined, headers)).toMatchObject({ status: 403 })
++    process.env.DSH_SUPERAGENT_PUBLIC_PORT = '65536'
++    expect(await call('POST', 'threads/github%3A1/unsubscribe', undefined, { host: '127.0.0.1:65536' })).toMatchObject({ status: 403 })
++  } finally {
++    if (previous === undefined) delete process.env.DSH_SUPERAGENT_PUBLIC_PORT
++    else process.env.DSH_SUPERAGENT_PUBLIC_PORT = previous
++  }
++})
++
++
++it('requires DSH authentication before reading or mutating management state', async () => {
++  for (const [authenticated, status] of [[false, 401], [null, 503]] as const) {
++    const call = serve({}, '127.0.0.1', authenticated)
++    expect(await call('GET', 'state')).toMatchObject({ status })
++    expect(await call('POST', 'executor/resume')).toMatchObject({ status })
++  }
++})
+--- a/tests/sources.spec.ts
++++ b/tests/sources.spec.ts
+@@ -1089,12 +1089,15 @@
+   it('takes in the event lines it reads, records each chat as direct or not, and reports a malformed line without stopping', async () => {
+     writeFileSync(join(dir, 'events'), [event('om_1', 'oc_group', 'group'), event('om_2', 'oc_dm', 'p2p'), 'not json',
+       event('om_3', 'oc_group', 'group')].join('\n') + '\n')
+-    const { ctx, health, store } = consumerSource(cli('events'))
++    const { ctx, store } = consumerSource(cli('events'))
++    const reports = vi.spyOn(ctx, 'report')
+     running = runFeishu(ctx, controller.signal)
+     await vi.waitFor(() => expect(store.triggers.get(feishuTriggerId('om_3'))).toBeDefined(), until)
+     expect(['om_1', 'om_2'].map(id => store.triggers.get(feishuTriggerId(id))?.meta.direct)).toEqual([false, true])
+     expect(store.get(KV.feishu.chats)).toEqual({ oc_group: false, oc_dm: true })
+-    expect(health.feishu).toMatchObject({ state: 'error', detail: expect.stringContaining('JSON') })
++    // stdout events and stderr readiness have no cross-stream ordering. Check
++    // that the diagnostic was emitted rather than asserting the final snapshot.
++    expect(reports).toHaveBeenCalledWith('feishu', expect.objectContaining({ state: 'error', detail: expect.stringContaining('JSON') }))
+     controller.abort(); await running; store.close()
+   }, 20_000)
+   it('drops the events it reads once the Source is off', async () => {
+--- a/tests/runtime.spec.ts
++++ b/tests/runtime.spec.ts
+@@ -203,7 +203,7 @@
+     inspect: vi.fn(async () => ({ events: [] })),
+   }
+   jobs = jobRegistry()
+-  services = { agents, llm: { resolveCallConfig: vi.fn(async value => value) }, sessionController: controller, sessionPersistence: { flush: vi.fn(async () => {}), open: vi.fn(async () => ({ read: async () => ({ events: [] }), [Symbol.asyncDispose]: async () => {} })) }, workspaceRegistry: { create: async (cwd: string) => ({ id: cwd }) }, permissionPresets: { set: () => {} }, subprocess, webServer: { host: '127.0.0.1', port: 3082, register: (route: { handler: HttpHandler }) => { http = route.handler; return () => {} } }, jobs: jobs.service }
++  services = { connection: { requestRejection: () => undefined }, agents, llm: { resolveCallConfig: vi.fn(async value => value) }, sessionController: controller, sessionPersistence: { flush: vi.fn(async () => {}), open: vi.fn(async () => ({ read: async () => ({ events: [] }), [Symbol.asyncDispose]: async () => {} })) }, workspaceRegistry: { create: async (cwd: string) => ({ id: cwd }) }, permissionPresets: { set: () => {} }, subprocess, webServer: { host: '127.0.0.1', port: 3082, register: (route: { handler: HttpHandler }) => { http = route.handler; return () => {} } }, jobs: jobs.service }
+   for (const [name, service] of Object.entries(services)) ctx.reflect.provide(name, service)
+   for (const cli of [AGENT(), OTHER(), BOT()]) writeFileSync(cli, '#!/bin/sh\n', { mode: 0o755 })
+   const store = new Store(join(directory, 'orchestrator.sqlite')); seed(store); store.close()
+--- a/tests/fixtures/host.ts
++++ b/tests/fixtures/host.ts
+@@ -238,7 +238,7 @@
+   const webServer = { host: '127.0.0.1', port: 3082, register: (route: { handler: HttpHandler }) => { http = route.handler; return () => {} } }
+   const jobs = jobRegistry(id => agents.get(id))
+   const subagents = subagentRuntime(agents)
+-  const services = { agents, llm: { resolveCallConfig: vi.fn(async (value: unknown) => value) }, sessionController: controller,
++  const services = { connection: { requestRejection: () => undefined }, agents, llm: { resolveCallConfig: vi.fn(async (value: unknown) => value) }, sessionController: controller,
+     sessionPersistence: persistence, workspaceRegistry: { create: async (cwd: string) => ({ id: cwd }) }, permissionPresets: { set: () => {} }, subprocess, webServer,
+     jobs: jobs.service, subagents: subagents.service }
+   const ctx = new Context()
+--- a/tests/model-surface.spec.ts
++++ b/tests/model-surface.spec.ts
+@@ -130,7 +130,7 @@
+   const resolveAgent = async (id: string) => agents.has(id) ? { agent: agents.get(id) } : { error: { code: 'session/not-found' } }
+   const ctx = new Context()
+   const history = { read: async () => ({ events: [] }), [Symbol.asyncDispose]: async () => {} }
+-  const services = { agents, llm: { resolveCallConfig: async (value: unknown) => value },
++  const services = { connection: { requestRejection: () => undefined }, agents, llm: { resolveCallConfig: async (value: unknown) => value },
+     workspaceRegistry: { create: async (cwd: string) => ({ id: cwd }) },
+     sessionController: { create, resolveAgent, selectModel: async () => {}, rename: async () => {}, inspect: async () => ({ events: [] }) },
+     sessionPersistence: { flush: async () => {}, open: async () => history }, permissionPresets: { set: () => {} }, subprocess,

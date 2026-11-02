@@ -172,6 +172,11 @@ if [[ "${browser_dom}" != *"DSH_BROWSER_OK"* ]]; then
 fi
 
 docker volume create "${volume}" >/dev/null
+if [[ "$(docker image inspect --format '{{ index .Config.Labels "io.github.runzhliu.deepseek-harness.variant" }}' "${image}")" == superagent-prototype ]]; then
+  # Initialize the dedicated variant before exercising market patch repair;
+  # its bootstrap deliberately refuses a partial, unmarked personal profile.
+  docker run --rm --volume "${volume}:/home/node/.dsh" "${image}" --profile web --dump-config >/dev/null
+fi
 if [[ -n "${expected_market_version}" ]]; then
   docker run --rm \
     --user root \

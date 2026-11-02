@@ -1,6 +1,7 @@
 *
 !Dockerfile
 !Dockerfile.market
+!Dockerfile.superagent
 !web.cordis.patch.yml
 !web.market.cordis.patch.yml
 !scripts/
@@ -8,6 +9,14 @@
 !scripts/deepseek-harness-entrypoint
 !scripts/deepseek-harness-market-entrypoint
 !scripts/dsh-market-repair-store
+!scripts/superagent-init.cjs
+!scripts/deepseek-harness-superagent-entrypoint
+!superagent/
+!superagent/runtime/
+!superagent/runtime/package.json
+!superagent/runtime/package-lock.json
 !plugins/
 !plugins/dsh-browser-desktop/
 !plugins/dsh-browser-desktop/**
+
+!superagent/container-compat.patch

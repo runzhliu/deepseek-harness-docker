@@ -1,0 +1,10 @@
+{
+  "name": "dsh-superagent-container-runtime-dependencies",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Production-only dependencies for the pinned upstream Super Agent bundle; DSH supplies its own SDK peers.",
+  "dependencies": {
+    "proper-lockfile": "4.1.2",
+    "zod": "4.4.3"
+  }
+}

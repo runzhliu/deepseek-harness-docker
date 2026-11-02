@@ -15,7 +15,7 @@ temporary_readme="$(mktemp)"
 trap 'rm -f "${temporary_readme}"' EXIT
 
 # Docker Hub limits repository overviews to 25,000 bytes. Keep README.md as
-# the source of truth and omit only its long-form architecture analysis from
+# the source of truth and compact its long architecture/deployment guides in
 # the generated overview. The sync action completes relative GitHub URLs.
 awk '
   /^## DeepSeek Harness 深入分析$/ {
@@ -39,8 +39,47 @@ awk '
     next
   }
 
+  /^### 可选的 Super Agent 预装镜像$/ {
+    compact = 1
+    superagent = 1
+    print
+    print "预装上游研究原型，首次启动关闭处理与来源；使用独立项目和数据卷。"
+    print ""
+    print "```bash"
+    print "DSH_PORT=3082 DSH_DESKTOP_PORT=6082 make superagent-pull"
+    print "DSH_PORT=3082 DSH_DESKTOP_PORT=6082 make superagent-up"
+    print "```"
+    print ""
+    print "配置、权限边界和固定源码版本见 [Super Agent 安装说明](https://github.com/runzhliu/deepseek-harness-docker#可选的-super-agent-预装镜像)。"
+    print ""
+    next
+  }
+
+  /^### 独立安装浏览器插件$/ {
+    compact = 1
+    print
+    print "浏览器插件也可单独安装；打包命令、兼容版本与依赖边界见 [插件文档](https://github.com/runzhliu/deepseek-harness-docker/tree/main/plugins/dsh-browser-desktop#readme)。"
+    print ""
+    next
+  }
+
+  /^### 可选的 HTTPS 局域网访问$/ {
+    compact = 1
+    print
+    print "使用 Caddy HTTPS + Basic Auth 保留 DSH 认证与同源校验；配置、证书及网络边界见 [LAN 安装说明](https://github.com/runzhliu/deepseek-harness-docker#可选的-https-局域网访问)。"
+    print ""
+    next
+  }
+
   compact && /^### / {
     compact = 0
+    superagent = 0
+  }
+
+  superagent && /^镜像 / {
+    print
+    print ""
+    next
   }
 
   /^### 浏览器桌面、官方 Browser Use 与人工接管$/ {

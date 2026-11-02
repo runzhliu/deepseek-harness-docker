@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+node /opt/deepseek-harness/superagent-init.cjs "$@"
+exec /usr/local/bin/deepseek-harness-market-entrypoint "$@"

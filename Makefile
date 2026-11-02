@@ -6,6 +6,8 @@ NODE_IMAGE ?= docker.io/library/node:24-trixie
 PNPM_VERSION ?= 10.15.1
 DSH_MARKET_VERSION ?= 1.66.9
 MARKET_IMAGE_VERSION ?= $(IMAGE_VERSION)-market.1
+SUPERAGENT_IMAGE_VERSION ?= $(IMAGE_VERSION)-superagent.1
+SUPERAGENT_REVISION ?= 6337fc823ce20251c8de8085948165c81aaa701e
 BROWSER_PLUGIN_VERSION ?= 0.1.6
 BWRAP_IMAGE_VERSION ?= $(IMAGE_VERSION)-bwrap.1
 UNGOOGLED_CHROMIUM_VERSION ?= 152.0.7977.82-1
@@ -22,6 +24,9 @@ PLATFORMS ?= linux/amd64,linux/arm64
 .PHONY: help build multiarch-build push pull ghcr-pull bwrap-build bwrap-push bwrap-pull bwrap-smoke bwrap-inspect ungoogled-build ungoogled-multiarch-build ungoogled-push ungoogled-pull ungoogled-smoke ungoogled-inspect market-build market-push market-pull up down logs lan-up lan-down lan-logs lan-smoke podman-up podman-down podman-logs podman-smoke compose-check helm-check plugin-check dockerhub-check version-check verify upstream-check smoke market-smoke inspect ghcr-inspect market-inspect
 
 help:
+	@echo "superagent-build Build the optional Super Agent prototype image (includes market)"
+	@echo "superagent-smoke Verify setup defaults, authentication and persistence"
+	@echo "superagent-up    Start its dedicated Compose project and volumes"
 	@echo "build            Build the local platform image"
 	@echo "multiarch-build  Build both release platforms without pushing"
 	@echo "push             Build and push the versioned multi-platform image (or dispatch publish-dockerhub.yml)"
@@ -97,6 +102,22 @@ market-push:
 market-pull:
 	docker pull $(IMAGE):$(MARKET_IMAGE_VERSION)
 
+.PHONY: superagent-build superagent-smoke superagent-pull superagent-up superagent-down
+superagent-build:
+	docker build --file Dockerfile.superagent --build-arg BASE_IMAGE=$(IMAGE):$(MARKET_IMAGE_VERSION) --build-arg SUPERAGENT_IMAGE_VERSION=$(SUPERAGENT_IMAGE_VERSION) --build-arg SUPERAGENT_REVISION=$(SUPERAGENT_REVISION) --build-arg IMAGE_REVISION=$$(git describe --always --dirty) --tag $(IMAGE):$(SUPERAGENT_IMAGE_VERSION) .
+
+superagent-smoke:
+	node scripts/superagent-smoke.cjs $(IMAGE):$(SUPERAGENT_IMAGE_VERSION)
+
+superagent-pull:
+	docker compose -p dsh-superagent -f compose.yaml -f compose.superagent.yaml pull
+
+superagent-up:
+	docker compose -p dsh-superagent -f compose.yaml -f compose.superagent.yaml up -d --no-build
+
+superagent-down:
+	docker compose -p dsh-superagent -f compose.yaml -f compose.superagent.yaml down
+
 up:
 	docker compose up --detach --no-build
 
@@ -117,6 +138,7 @@ lan-logs:
 	docker compose --env-file $(LAN_ENV_FILE) -f compose.yaml -f compose.lan.yaml logs --follow deepseek-harness lan-gateway
 
 compose-check:
+	docker compose -p dsh-superagent -f compose.yaml -f compose.superagent.yaml config --quiet
 	docker compose config --quiet
 	docker compose -f compose.yaml -f compose.market.yaml config --quiet
 	docker compose -f compose.yaml -f compose.bwrap.yaml config --quiet
@@ -130,6 +152,9 @@ helm-check:
 	helm template deepseek-harness charts/deepseek-harness --set persistence.enabled=false --set credentials.existingSecret=dsh-provider-credentials --set workspace.existingClaim=dsh-workspace >/dev/null
 
 plugin-check:
+	node --check scripts/superagent-init.cjs
+	node --check scripts/superagent-smoke.cjs
+	sh -n scripts/deepseek-harness-superagent-entrypoint
 	node --check scripts/dsh-web-relay.cjs
 	node --test scripts/dsh-web-relay.test.cjs
 	node --check plugins/dsh-browser-desktop/index.js

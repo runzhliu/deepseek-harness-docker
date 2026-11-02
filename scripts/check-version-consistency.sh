@@ -40,6 +40,13 @@ require_literal Dockerfile.market "ARG NODE_IMAGE=docker.io/library/node:24-trix
 require_literal Dockerfile.market "ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:${image_version}"
 require_literal Dockerfile.market "ARG DSH_MARKET_VERSION=${market_version}"
 require_literal Dockerfile.market "ARG MARKET_IMAGE_VERSION=${market_image_version}"
+require_literal Dockerfile.superagent "ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:${market_image_version}"
+require_literal Dockerfile.superagent "ARG SUPERAGENT_IMAGE_VERSION=${image_version}-superagent.1"
+require_literal compose.superagent.yaml "SUPERAGENT_IMAGE_VERSION:-${image_version}-superagent.1"
+require_literal .github/workflows/publish-superagent.yml "SUPERAGENT_IMAGE_VERSION: ${image_version}-superagent.1"
+require_literal .github/workflows/ci.yml './scripts/smoke.sh deepseek-harness:ci-superagent-'
+require_literal README.md "${image_version}-superagent.1"
+require_literal README.en.md "${image_version}-superagent.1"
 require_literal Dockerfile.bwrap "ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:${image_version}"
 require_literal Dockerfile.bwrap "ARG BWRAP_IMAGE_VERSION=${bwrap_image_version}"
 require_literal Dockerfile.bwrap 'apt-get install --yes --no-install-recommends bubblewrap'
