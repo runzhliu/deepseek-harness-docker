@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 ARG NODE_IMAGE=docker.io/library/node:24-trixie
-ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:0.2.2-alpha.2-r1-market.1
+ARG BASE_IMAGE=docker.io/runzhliu/deepseek-harness:0.2.2-alpha.3-r1-market.1
 FROM ${NODE_IMAGE} AS superagent-builder
 ARG SUPERAGENT_REVISION=6337fc823ce20251c8de8085948165c81aaa701e
 ARG SUPERAGENT_SOURCE_SHA256=09a0de081f43a0b3347fa0ea116ae9e0c2437d02866b000e41a1e6d4a1a9cb65
@@ -71,7 +71,7 @@ ENV GH_CONFIG_DIR=/home/node/.dsh/gh-superagent
 WORKDIR /workspace
 ARG SUPERAGENT_REVISION=6337fc823ce20251c8de8085948165c81aaa701e
 ARG SUPERAGENT_SOURCE_SHA256=09a0de081f43a0b3347fa0ea116ae9e0c2437d02866b000e41a1e6d4a1a9cb65
-ARG SUPERAGENT_IMAGE_VERSION=0.2.2-alpha.2-r1-superagent.1
+ARG SUPERAGENT_IMAGE_VERSION=0.2.2-alpha.3-r1-superagent.1
 ARG IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.version="${SUPERAGENT_IMAGE_VERSION}" \
       org.opencontainers.image.revision="${IMAGE_REVISION}" \

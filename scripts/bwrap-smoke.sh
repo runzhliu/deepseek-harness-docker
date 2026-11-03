@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-image="${1:-docker.io/runzhliu/deepseek-harness:0.2.2-alpha.2-r1-bwrap.1}"
+image="${1:-docker.io/runzhliu/deepseek-harness:0.2.2-alpha.3-r1-bwrap.1}"
 
 actual_variant="$(docker image inspect --format '{{ index .Config.Labels "io.github.runzhliu.deepseek-harness.variant" }}' "${image}")"
 if [[ "${actual_variant}" != bubblewrap-sandbox ]]; then

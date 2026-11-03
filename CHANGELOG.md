@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.1.28 - 2026-11-03
+
+- Upgrade DSH and matching official Browser Use packages to `0.2.2-alpha.3`, with fresh immutable container revisions.
+- Track the Node.js `24.9.0` minimum, Cordis configuration updates, unified context menus, persistent file-preview tree and consolidated change-request/worktree entry.
+- Verify Super Agent and the Alertmanager integration against the new runtime while preserving authentication and sandbox boundaries without modifying DSH core.
+- Refresh the README with isolated Light screenshots from the new runtime.
+
 - Add an experimental Alertmanager Source with durable incident deduplication, recovery handling, an authenticated IM bridge adapter, observe-only defaults, and optional native Superagent incident panels.
 
 - Add the optional `0.2.2-alpha.2-r1-superagent.1` image, based on the market variant and the checksum-pinned Super Agent research prototype `6337fc8`.
