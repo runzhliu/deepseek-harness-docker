@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Add an experimental Alertmanager Source with durable incident deduplication, recovery handling, an authenticated IM bridge adapter, observe-only defaults, and optional native Superagent incident panels.
+
 - Add the optional `0.2.2-alpha.2-r1-superagent.1` image, based on the market variant and the checksum-pinned Super Agent research prototype `6337fc8`.
 - Include GitHub CLI, tmux and Git LFS; initialize only a dedicated empty volume with processing, Sources and evaluation off, and preserve configured settings on restart.
 - Publish a reviewable plugin patch for DSH 0.2.2 prereleases and explicit published loopback ports; add DSH cookie authentication to management APIs and retain same-origin enforcement without changing DSH core.

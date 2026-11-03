@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "instanceId": "monitoring-primary",
+  "mode": "observe",
+  "severities": ["critical"],
+  "routes": [
+    {
+      "id": "example-service",
+      "match": {"service": "example-service", "cluster": "example-cluster"},
+      "ownerId": "replace-with-vmi-user-id",
+      "memberIds": ["replace-with-vmi-user-id"]
+    }
+  ]
+}

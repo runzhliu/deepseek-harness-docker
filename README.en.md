@@ -334,6 +334,8 @@ The container patch declares compatibility with this DSH prerelease, accepts an 
 
 _Captured from an isolated blank instance, without GitHub sign-in, a configured model, work requests or model calls._
 
+The experimental [Alertmanager Source plugin](plugins/dsh-alertmanager/README.md) records alerts and recovery events and displays incident/group plans in Superagent. It defaults to observe mode, requires separate installation and a verified IM bridge for live group creation, and is not preinstalled in the public image.
+
 ### Optional community plugin market
 
 The default image, Compose stack, and Helm chart **do not contain or load a plugin market**; they follow only the official `@deepseek-ai/dsh` distribution. Explicitly select the separate [`dshmarket`](https://github.com/dsh-market/dsh-market) variant when you want a visual community-plugin browser and installer:

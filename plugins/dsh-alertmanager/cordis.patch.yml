@@ -1,0 +1,9 @@
+- insert:
+    - id: dsh-alertmanager
+      name: '@runzhliu/dsh-alertmanager'
+      config:
+        stateDir: !!js process.env.DSH_HOME + '/state/alertmanager'
+        policyFile: !!js process.env.DSH_HOME + '/alertmanager/policy.json'
+        tokenFile: !!js process.env.DSH_HOME + '/alertmanager/webhook-token'
+        host: '127.0.0.1'
+        port: 9095

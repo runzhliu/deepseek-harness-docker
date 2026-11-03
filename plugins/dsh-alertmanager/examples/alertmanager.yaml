@@ -1,0 +1,19 @@
+# Merge this receiver and route into an existing Alertmanager configuration.
+# Keep the receiver private; do not publish the DSH management port to receive alerts.
+route:
+  receiver: superagent-incidents
+  group_by: [cluster, service, alertname]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+receivers:
+  - name: superagent-incidents
+    webhook_configs:
+      - url: http://REPLACE_WITH_PRIVATE_RECEIVER:9095/webhooks/alertmanager
+        send_resolved: true
+        max_alerts: 0
+        timeout: 10s
+        http_config:
+          authorization:
+            type: Bearer
+            credentials_file: /etc/alertmanager/secrets/superagent-webhook-token

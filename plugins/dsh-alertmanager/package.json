@@ -1,0 +1,41 @@
+{
+  "name": "@runzhliu/dsh-alertmanager",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Alertmanager incident intake and a controlled IM group workflow for the DSH Super Agent prototype.",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "domain.js",
+    "store.js",
+    "bridge.js",
+    "http.js",
+    "cordis.patch.yml",
+    "policy.example.json",
+    "integration",
+    "README.md",
+    "LICENSE",
+    "examples"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "dsh": "^0.2.2-alpha.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/schemastery": "3.18.5-alpha.1",
+    "zod": "4.4.3"
+  },
+  "scripts": {
+    "test": "node --test *.test.js"
+  }
+}

@@ -20,3 +20,6 @@
 !plugins/dsh-browser-desktop/**
 
 !superagent/container-compat.patch
+
+!plugins/dsh-alertmanager/
+!plugins/dsh-alertmanager/**

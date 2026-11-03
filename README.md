@@ -333,6 +333,8 @@ docker compose -p dsh-superagent -f compose.yaml -f compose.superagent.yaml logs
 
 _使用独立空白实例拍摄；未登录 GitHub、未配置模型、未发送工单或模型请求。_
 
+实验性的 [Alertmanager 来源插件](plugins/dsh-alertmanager/README.md) 可接收告警和恢复事件，在 Superagent 中展示事故与唯秘群组执行计划。默认仅观察；需另行安装，并接入经过验证的 IM 网关后才能真实建群，当前公开镜像未预装此插件。
+
 ### 可选的社区插件市场
 
 默认镜像、默认 Compose 和 Helm Chart **不包含也不加载插件市场**，它们只跟随官方 `@deepseek-ai/dsh` 发行物。需要图形化浏览和安装社区插件时，可以显式选择独立的 [`dshmarket`](https://github.com/dsh-market/dsh-market) 变体：

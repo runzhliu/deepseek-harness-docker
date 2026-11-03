@@ -152,6 +152,9 @@ helm-check:
 	helm template deepseek-harness charts/deepseek-harness --set persistence.enabled=false --set credentials.existingSecret=dsh-provider-credentials --set workspace.existingClaim=dsh-workspace >/dev/null
 
 plugin-check:
+	node --test plugins/dsh-alertmanager/incident.test.js
+	@for file in plugins/dsh-alertmanager/*.js; do node --check "$$file"; done
+	node --check plugins/dsh-alertmanager/integration/install-panel.cjs
 	node --check scripts/superagent-init.cjs
 	node --check scripts/superagent-smoke.cjs
 	sh -n scripts/deepseek-harness-superagent-entrypoint

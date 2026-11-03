@@ -1,0 +1,24 @@
+{
+  "version": "4",
+  "receiver": "demo-ops",
+  "groupKey": "{}:{service=\"example-service\",cluster=\"example-cluster\"}",
+  "status": "resolved",
+  "truncatedAlerts": 0,
+  "alerts": [
+    {
+      "status": "resolved",
+      "fingerprint": "demo-alert-001",
+      "labels": {
+        "alertname": "DemoServiceUnavailable",
+        "service": "example-service",
+        "cluster": "example-cluster",
+        "severity": "critical"
+      },
+      "annotations": {
+        "summary": "演示告警：验证告警协同流程，不代表真实故障。"
+      },
+      "startsAt": "2026-11-02T08:00:00Z",
+      "endsAt": "2026-11-02T09:00:00Z"
+    }
+  ]
+}
