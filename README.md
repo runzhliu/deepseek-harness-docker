@@ -44,7 +44,7 @@ DeepSeek Harness（DSH）以本地使用为中心，桌面版也延续了这一�
 
 ![DeepSeek Harness 浅色 Web UI：新版首页与导航](assets/deepseek-harness-web.png)
 
-_浅色界面实拍（2026-11-03，DSH `0.2.2-alpha.3`）。使用独立空白演示工作区，不包含个人会话或凭据，未配置模型，也未发起模型调用。_
+_浅色界面实拍（2026-11-05，DSH `0.2.2-rc.1`）。使用独立空白演示工作区，不包含个人会话或凭据，未配置模型，也未发起模型调用。_
 
 ## 项目状态
 
@@ -263,7 +263,7 @@ docker compose --env-file .env.lan -f compose.yaml -f compose.lan.yaml \
 
 ![Harness WebUI 中可移动、缩放的内嵌 Chromium 浏览器](assets/browser-desktop-webui.png)
 
-_浅色界面实拍（2026-11-03，DSH `0.2.2-alpha.3`、浏览器桌面插件 `0.1.6`）：浏览器浮窗位于 Harness WebUI 内，图中打开的是官方 0.2.2-alpha.3 GitHub Release 页面。_
+_浅色界面实拍（2026-11-05，DSH `0.2.2-rc.1`、浏览器桌面插件 `0.1.6`）：浏览器浮窗位于 Harness WebUI 内，图中打开的是官方 0.2.2-rc.1 GitHub Release 页面。_
 
 该实现参考了 [`docker-antigravity`](https://github.com/runzhliu/docker-antigravity) 的可视桌面思路，但没有采用其 `amd64` 基础镜像和 Selkies，而是使用 Debian 原生架构软件包，因此 Apple Silicon 与 x86 Linux 均可运行。官方的 [Browser Use 架构](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/browser-use.md)和 [Sidebar Browser 限制](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/client/ui-sidebar-browser/README.md)说明了两类浏览器能力的边界。6080 与 3080 一样只绑定宿主机回环地址；noVNC 原生端口没有认证，不能直接暴露。可选 LAN overlay 会把版本化 `/novnc-*` 路径放到与 WebUI 相同的 HTTPS 和认证入口下。
 
@@ -349,7 +349,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
 
 ![可选 market 镜像中的浅色社区插件市场](assets/plugin-market-webui.png)
 
-_可选 market 镜像实拍（2026-11-03，DSH `0.2.2-alpha.3`、`dshmarket@1.66.9`）；默认镜像没有此页面。目录与兼容性标记会变化，截图仅浏览，未安装图中插件。_
+_可选 market 镜像实拍（2026-11-05，DSH `0.2.2-rc.1`、`dshmarket@1.66.9`）；默认镜像没有此页面。目录与兼容性标记会变化，截图仅浏览，未安装图中插件。_
 
 市场自身在构建期固定并打入可选镜像；通过市场安装的插件和 pnpm store 会写入持久化的 `dsh-home` 卷。安装过程需要容器能够访问 npm/GitHub，第三方包的构建脚本仍应在审查后单独授权。市场内的一键重启已禁用，变更需要通过 `docker compose restart` 或 Kubernetes rollout 进入新进程。
 
