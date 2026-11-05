@@ -52,6 +52,11 @@ jobs:
             IMAGE_VERSION=0.2.2-rc.1-r1
             IMAGE_REVISION=${{ github.sha }}
       - run: ./scripts/smoke.sh localhost/deepseek-harness:ci-${{ matrix.suffix }} 0.2.2-rc.1 10.15.1
+      - name: Reclaim build cache before the Podman import
+        if: matrix.platform == 'linux/amd64'
+        run: |
+          docker buildx prune --all --force
+          df -h "${RUNNER_TEMP}"
       - name: Install rootless Podman Compose
         if: matrix.platform == 'linux/amd64'
         run: |
