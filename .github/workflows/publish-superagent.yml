@@ -14,7 +14,7 @@ concurrency:
 env:
   IMAGE: runzhliu/deepseek-harness
   GHCR_IMAGE: ghcr.io/runzhliu/deepseek-harness
-  SUPERAGENT_IMAGE_VERSION: 0.2.2-alpha.3-r1-superagent.1
+  SUPERAGENT_IMAGE_VERSION: 0.2.2-rc.1-r1-superagent.1
 
 jobs:
   platform:
@@ -68,7 +68,7 @@ jobs:
             SUPERAGENT_IMAGE_VERSION=${{ env.SUPERAGENT_IMAGE_VERSION }}
             IMAGE_REVISION=${{ github.sha }}
       - name: Verify the inherited runtime
-        run: ./scripts/smoke.sh localhost/deepseek-harness:superagent-${{ matrix.arch }} 0.2.2-alpha.3 10.15.1 1.66.9
+        run: ./scripts/smoke.sh localhost/deepseek-harness:superagent-${{ matrix.arch }} 0.2.2-rc.1 10.15.1 1.66.9
       - name: Verify setup defaults, authentication and persistence
         run: node scripts/superagent-smoke.cjs localhost/deepseek-harness:superagent-${{ matrix.arch }}
       - name: Push only tested platform images

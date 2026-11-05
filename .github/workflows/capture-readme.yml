@@ -6,7 +6,7 @@ on:
       version:
         description: Exact DSH version already published as a market image
         required: true
-        default: 0.2.2-alpha.3
+        default: 0.2.2-rc.1
         type: string
       revision:
         description: Immutable container revision, for example r1

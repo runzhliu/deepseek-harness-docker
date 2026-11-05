@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## 0.1.29 - 2026-11-05
+
+- Upgrade DSH and matching official Browser Use packages to `0.2.2-rc.1`, with immutable container revisions and Helm chart `0.1.29`.
+- Retain the optional Super Agent, market, browser and sandbox variants, with the 0.2.2 migration guidance.
+
 ## Unreleased
 
 ## 0.1.28 - 2026-11-03
