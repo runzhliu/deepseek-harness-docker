@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## 0.1.30 - 2026-11-12
+
+- Upgrade DSH and matching Browser Use packages to `0.2.2-rc.2`, with immutable images and Helm chart `0.1.30`.
+- Document worktree cleanup and custom plugin migration changes introduced upstream.
+
 ## 0.1.29 - 2026-11-05
 
 - Upgrade DSH and matching official Browser Use packages to `0.2.2-rc.1`, with immutable container revisions and Helm chart `0.1.29`.
