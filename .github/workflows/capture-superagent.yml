@@ -1,0 +1,49 @@
+name: Capture Light Superagent screenshot
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published DSH version
+        required: true
+        type: string
+      revision:
+        description: Immutable container revision
+        required: true
+        default: r1
+        type: string
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DSH_UI_VERSION: ${{ inputs.version }}
+      DSH_UI_REVISION: ${{ inputs.revision }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install Playwright and select Chrome
+        run: |
+          npm install --prefix "${RUNNER_TEMP}/dsh-ui-capture" --ignore-scripts --no-audit --no-fund --save-exact playwright@1.64.1
+          echo "DSH_UI_PLAYWRIGHT_MODULE=${RUNNER_TEMP}/dsh-ui-capture/node_modules/playwright" >> "${GITHUB_ENV}"
+          browser="$(command -v google-chrome || command -v chromium || true)"
+          test -n "${browser}"
+          echo "DSH_UI_BROWSER_EXECUTABLE=${browser}" >> "${GITHUB_ENV}"
+          if ! command -v fc-list >/dev/null || [[ -z "$(fc-list :lang=zh)" ]]; then
+            sudo apt-get -o Acquire::Retries=1 update
+            sudo apt-get install --yes --no-install-recommends fontconfig fonts-noto-cjk
+          fi
+      - name: Capture an isolated, unconfigured Superagent
+        run: node scripts/capture-superagent.cjs
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: superagent-light-${{ inputs.version }}-${{ inputs.revision }}
+          path: |
+            assets/deepseek-harness-superagent.png
+            assets/capture-provenance.json
+          if-no-files-found: error
