@@ -47,7 +47,7 @@ This project packages the official DSH npm distribution into a reproducible Dock
 
 ![DeepSeek Harness Web UI running from this image](assets/deepseek-harness-web.png)
 
-_Light-theme capture (2026-11-12, DSH `0.2.2-rc.2`) from an isolated, empty demo workspace. No personal sessions or credentials are shown. No model was configured and no model call was made._
+_Light-theme capture (2026-11-13, DSH `0.2.2-rc.3`) from an isolated, empty demo workspace. No personal sessions or credentials are shown. No model was configured and no model call was made._
 
 ## Project status
 
@@ -267,7 +267,7 @@ The public plugin uses Harness's `sidebar.footer.action` and `shell.overlay` ext
 
 ![Movable and resizable Chromium browser embedded in the Harness Web UI](assets/browser-desktop-webui.png)
 
-_Light-theme capture (2026-11-12, DSH `0.2.2-rc.2`, browser-desktop plugin `0.1.6`): the browser panel is inside Harness and displays the official 0.2.2-rc.2 GitHub Release page._
+_Light-theme capture (2026-11-13, DSH `0.2.2-rc.3`, browser-desktop plugin `0.1.6`): the browser panel is inside Harness and displays the official 0.2.2-rc.3 GitHub Release page._
 
 This follows the visible-desktop idea from [`docker-antigravity`](https://github.com/runzhliu/docker-antigravity) without adopting its amd64 base or Selkies. Debian's native packages keep the image usable on both Apple Silicon and x86 Linux. The official [Browser Use architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/browser-use.md) and [Sidebar Browser limitations](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/client/ui-sidebar-browser/README.md) describe the boundary between these layers. Port 6080 is loopback-only like 3080; the native noVNC endpoint has no authentication and must never be exposed directly. The optional LAN overlay carries the versioned `/novnc-*` route through the same HTTPS and authentication boundary as the Web UI.
 
@@ -353,7 +353,7 @@ The variant has the unambiguous `runzhliu/deepseek-harness:0.2.2-rc.3-r1-market.
 
 ![Light-theme community plugin market in the optional market image](assets/plugin-market-webui.png)
 
-_Captured from the optional market image (2026-11-12, DSH `0.2.2-rc.2`, `dshmarket@1.66.9`); this page is absent from the default image. Catalog entries and compatibility indicators change over time. This screenshot shows browsing only; none of the displayed plugins were installed._
+_Captured from the optional market image (2026-11-13, DSH `0.2.2-rc.3`, `dshmarket@1.66.9`); this page is absent from the default image. Catalog entries and compatibility indicators change over time. This screenshot shows browsing only; none of the displayed plugins were installed._
 
 The market package itself is pinned and copied at build time. Plugins installed through it and the pnpm store persist in the `dsh-home` volume. Installation needs container egress to npm/GitHub, and third-party build scripts should remain blocked until separately reviewed and approved. One-click market restart is disabled; apply lifecycle changes with `docker compose restart` or a Kubernetes rollout.
 
