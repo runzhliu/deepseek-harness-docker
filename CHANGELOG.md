@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## 0.1.31 - 2026-11-13
+
+- Upgrade DSH and official Browser Use packages to `0.2.2-rc.3`, with immutable images and Helm chart `0.1.31`.
+- Include the experimental DeepSeek conversation import plugin and upstream desktop-update fixes.
+
 ## 0.1.30 - 2026-11-12
 
 - Upgrade DSH and matching Browser Use packages to `0.2.2-rc.2`, with immutable images and Helm chart `0.1.30`.

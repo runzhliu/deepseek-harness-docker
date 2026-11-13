@@ -1,6 +1,6 @@
 IMAGE ?= docker.io/runzhliu/deepseek-harness
 GHCR_IMAGE ?= ghcr.io/runzhliu/deepseek-harness
-DSH_VERSION ?= 0.2.2-rc.2
+DSH_VERSION ?= 0.2.2-rc.3
 IMAGE_VERSION ?= $(DSH_VERSION)-r1
 NODE_IMAGE ?= docker.io/library/node:24-trixie
 PNPM_VERSION ?= 10.15.1
