@@ -148,7 +148,15 @@ make bwrap-build
 make bwrap-smoke
 ```
 
-The test proves that `/workspace` is writable inside bubblewrap while another writable outer mount remains denied to the model command. See [Issue #35](https://github.com/runzhliu/deepseek-harness-docker/issues/35) for the host analysis and reports.
+The test proves that `/workspace` is writable inside bubblewrap while another writable outer mount remains denied to the model command. It also proves that the agent's scratch directory survives between tool calls. See [Issue #35](https://github.com/runzhliu/deepseek-harness-docker/issues/35) for the host analysis and reports, and [Issue #48](https://github.com/runzhliu/deepseek-harness-docker/issues/48) for the `/tmp` behavior.
+
+The bubblewrap profile mounts a fresh, empty `/tmp` for every tool call, so scratch files written there are gone by the next call, and the container's `noexec` `/tmp` cannot run what a build produces. The variant therefore sets `BASH_ENV=/opt/deepseek-harness/bwrap-bash-env`, a small script that bash sources before each tool call and that points `TMPDIR` at the session workspace's `.tmp` directory (`/workspace/.tmp` for a session rooted at `/workspace`, or `/workspace/<sub>/.tmp` when the session is rooted deeper, where `/workspace` itself is read-only inside the cage). Nothing is changed when `TMPDIR` already names a writable directory, and the script never prints or fails.
+
+Agents and scripts should keep scratch files in `$TMPDIR`; add `.tmp/` to the project's `.gitignore` so they stay out of version control. If you set your own `BASH_ENV` (for example an environment file on a tools volume), it replaces this one; source it from there:
+
+```bash
+. /opt/deepseek-harness/bwrap-bash-env
+```
 
 ### Why the Helm chart uses a StatefulSet
 
@@ -562,7 +570,8 @@ The last command must print `/workspace`. An `EACCES` under `/workspace` instead
 | `plugins/dsh-browser-desktop/` | Independently publishable DSH browser desktop bundle |
 | `charts/deepseek-harness/` | StatefulSet, PVC, headless Service, and NetworkPolicy |
 | `scripts/smoke.sh` | CLI, config, native PTY, and HTTP startup checks |
-| `scripts/bwrap-smoke.sh` | Bubblewrap workspace-write and outside-boundary denial checks |
+| `scripts/bwrap-smoke.sh` | Bubblewrap workspace-write, outside-boundary denial, and persistent `TMPDIR` checks |
+| `scripts/bwrap-bash-env` | `BASH_ENV` script that gives each tool call a persistent per-workspace `TMPDIR` |
 | `scripts/lan-smoke.sh` | LAN gateway TLS, authentication, Origin, noVNC, and port-boundary checks |
 | `scripts/podman-smoke.sh` | Rootless user mapping, persistence, Web/noVNC, and port-boundary checks |
 | `.github/workflows/ci.yml` | Compose/Helm validation and two-platform image smoke tests |

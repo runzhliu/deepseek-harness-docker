@@ -19,6 +19,8 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Bubblewrap variant: give the agent's shell a persistent per-workspace `TMPDIR` (`<session workspace>/.tmp`) through `BASH_ENV`, so scratch files survive between tool calls and can be executed.
+
 ## 0.1.28 - 2026-11-03
 
 - Upgrade DSH and matching official Browser Use packages to `0.2.2-alpha.3`, with fresh immutable container revisions.

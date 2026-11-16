@@ -148,7 +148,15 @@ make bwrap-build
 make bwrap-smoke
 ```
 
-测试会证明 bubblewrap 内 `/workspace` 可写，同时即使外层额外挂载一个可写目录，模型命令也无法写入该目录。相关背景和宿主案例见 [Issue #35](https://github.com/runzhliu/deepseek-harness-docker/issues/35)。
+测试会证明 bubblewrap 内 `/workspace` 可写，同时即使外层额外挂载一个可写目录，模型命令也无法写入该目录；同时验证 Agent 的临时目录在两次工具调用之间仍然存在。相关背景和宿主案例见 [Issue #35](https://github.com/runzhliu/deepseek-harness-docker/issues/35)，`/tmp` 的行为见 [Issue #48](https://github.com/runzhliu/deepseek-harness-docker/issues/48)。
+
+bubblewrap profile 每次工具调用都会挂载一个全新且为空的 `/tmp`，因此写入其中的临时文件在下一次调用时就消失了，而容器中 `noexec` 的 `/tmp` 也无法运行构建产物。该变体因此设置 `BASH_ENV=/opt/deepseek-harness/bwrap-bash-env`：bash 在每次工具调用前都会 source 这个脚本，它把 `TMPDIR` 指向会话工作区的 `.tmp` 目录（会话根为 `/workspace` 时为 `/workspace/.tmp`；会话根更深时为 `/workspace/<sub>/.tmp`，此时 `/workspace` 在隔离环境内是只读的）。当 `TMPDIR` 已经是可写目录时不做任何改动，脚本也不会输出或失败。
+
+Agent 和脚本应把临时文件放在 `$TMPDIR` 中，并把 `.tmp/` 加入项目的 `.gitignore`。如果你自己设置了 `BASH_ENV`（例如放在 tools volume 上的环境文件），它会取代本脚本；请在文件中 source 它：
+
+```bash
+. /opt/deepseek-harness/bwrap-bash-env
+```
 
 ### 为什么 Kubernetes 使用 StatefulSet
 
@@ -561,7 +569,8 @@ docker compose exec deepseek-harness node -e "console.log(require('node:os').hom
 | `plugins/dsh-browser-desktop/` | 可独立发布的 DSH 浏览器桌面 bundle |
 | `charts/deepseek-harness/` | 单副本 StatefulSet、PVC、Service 和 NetworkPolicy |
 | `scripts/smoke.sh` | CLI、配置、原生 PTY 和 HTTP 启动验证 |
-| `scripts/bwrap-smoke.sh` | bubblewrap 工作区写入与越界拒绝验证 |
+| `scripts/bwrap-smoke.sh` | bubblewrap 工作区写入、越界拒绝与 `TMPDIR` 持久化验证 |
+| `scripts/bwrap-bash-env` | 为每次工具调用提供持久化工作区 `TMPDIR` 的 `BASH_ENV` 脚本 |
 | `scripts/lan-smoke.sh` | LAN gateway 的 TLS、认证、Origin、noVNC 与端口边界验证 |
 | `scripts/podman-smoke.sh` | rootless 用户映射、持久化、Web/noVNC 和端口边界验证 |
 | `.github/workflows/ci.yml` | Compose/Helm 校验和双架构镜像 Smoke Test |

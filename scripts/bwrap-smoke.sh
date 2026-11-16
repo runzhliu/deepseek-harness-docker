@@ -9,6 +9,34 @@ if [[ "${actual_variant}" != bubblewrap-sandbox ]]; then
   exit 1
 fi
 
+# Persistent TMPDIR: every tool call is a `bash -c`, so BASH_ENV must point
+# TMPDIR at a writable directory on the workspace mount instead of the
+# disposable /tmp the bwrap profile mounts. These assertions need no bwrap.
+# shellcheck disable=SC2016  # $TMPDIR is expanded by the inner bash, not here
+docker run --rm \
+  --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=128m \
+  --tmpfs /workspace:rw,nosuid,nodev,size=128m,uid=1000,gid=1000 \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
+  --entrypoint bash \
+  "${image}" -ec '
+    test "${BASH_ENV}" = /opt/deepseek-harness/bwrap-bash-env
+    test "$(stat -c %a "${BASH_ENV}")" = 644
+    mkdir -p /workspace/project/sub
+    test "$(cd /workspace && bash -c "echo \$TMPDIR")" = /workspace/.tmp
+    test "$(cd /workspace/project/sub && bash -c "echo \$TMPDIR")" = /workspace/.tmp
+    ( cd /workspace && bash -ec "test -d \"\$TMPDIR\"; test -w \"\$TMPDIR\"; f=\$(mktemp); test \"\${f%/*}\" = \"\$TMPDIR\"" )
+    test "$(cd /workspace && TMPDIR=/tmp bash -c "echo \$TMPDIR")" = /tmp
+    for cwd in /workspace /tmp /; do
+      for preset in "-u TMPDIR" "TMPDIR=/tmp" "TMPDIR=/nonexistent"; do
+        out="$(cd "${cwd}" && env ${preset} bash -euo pipefail -c ":" 2>&1)"
+        test -z "${out}"
+        test "$(cd "${cwd}" && env ${preset} bash -x -c ":" 2>&1)" = "+ :"
+      done
+    done
+  '
+
 docker run --rm \
   --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=128m \
@@ -42,4 +70,32 @@ docker run --rm \
     test ! -e /outside/escaped
   '
 
+# TMPDIR survives between two cages, and follows a session whose workspace is a
+# subdirectory of /workspace (where /workspace itself is read-only inside the
+# cage). Needs a host that can run bwrap, like the boundary check above.
+# shellcheck disable=SC2016  # $TMPDIR is expanded by the inner bash, not here
+docker run --rm \
+  --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=128m \
+  --tmpfs /workspace:rw,nosuid,nodev,size=128m,uid=1000,gid=1000 \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
+  --security-opt seccomp=unconfined \
+  --security-opt systempaths=unconfined \
+  --pids-limit 128 \
+  --entrypoint bash \
+  "${image}" -ec '
+    cage() {  # cage <bound directory> <command>
+      bwrap --ro-bind / / --dev /dev --unshare-pid --proc /proc --die-with-parent \
+        --tmpfs /tmp --bind "$1" "$1" --chdir "$1" -- bash -c "$2"
+    }
+    mkdir -p /workspace/project
+    test "$(cage /workspace "echo \$TMPDIR")" = /workspace/.tmp
+    cage /workspace "echo kept > \"\$TMPDIR/in-cage\"; touch /tmp/volatile"
+    test "$(cage /workspace "cat \"\$TMPDIR/in-cage\"")" = kept
+    test "$(cage /workspace "test -e /tmp/volatile && echo leaked || echo fresh")" = fresh
+    test "$(cage /workspace/project "echo \$TMPDIR")" = /workspace/project/.tmp
+  '
+
 echo "bubblewrap sandbox boundary passed for ${image}: /workspace writable, other writable outer mounts denied"
+echo "persistent TMPDIR passed for ${image}: <session workspace>/.tmp survives between tool calls"

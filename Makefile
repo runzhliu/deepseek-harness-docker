@@ -169,6 +169,7 @@ plugin-check:
 	bash -n scripts/check-upstream-dsh.sh
 	bash -n scripts/check-version-consistency.sh
 	bash -n scripts/bwrap-smoke.sh
+	bash -n scripts/bwrap-bash-env
 	bash -n scripts/lan-smoke.sh
 	bash -n scripts/podman-smoke.sh
 	bash -n scripts/smoke.sh
