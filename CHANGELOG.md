@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## 0.1.32 - 2026-11-18
+
+- Package DSH and the official Browser Use packages at `0.2.2-rc.4` across all five image variants. The Helm chart now defaults to the matching container revision.
+- The runtime handles unexpected model responses more reliably. Upstream also fixed LiveShare creation in the desktop app.
+
 ## 0.1.31 - 2026-11-13
 
 - Upgrade DSH and official Browser Use packages to `0.2.2-rc.3`, with immutable images and Helm chart `0.1.31`.
