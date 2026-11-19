@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## 0.1.33 - 2026-11-19
+
+- Update all five container variants and the Helm chart to DSH `0.2.2-rc.5` with matching Browser Use packages.
+- DeepSeek models now use server-side search with no per-search charge. Other models default to the DeepSeek Search API.
+
 ## 0.1.32 - 2026-11-18
 
 - Package DSH and the official Browser Use packages at `0.2.2-rc.4` across all five image variants. The Helm chart now defaults to the matching container revision.
