@@ -21,11 +21,7 @@ This project packages the official DSH npm distribution into a reproducible Dock
 `0.2.2-rc.5` maps directly to the official [`dsh-v0.2.2-rc.5`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) Release and [`@deepseek-ai/dsh@0.2.2-rc.5`](https://www.npmjs.com/package/@deepseek-ai/dsh/v/0.2.2-rc.5) in the npm Registry; it is not a project-defined version. This project packages the installable npm distribution instead of building source, and intentionally does not publish a drifting Docker `latest` tag.
 
 
-`0.2.2-rc.2` improves named and nested SubAgents, AgentTeam and worktree review. Session archival now cleans eligible Git worktrees by default; review the upstream migration notes for custom plugins and SDK integrations.
-
-`0.2.2-rc.3` adds an experimental DeepSeek conversation import plugin and fixes Windows desktop in-app updates.
-
-`0.2.2-rc.5` selects the search service by model. DeepSeek models use server-side search with no per-search charge. Other models default to the DeepSeek Search API.
+In `0.2.2-rc.5`, Automatic search uses server-side search on the `deepseek-official` and `deepseek-account` routes. Model tokens are billed without a separate per-search fee. Other routes default to the DeepSeek Search API. Server-side search has its own Base URL. For a custom gateway, set its Messages-compatible endpoint in Web search and fetch settings, or select DeepSeek Search API to keep the previous behavior. [Upstream migration guide](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.5/docs/upgrade-guide/v0.2.2-rc.4/web-search-deepseek-model-default/guide.md)
 
 > **0.2.2 migration:** Node.js `24.9` is the minimum. Review custom plugins against the Session-projection, tool-execution and PTC APIs. Web Fetch allows private addresses, so deployments must restrict egress themselves. Set explicit capacities for custom models. Back up the data volume before upgrading and restore that backup when downgrading. See the [upstream notes](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.2).
 
@@ -49,7 +45,7 @@ This project packages the official DSH npm distribution into a reproducible Dock
 
 ![DeepSeek Harness Web UI running from this image](assets/deepseek-harness-web.png)
 
-_Light-theme capture (2026-11-18, DSH `0.2.2-rc.4`) from an isolated, empty demo workspace. No personal sessions or credentials are shown. No model was configured and no model call was made._
+_Light-theme capture (2026-11-19, DSH `0.2.2-rc.5`) from an isolated, empty demo workspace. No personal sessions or credentials are shown. No model was configured and no model call was made._
 
 ## Project status
 
@@ -269,7 +265,7 @@ The public plugin uses Harness's `sidebar.footer.action` and `shell.overlay` ext
 
 ![Movable and resizable Chromium browser embedded in the Harness Web UI](assets/browser-desktop-webui.png)
 
-_Light-theme capture (2026-11-18, DSH `0.2.2-rc.4`, browser-desktop plugin `0.1.6`): the browser panel is inside Harness and displays the official 0.2.2-rc.4 GitHub Release page._
+_Light-theme capture (2026-11-19, DSH `0.2.2-rc.5`, browser-desktop plugin `0.1.6`): the browser panel is inside Harness and displays the official 0.2.2-rc.5 GitHub Release page._
 
 This follows the visible-desktop idea from [`docker-antigravity`](https://github.com/runzhliu/docker-antigravity) without adopting its amd64 base or Selkies. Debian's native packages keep the image usable on both Apple Silicon and x86 Linux. The official [Browser Use architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/browser-use.md) and [Sidebar Browser limitations](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/client/ui-sidebar-browser/README.md) describe the boundary between these layers. Port 6080 is loopback-only like 3080; the native noVNC endpoint has no authentication and must never be exposed directly. The optional LAN overlay carries the versioned `/novnc-*` route through the same HTTPS and authentication boundary as the Web UI.
 
@@ -355,7 +351,7 @@ The variant has the unambiguous `runzhliu/deepseek-harness:0.2.2-rc.5-r1-market.
 
 ![Light-theme community plugin market in the optional market image](assets/plugin-market-webui.png)
 
-_Captured from the optional market image (2026-11-18, DSH `0.2.2-rc.4`, `dshmarket@1.66.9`); this page is absent from the default image. Catalog entries and compatibility indicators change over time. This screenshot shows browsing only; none of the displayed plugins were installed._
+_Captured from the optional market image (2026-11-19, DSH `0.2.2-rc.5`, `dshmarket@1.66.9`); this page is absent from the default image. Catalog entries and compatibility indicators change over time. This screenshot shows browsing only; none of the displayed plugins were installed._
 
 The market package itself is pinned and copied at build time. Plugins installed through it and the pnpm store persist in the `dsh-home` volume. Installation needs container egress to npm/GitHub, and third-party build scripts should remain blocked until separately reviewed and approved. One-click market restart is disabled; apply lifecycle changes with `docker compose restart` or a Kubernetes rollout.
 
