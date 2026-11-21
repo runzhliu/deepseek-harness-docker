@@ -5,9 +5,8 @@
 #
 # The bwrap profile gives each tool call a fresh, empty `--tmpfs /tmp` and
 # binds only the session workspace read-write, so a scratch file written to
-# /tmp is gone by the next call, and the container's small noexec /tmp cannot
-# run what mktemp-based toolchains build. Point TMPDIR at <workspace>/.tmp
-# instead: it lives on the workspace mount, so it survives between calls.
+# /tmp is gone by the next call. Point TMPDIR at <workspace>/.tmp instead: it
+# lives on the workspace mount, so it survives between calls.
 #
 # Rules:
 # - A TMPDIR that already names a writable directory is left alone.
@@ -15,12 +14,15 @@
 #   every directory from there down to $PWD; the first whose .tmp can really
 #   be written wins. Nothing happens when HOME is unset or /, or when $PWD is
 #   outside $HOME.
-# - The write probe is a real append into .tmp/.dsh-tmpdir because `test -w`
-#   alone cannot answer for every confinement backend.
+# - Writability is proven by creating, then removing, a fresh probe file of our
+#   own (`test -w` alone cannot answer for every confinement backend). The probe
+#   never opens anything that already exists, so a named pipe left in .tmp
+#   cannot block startup. A concurrent first call may create .tmp first; only
+#   its existence matters.
 # - Never fail, print or leak variables: every `bash -c` sources this, also
 #   under `set -euo pipefail`. Under `bash -x` its own lines are not traced
 #   (the guard below runs with stderr discarded), unless BASH_XTRACEFD points
-#   the trace elsewhere. Builtins only on the hot path; mkdir runs once.
+#   the trace elsewhere. One `rm` per call removes the probe; mkdir runs once.
 #
 # A BASH_ENV of your own replaces this file; source it from there:
 #   . /opt/deepseek-harness/bwrap-bash-env
@@ -40,10 +42,17 @@ if ! { [ -d "${TMPDIR:-}" ] && [ -w "${TMPDIR:-}" ]; }; then
           __dsh_tmp_rest=${PWD#"$__dsh_tmp_root"}
           __dsh_tmp_rest=${__dsh_tmp_rest#/}
           while :; do
+            # mkdir may lose a race with a concurrent first call: only the
+            # directory's existence matters, not which call created it.
+            # The probe is a fresh file of our own: it never opens anything
+            # that already exists (a FIFO there would block every call).
             if [ -w "$__dsh_tmp_dir" ] \
-              && { [ -d "$__dsh_tmp_dir/.tmp" ] || mkdir -m 0700 "$__dsh_tmp_dir/.tmp" 2>/dev/null; } \
+              && { [ -d "$__dsh_tmp_dir/.tmp" ] || mkdir -m 0700 "$__dsh_tmp_dir/.tmp" 2>/dev/null || [ -d "$__dsh_tmp_dir/.tmp" ]; } \
               && [ -w "$__dsh_tmp_dir/.tmp" ] \
-              && { true >>"$__dsh_tmp_dir/.tmp/.dsh-tmpdir"; } 2>/dev/null; then
+              && __dsh_tmp_probe=$__dsh_tmp_dir/.tmp/.dsh-probe.$$.$RANDOM$RANDOM \
+              && [ ! -e "$__dsh_tmp_probe" ] && [ ! -L "$__dsh_tmp_probe" ] \
+              && { : >"$__dsh_tmp_probe"; } 2>/dev/null; then
+              command rm -f -- "$__dsh_tmp_probe" 2>/dev/null
               export TMPDIR="$__dsh_tmp_dir/.tmp"
               break
             fi
@@ -60,7 +69,7 @@ if ! { [ -d "${TMPDIR:-}" ] && [ -w "${TMPDIR:-}" ]; }; then
   esac
 fi
 
-unset __dsh_tmp_root __dsh_tmp_rest __dsh_tmp_dir
+unset __dsh_tmp_root __dsh_tmp_rest __dsh_tmp_dir __dsh_tmp_probe
 case $__dsh_tmp_flags in
   *x*) unset __dsh_tmp_flags; set -x ;;
   *) unset __dsh_tmp_flags ;;

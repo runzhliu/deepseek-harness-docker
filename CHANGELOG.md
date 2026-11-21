@@ -29,7 +29,7 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
-- Bubblewrap variant: give the agent's shell a persistent per-workspace `TMPDIR` (`<session workspace>/.tmp`) through `BASH_ENV`, so scratch files survive between tool calls and can be executed.
+- Bubblewrap variant: give the agent's shell a persistent per-workspace `TMPDIR` (`<session workspace>/.tmp`) through `BASH_ENV`, so scratch files survive between tool calls. The writability probe uses a fresh file of its own, so a named pipe in `.tmp` cannot block shell startup.
 
 ## 0.1.28 - 2026-11-03
 

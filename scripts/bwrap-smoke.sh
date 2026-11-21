@@ -35,6 +35,18 @@ docker run --rm \
         test "$(cd "${cwd}" && env ${preset} bash -x -c ":" 2>&1)" = "+ :"
       done
     done
+    # The writability probe never opens an existing file: a named pipe (or a
+    # directory) under the old marker name must not block or disable startup.
+    rm -rf /workspace/.tmp/.dsh-tmpdir && mkfifo /workspace/.tmp/.dsh-tmpdir
+    test "$(cd /workspace && timeout 10 bash -c "echo \$TMPDIR")" = /workspace/.tmp
+    # Probe files are removed again, and concurrent first calls racing to
+    # create .tmp all get TMPDIR (a fresh HOME, so .tmp does not exist yet).
+    test "$(ls -A /workspace/.tmp | grep -c "^\.dsh-probe\.")" = 0
+    mkdir /workspace/race
+    for i in $(seq 20); do (cd /workspace/race && HOME=/workspace/race bash -c "echo \$TMPDIR") & done > /workspace/race.out
+    wait
+    test "$(grep -c -x /workspace/race/.tmp /workspace/race.out)" = 20
+    test "$(ls -A /workspace/race/.tmp | grep -c "^\.dsh-probe\.")" = 0
   '
 
 docker run --rm \
