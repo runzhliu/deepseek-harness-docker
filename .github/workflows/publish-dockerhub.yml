@@ -2,6 +2,12 @@ name: Publish Docker Hub images
 
 on:
   workflow_dispatch:
+    inputs:
+      variant:
+        description: Image variant to publish
+        type: choice
+        default: all
+        options: [all, default, market, bwrap, ungoogled]
 
 permissions:
   contents: read
@@ -12,11 +18,11 @@ concurrency:
 
 env:
   IMAGE: runzhliu/deepseek-harness
-  DSH_VERSION: 0.2.2-rc.3
-  IMAGE_VERSION: 0.2.2-rc.3-r1
-  MARKET_IMAGE_VERSION: 0.2.2-rc.3-r1-market.1
-  BWRAP_IMAGE_VERSION: 0.2.2-rc.3-r1-bwrap.1
-  UNGOOGLED_IMAGE_VERSION: 0.2.2-rc.3-r1-ungoogled.1
+  DSH_VERSION: 0.2.2-rc.5
+  IMAGE_VERSION: 0.2.2-rc.5-r1
+  MARKET_IMAGE_VERSION: 0.2.2-rc.5-r1-market.1
+  BWRAP_IMAGE_VERSION: 0.2.2-rc.5-r1-bwrap.1
+  UNGOOGLED_IMAGE_VERSION: 0.2.2-rc.5-r1-ungoogled.1
   UNGOOGLED_CHROMIUM_VERSION: 152.0.7977.82-1
   UNGOOGLED_CHROMIUM_AMD64_SHA256: 2c6e464e030f87145e42553c5aa539f6e62163ce677d3eace3c51b4fcbd5e347
   UNGOOGLED_CHROMIUM_ARM64_SHA256: 1909f42dcc3661bc213f2cf3b5232a9d3c850913b36efa7267ed6499f6cbf87d
@@ -36,15 +42,28 @@ jobs:
         with:
           username: runzhliu
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Refuse to overwrite immutable tags
+      - name: Refuse to overwrite selected immutable tags
+        id: selected
+        env:
+          VARIANT: ${{ inputs.variant }}
         run: |
-          for tag in "${IMAGE_VERSION}" "${MARKET_IMAGE_VERSION}" "${BWRAP_IMAGE_VERSION}" "${UNGOOGLED_IMAGE_VERSION}"; do
+          case "${VARIANT}" in
+            all) tags=("${IMAGE_VERSION}" "${MARKET_IMAGE_VERSION}" "${BWRAP_IMAGE_VERSION}" "${UNGOOGLED_IMAGE_VERSION}") ;;
+            default) tags=("${IMAGE_VERSION}") ;;
+            market) tags=("${MARKET_IMAGE_VERSION}") ;;
+            bwrap) tags=("${BWRAP_IMAGE_VERSION}") ;;
+            ungoogled) tags=("${UNGOOGLED_IMAGE_VERSION}") ;;
+            *) exit 1 ;;
+          esac
+          echo "tags=${tags[*]}" >> "${GITHUB_OUTPUT}"
+          for tag in "${tags[@]}"; do
             if docker buildx imagetools inspect "${IMAGE}:${tag}" >/dev/null 2>&1; then
               echo "refusing to overwrite existing image tag: ${IMAGE}:${tag}" >&2
               exit 1
             fi
           done
       - name: Publish default image
+        if: inputs.variant == 'all' || inputs.variant == 'default'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -58,6 +77,7 @@ jobs:
             IMAGE_VERSION=${{ env.IMAGE_VERSION }}
             IMAGE_REVISION=${{ github.sha }}
       - name: Publish optional market image
+        if: inputs.variant == 'all' || inputs.variant == 'market'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -71,6 +91,7 @@ jobs:
             BASE_IMAGE=${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
             MARKET_IMAGE_VERSION=${{ env.MARKET_IMAGE_VERSION }}
       - name: Publish optional bubblewrap sandbox image
+        if: inputs.variant == 'all' || inputs.variant == 'bwrap'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -84,13 +105,17 @@ jobs:
             BASE_IMAGE=${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
             BWRAP_IMAGE_VERSION=${{ env.BWRAP_IMAGE_VERSION }}
       - name: Publish optional ungoogled-chromium image
+        if: inputs.variant == 'all' || inputs.variant == 'ungoogled'
         uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.IMAGE }}:${{ env.UNGOOGLED_IMAGE_VERSION }}
-          cache-from: type=gha,scope=release-ungoogled
+          cache-from: |
+            type=gha,scope=release-ungoogled
+            type=gha,scope=ungoogled-amd64
+            type=gha,scope=ungoogled-arm64
           cache-to: type=gha,mode=max,scope=release-ungoogled
           build-args: |
             DSH_VERSION=${{ env.DSH_VERSION }}
@@ -101,8 +126,9 @@ jobs:
             UNGOOGLED_CHROMIUM_AMD64_SHA256=${{ env.UNGOOGLED_CHROMIUM_AMD64_SHA256 }}
             UNGOOGLED_CHROMIUM_ARM64_SHA256=${{ env.UNGOOGLED_CHROMIUM_ARM64_SHA256 }}
       - name: Inspect published manifests
+        env:
+          TAGS: ${{ steps.selected.outputs.tags }}
         run: |
-          docker buildx imagetools inspect "${IMAGE}:${IMAGE_VERSION}"
-          docker buildx imagetools inspect "${IMAGE}:${MARKET_IMAGE_VERSION}"
-          docker buildx imagetools inspect "${IMAGE}:${BWRAP_IMAGE_VERSION}"
-          docker buildx imagetools inspect "${IMAGE}:${UNGOOGLED_IMAGE_VERSION}"
+          for tag in ${TAGS}; do
+            docker buildx imagetools inspect "${IMAGE}:${tag}"
+          done
