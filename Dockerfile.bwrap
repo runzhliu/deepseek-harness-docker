@@ -10,6 +10,14 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.l
     && rm -rf /var/lib/apt/lists/* \
     && command -v bwrap >/dev/null
 
+# The bwrap profile mounts a fresh, empty `--tmpfs /tmp` for every tool call
+# and binds only the session workspace read-write, so a scratch file written to
+# /tmp is gone by the next call. bash sources $BASH_ENV before each tool call,
+# so this script points TMPDIR at <session workspace>/.tmp per call. Opt out by
+# setting your own BASH_ENV, and source this file from it.
+COPY --chmod=0644 scripts/bwrap-bash-env /opt/deepseek-harness/bwrap-bash-env
+ENV BASH_ENV=/opt/deepseek-harness/bwrap-bash-env
+
 ARG BWRAP_IMAGE_VERSION=0.2.3-alpha.2-r1-bwrap.1
 LABEL org.opencontainers.image.version="${BWRAP_IMAGE_VERSION}" \
       io.github.runzhliu.deepseek-harness.variant="bubblewrap-sandbox" \
