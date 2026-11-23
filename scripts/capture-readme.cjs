@@ -97,12 +97,13 @@ fs.mkdirSync(outputDir, {recursive:true});
     await page.waitForTimeout(1000);
     console.log('Capturing the isolated Light start page.');
     await page.screenshot({path:path.join(outputDir,'deepseek-harness-web.png')});
-    execFileSync('docker',['exec',container,'node','-e',`
-      fetch('http://127.0.0.1:3080/browser-desktop/open', {
-        method:'POST', headers:{'content-type':'application/json'},
-        body:JSON.stringify({url:'${releaseUrl}'})
-      }).then(r=>r.json()).then(r=>{if(r.status!=='opened')process.exit(1)}).catch(()=>process.exit(1));
-    `],{stdio:['ignore','pipe','ignore']});
+    const opened = await page.evaluate(async url => {
+      const response = await fetch('/browser-desktop/open', {
+        method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({url})
+      });
+      return response.ok && (await response.json()).status === 'opened';
+    }, releaseUrl);
+    assert(opened, 'authenticated desktop request must open the upstream release');
     await page.getByRole('button',{name:'打开浏览器桌面并人工接管',exact:true}).click();
     const frame=page.frameLocator('iframe[title="容器 Chromium 桌面"]');
     await frame.locator('canvas').waitFor({state:'visible'});

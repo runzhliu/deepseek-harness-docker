@@ -29,7 +29,7 @@
   },
   "engines": {
     "node": ">=24.0.0",
-    "dsh": "^0.2.2-alpha.2"
+    "dsh": "^0.2.2-alpha.2 || ^0.2.3-alpha.1"
   },
   "peerDependencies": {
     "@deepseek-ai/schemastery": "3.18.5-alpha.1",

@@ -5,7 +5,7 @@
    "engines": {
      "node": "^22.19.0 || >=24.0.0",
 -    "dsh": "^0.2.1-alpha.2"
-+    "dsh": "^0.2.1-alpha.2 || ^0.2.2-alpha.2"
++    "dsh": "^0.2.1-alpha.2 || ^0.2.2-alpha.2 || ^0.2.3-alpha.1"
    },
    "packageManager": "pnpm@11.7.0",
    "dependencies": {
@@ -22,7 +22,7 @@
    const machine = machineOf(config)
 --- a/src/app/http.ts
 +++ b/src/app/http.ts
-@@ -74,7 +74,10 @@
+@@ -74,7 +74,10 @@ function json(res: ServerResponse, status: number, value: unknown): void {
  }
  export function sameOrigin(req: Pick<IncomingMessage, 'headers'>, port: number): boolean {
    const host = req.headers.host
@@ -34,16 +34,24 @@
    return req.headers['x-orchestrator-request'] === '1' && (req.headers.origin === undefined || req.headers.origin === `http://${host}`)
  }
  /** Maps errors to HTTP status codes and structured payloads that the panel localizes in the interface language. */
-@@ -235,6 +238,12 @@
+@@ -231,10 +234,19 @@ export function registerHttp(ctx: Context, runtime: HttpHost): () => void {
+   if (ctx.webServer.host !== '127.0.0.1') throw new Error('Orchestrator management requires a loopback Web server')
+   const table = routes(runtime)
+   const disposers = [
+-    ctx.webServer.register({ kind: 'prefix', path: '/orchestrator', handler: async (req, res) => {
++    ctx.webServer.register({ kind: 'prefix', path: '/orchestrator', handler: async (req, res, peer?: { principal: { kind: string } }) => {
        const url = new URL(req.url ?? '/', 'http://localhost')
        if (!url.pathname.startsWith('/orchestrator/api/')) { res.writeHead(404); res.end(); return }
        if (!sameOrigin(req, ctx.webServer.port)) { json(res, 403, { error: 'Same-origin management request required' }); return }
-+      // Named Web routes do not inherit the SPA's authentication guard.
-+      // Reuse DSH's cookie/authority verifier, and fail closed if unavailable.
-+      const connection = (ctx as Context & { connection?: { requestRejection(request: Pick<IncomingMessage, 'headers'>): 401 | 403 | undefined } }).connection
-+      if (!connection || typeof connection.requestRejection !== 'function') { json(res, 503, { error: 'DSH authentication unavailable' }); return }
-+      const rejection = connection.requestRejection(req)
-+      if (rejection !== undefined) { json(res, rejection, { error: 'DSH authentication required' }); return }
++      if (peer) {
++        if (peer.principal.kind !== 'owner') { json(res, 403, { error: 'DSH owner required' }); return }
++      } else {
++        // Hosts before 0.2.3 verify the cookie through the connection service.
++        const connection = (ctx as Context & { connection?: { requestRejection(request: Pick<IncomingMessage, 'headers'>): 401 | 403 | undefined } }).connection
++        if (typeof connection?.requestRejection !== 'function') { json(res, 503, { error: 'DSH authentication unavailable' }); return }
++        const rejection = connection.requestRejection(req)
++        if (rejection !== undefined) { json(res, rejection, { error: 'DSH authentication required' }); return }
++      }
        try {
          await runtime.ready
          const route = match(table, req.method ?? 'GET', url.pathname.slice('/orchestrator/api/'.length).split('/'))

@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## 0.1.34 - 2026-11-23
+
+- Upgrade the five image variants and Helm chart to DSH 0.2.3-alpha.2 on Node.js 24.22.3.
+- Adapt the browser desktop, Super Agent and Alertmanager integrations to authenticated Web routes.
+
 ## 0.1.33 - 2026-11-19
 
 - Update all five container variants and the Helm chart to DSH `0.2.2-rc.5` with matching Browser Use packages.

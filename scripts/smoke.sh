@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-image="${1:-runzhliu/deepseek-harness:0.2.2-rc.5-r1}"
-expected_version="${2:-0.2.2-rc.5}"
+image="${1:-runzhliu/deepseek-harness:0.2.3-alpha.2-r1}"
+expected_version="${2:-0.2.3-alpha.2}"
 expected_pnpm_version="${3:-10.15.1}"
 expected_market_version="${4:-}"
 expected_chromium_flavor="${5:-debian}"
@@ -41,8 +41,8 @@ if [[ "${browser_use_versions}" != "${expected_version}"$'\n'"${expected_version
 fi
 
 actual_node_version="$(docker run --rm --entrypoint node "${image}" --version)"
-if [[ "${actual_node_version}" != v24.* ]]; then
-  echo "expected Node.js 24.x from the upstream image, got ${actual_node_version}" >&2
+if [[ "${actual_node_version}" != v24.22.3 ]]; then
+  echo "expected pinned Node.js 24.22.3, got ${actual_node_version}" >&2
   exit 1
 fi
 
@@ -212,12 +212,14 @@ cleanup_web_auth() {
 }
 trap 'cleanup_web_auth; cleanup' EXIT INT TERM
 
+web_request() {
+  local path="$1"
+  shift
+  curl --fail --silent --cookie "${cookie_jar}" "http://127.0.0.1:${port}${path}" "$@"
+}
+
 market_is_ready() {
-  if [[ -z "${expected_market_version}" ]]; then
-    return 0
-  fi
-  docker exec "${container}" node -e \
-    "fetch('http://127.0.0.1:3080/dsh-market/status').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+  [[ -z "${expected_market_version}" ]] || web_request /dsh-market/status >/dev/null
 }
 
 for attempt in $(seq 1 30); do
@@ -233,7 +235,8 @@ for attempt in $(seq 1 30); do
         --cookie "${cookie_jar}" \
         "http://127.0.0.1:${port}/?token=${launch_token}" >/dev/null \
       && docker exec "${container}" node -e \
-        "Promise.all([fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version'), fetch('http://127.0.0.1:3080/browser-desktop/state')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))" \
+        "Promise.all([fetch('http://127.0.0.1:6080/vnc.html'), fetch('http://127.0.0.1:9222/json/version')]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))" \
+      && web_request /browser-desktop/state >/dev/null \
       && market_is_ready; then
     if ! curl --fail --silent --cookie "${cookie_jar}" "http://127.0.0.1:${port}/" \
       | grep --quiet '"id":"@runzhliu/dsh-browser-desktop"'; then
@@ -250,9 +253,8 @@ for attempt in $(seq 1 30); do
       echo "Web listener boundary check failed" >&2
       exit 1
     fi
-    if ! docker exec "${container}" node -e '
-      fetch("http://127.0.0.1:3080/browser-desktop/state")
-        .then(response => response.json())
+    if ! web_request /browser-desktop/state | docker exec -i "${container}" node -e '
+      Promise.resolve(JSON.parse(require("node:fs").readFileSync(0, "utf8")))
         .then(async state => {
           const desktopPath = new URL(state.desktop.path, "http://127.0.0.1:6080")
           if (state.desktop.port !== 6080 || !/^\/novnc-[^/]+\/vnc\.html$/.test(desktopPath.pathname)) process.exit(1)
@@ -281,9 +283,8 @@ for attempt in $(seq 1 30); do
         echo "Harness boot manifest did not include the plugin market client" >&2
         exit 1
       fi
-      if ! docker exec "${container}" node -e "
-        fetch('http://127.0.0.1:3080/dsh-market/status')
-          .then(response => response.json())
+      if ! web_request /dsh-market/status | docker exec -i "${container}" node -e "
+        Promise.resolve(JSON.parse(require('node:fs').readFileSync(0, 'utf8')))
           .then(status => {
             if (status.version !== '${expected_market_version}' || status.restart !== false) process.exit(1)
           })
@@ -341,13 +342,9 @@ for attempt in $(seq 1 30); do
         exit 1
       fi
     fi
-    if ! docker exec "${container}" node -e '
-      fetch("http://127.0.0.1:3080/browser-desktop/open", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: "http://127.0.0.1:3080" }),
-      })
-        .then(response => response.json())
+    if ! web_request /browser-desktop/open --header 'Content-Type: application/json' \
+        --data '{"url":"http://127.0.0.1:3080"}' | docker exec -i "${container}" node -e '
+      Promise.resolve(JSON.parse(require("node:fs").readFileSync(0, "utf8")))
         .then(result => {
           if (result.status !== "opened" || result.url !== "http://127.0.0.1:3080/") process.exit(1)
         })

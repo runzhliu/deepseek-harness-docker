@@ -157,7 +157,11 @@ export function apply(ctx, config = {}) {
     const disposeState = ctx.webServer.register({
       kind: 'exact',
       path: '/browser-desktop/state',
-      handler(req, res) {
+      handler(req, res, peer) {
+        if (peer && peer.principal.kind !== 'owner') {
+          sendJson(res, 403, { error: 'DSH owner required' })
+          return
+        }
         if (req.method !== 'GET' && req.method !== 'HEAD') {
           res.writeHead(405)
           res.end()
@@ -175,7 +179,11 @@ export function apply(ctx, config = {}) {
     const disposeOpen = ctx.webServer.register({
       kind: 'exact',
       path: '/browser-desktop/open',
-      async handler(req, res) {
+      async handler(req, res, peer) {
+        if (peer && peer.principal.kind !== 'owner') {
+          sendJson(res, 403, { error: 'DSH owner required' })
+          return
+        }
         if (req.method !== 'POST') {
           res.writeHead(405)
           res.end()

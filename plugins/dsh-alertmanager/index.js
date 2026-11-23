@@ -68,11 +68,16 @@ export async function apply(ctx, config) {
     server = receiver({ token: readFileSync(config.tokenFile, 'utf8').trim(), enabled: refresh,
       accept: payload => { const result = store.ingest(payload, rules); tick(); return result } })
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(config.port, config.host, resolve) })
-    const disposeApi = ctx.webServer.register({ kind: 'prefix', path: '/alertmanager/api', handler: async (req, res) => {
+    const disposeApi = ctx.webServer.register({ kind: 'prefix', path: '/alertmanager/api', handler: async (req, res, peer) => {
       const origin = req.headers.origin
       if (req.headers['x-orchestrator-request'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) { json(res, 403, { error: 'Same-origin request required' }); return }
-      const rejection = ctx.connection.requestRejection(req)
-      if (rejection !== undefined) { json(res, rejection, { error: 'DSH authentication required' }); return }
+      if (peer) {
+        if (peer.principal.kind !== 'owner') { json(res, 403, { error: 'DSH owner required' }); return }
+      } else {
+        if (typeof ctx.connection?.requestRejection !== 'function') { json(res, 503, { error: 'DSH authentication unavailable' }); return }
+        const rejection = ctx.connection.requestRejection(req)
+        if (rejection !== undefined) { json(res, rejection, { error: 'DSH authentication required' }); return }
+      }
       if (req.method !== 'GET') { json(res, 405, { error: 'Read-only management API' }); return }
       const path = new URL(req.url, 'http://localhost').pathname
       if (path === '/alertmanager/api/incidents') json(res, 200, { mode: rules.mode, enabled: refresh(), items: store.list() })
