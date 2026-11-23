@@ -45,7 +45,7 @@ DeepSeek Harness（DSH）以本地使用为中心，桌面版也延续了这一�
 
 ![DeepSeek Harness 浅色 Web UI：新版首页与导航](assets/deepseek-harness-web.png)
 
-_浅色界面实拍（2026-11-19，DSH `0.2.2-rc.5`）。使用独立空白演示工作区，不包含个人会话或凭据，未配置模型，也未发起模型调用。_
+_浅色界面实拍（2026-11-23，DSH `0.2.3-alpha.2`）。使用独立空白演示工作区，不包含个人会话或凭据，未配置模型，也未发起模型调用。_
 
 ## 项目状态
 
@@ -102,7 +102,7 @@ flowchart TB
 
 | 难点 | 上游行为 | 本项目决策 |
 | --- | --- | --- |
-| Node / glibc | 要求 Node `^24.22.3 或 >=26.13.1`；部分用户二进制需要较新 glibc | 固定官方 `node:24.22.3-trixie` 非 slim，Debian 13 / glibc 2.41 |
+| Node / glibc | Node 24.x 最低为 24.22.3，也支持 26.13.1 及以上版本；部分用户二进制需要较新 glibc | 固定官方 `node:24.22.3-trixie` 非 slim，Debian 13 / glibc 2.41 |
 | 原生依赖与 Agent 工具 | `node-pty` 或第三方插件可能需要本机构建；Agent 需要常见开发命令 | 多阶段安装 DSH；runtime 有意保留 buildpack-deps 工具链，并补齐 `jq`、`less`、`ripgrep`、`rsync`、`zip` 等命令 |
 | Web 监听 | `0.2.1-alpha.2` 起配置层也拒绝通配地址 | DSH 监听回环；单个具体容器 IP 做 TCP 转发；宿主 3080/6080 只发布到 `127.0.0.1` |
 | Web 安全 | 有启动 token 认证与 Host/Origin 检查，可选原生 TLS；noVNC 无认证，工具可触发代码执行 | 容器默认 HTTP、回环发布；可选 Caddy HTTPS + Basic Auth；不提供公网 Ingress/LoadBalancer |
@@ -264,7 +264,7 @@ docker compose --env-file .env.lan -f compose.yaml -f compose.lan.yaml \
 
 ![Harness WebUI 中可移动、缩放的内嵌 Chromium 浏览器](assets/browser-desktop-webui.png)
 
-_浅色界面实拍（2026-11-19，DSH `0.2.2-rc.5`、浏览器桌面插件 `0.1.6`）：浏览器浮窗位于 Harness WebUI 内，图中打开的是官方 0.2.2-rc.5 GitHub Release 页面。_
+_浅色界面实拍（2026-11-23，DSH `0.2.3-alpha.2`、浏览器桌面插件 `0.1.7`）：浏览器浮窗位于 Harness WebUI 内，图中打开的是官方 0.2.3-alpha.2 GitHub Release 页面。_
 
 该实现参考了 [`docker-antigravity`](https://github.com/runzhliu/docker-antigravity) 的可视桌面思路，但没有采用其 `amd64` 基础镜像和 Selkies，而是使用 Debian 原生架构软件包，因此 Apple Silicon 与 x86 Linux 均可运行。官方的 [Browser Use 架构](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/browser-use.md)和 [Sidebar Browser 限制](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/client/ui-sidebar-browser/README.md)说明了两类浏览器能力的边界。6080 与 3080 一样只绑定宿主机回环地址；noVNC 原生端口没有认证，不能直接暴露。可选 LAN overlay 会把版本化 `/novnc-*` 路径放到与 WebUI 相同的 HTTPS 和认证入口下。
 
@@ -304,7 +304,7 @@ npm pack ./plugins/dsh-browser-desktop --pack-destination /tmp
 dsh plugin --profile web add /tmp/runzhliu-dsh-browser-desktop-0.1.7.tgz
 ```
 
-`0.1.7` 插件新增对 DSH `0.2.3` client module runtime 的兼容，同时保留 `0.1.2`、`0.2.0` 、`0.2.1` 与 `0.2.2` 系列兼容；旧 DSH `0.1.0`/`0.1.1` RC 应继续使用插件 `0.1.1`。发布到 npm 后可直接执行 `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`。该 npm 包只负责 Harness Host/WebUI 集成，不会自行安装 Chromium、Xvfb、noVNC 或官方 Browser Use provider；本仓库 Docker 镜像是完整的参考运行时。官方 DSH 通过 npm/GitHub 和 `dsh-plugin` GitHub topic 发现社区插件。
+`0.1.7` 插件新增对 DSH `0.2.3` client module runtime 的兼容，同时保留 `0.1.2`、`0.2.0`、`0.2.1` 与 `0.2.2` 系列兼容；旧 DSH `0.1.0`/`0.1.1` RC 应继续使用插件 `0.1.1`。发布到 npm 后可直接执行 `dsh plugin --profile web add @runzhliu/dsh-browser-desktop`。该 npm 包只负责 Harness Host/WebUI 集成，不会自行安装 Chromium、Xvfb、noVNC 或官方 Browser Use provider；本仓库 Docker 镜像是完整的参考运行时。官方 DSH 通过 npm/GitHub 和 `dsh-plugin` GitHub topic 发现社区插件。
 
 ### 可选的 Super Agent 预装镜像
 
@@ -350,7 +350,7 @@ DSH_WORKSPACE=/absolute/path/to/your/project \
 
 ![可选 market 镜像中的浅色社区插件市场](assets/plugin-market-webui.png)
 
-_可选 market 镜像实拍（2026-11-19，DSH `0.2.2-rc.5`、`dshmarket@1.66.9`）；默认镜像没有此页面。目录与兼容性标记会变化，截图仅浏览，未安装图中插件。_
+_可选 market 镜像实拍（2026-11-23，DSH `0.2.3-alpha.2`、`dshmarket@1.66.9`）；默认镜像没有此页面。目录与兼容性标记会变化，截图仅浏览，未安装图中插件。_
 
 市场自身在构建期固定并打入可选镜像；通过市场安装的插件和 pnpm store 会写入持久化的 `dsh-home` 卷。安装过程需要容器能够访问 npm/GitHub，第三方包的构建脚本仍应在审查后单独授权。市场内的一键重启已禁用，变更需要通过 `docker compose restart` 或 Kubernetes rollout 进入新进程。
 

@@ -1,11 +1,11 @@
 {
-  "capturedAt": "2026-11-19T01:06:18.184Z",
-  "runtimeVersion": "0.2.2-rc.5",
+  "capturedAt": "2026-11-23T01:30:26.382Z",
+  "runtimeVersion": "0.2.3-alpha.2",
   "marketVersion": "1.66.9",
-  "imageReference": "docker.io/runzhliu/deepseek-harness:0.2.2-rc.5-r1-market.1",
-  "imageId": "sha256:b5940d70a8ae5d863326d6d645f41ca9582628448cc18d07f32e58fed14336ea",
-  "sourceRevision": "60e29d2c4667f9fb11458de8ec90265f2b264feb",
-  "browserVersion": "157.0.8103.50",
+  "imageReference": "docker.io/runzhliu/deepseek-harness:0.2.3-alpha.2-r1-market.1",
+  "imageId": "sha256:10847ef4837b15a33ccb68cd31a5db38c6edd91193c72f34ac308bde8baf8e08",
+  "sourceRevision": "8cc9a013fa522e5e3793e3b2930e6c68866c64d4",
+  "browserVersion": "157.0.8103.78",
   "viewport": {
     "width": 1440,
     "height": 900
@@ -22,9 +22,9 @@
     "unsent draft recovery"
   ],
   "superagentCapture": {
-    "capturedAt": "2026-11-19T01:10:59.271Z",
-    "runtimeVersion": "0.2.2-rc.5",
-    "imageReference": "ghcr.io/runzhliu/deepseek-harness:0.2.2-rc.5-r1-superagent.1",
+    "capturedAt": "2026-11-23T01:36:04.423Z",
+    "runtimeVersion": "0.2.3-alpha.2",
+    "imageReference": "ghcr.io/runzhliu/deepseek-harness:0.2.3-alpha.2-r1-superagent.1",
     "theme": "light",
     "temporaryStateOnly": true,
     "modelConfigured": false,
