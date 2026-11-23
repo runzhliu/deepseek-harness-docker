@@ -22,7 +22,7 @@
 # - Never fail, print or leak variables: every `bash -c` sources this, also
 #   under `set -euo pipefail`. Under `bash -x` its own lines are not traced
 #   (the guard below runs with stderr discarded), unless BASH_XTRACEFD points
-#   the trace elsewhere. One `rm` per call removes the probe; mkdir runs once.
+#   the trace elsewhere.
 #
 # A BASH_ENV of your own replaces this file; source it from there:
 #   . /opt/deepseek-harness/bwrap-bash-env
@@ -49,10 +49,8 @@ if ! { [ -d "${TMPDIR:-}" ] && [ -w "${TMPDIR:-}" ]; }; then
             if [ -w "$__dsh_tmp_dir" ] \
               && { [ -d "$__dsh_tmp_dir/.tmp" ] || mkdir -m 0700 "$__dsh_tmp_dir/.tmp" 2>/dev/null || [ -d "$__dsh_tmp_dir/.tmp" ]; } \
               && [ -w "$__dsh_tmp_dir/.tmp" ] \
-              && __dsh_tmp_probe=$__dsh_tmp_dir/.tmp/.dsh-probe.$$.$RANDOM$RANDOM \
-              && [ ! -e "$__dsh_tmp_probe" ] && [ ! -L "$__dsh_tmp_probe" ] \
-              && { : >"$__dsh_tmp_probe"; } 2>/dev/null; then
-              command rm -f -- "$__dsh_tmp_probe" 2>/dev/null
+              && __dsh_tmp_probe=$(command mktemp -- "$__dsh_tmp_dir/.tmp/.dsh-probe.XXXXXXXXXX" 2>/dev/null) \
+              && command rm -f -- "$__dsh_tmp_probe" 2>/dev/null; then
               export TMPDIR="$__dsh_tmp_dir/.tmp"
               break
             fi

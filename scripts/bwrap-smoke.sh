@@ -11,7 +11,8 @@ fi
 
 # Persistent TMPDIR: every tool call is a `bash -c`, so BASH_ENV must point
 # TMPDIR at a writable directory on the workspace mount instead of the
-# disposable /tmp the bwrap profile mounts. These assertions need no bwrap.
+# disposable /tmp the bwrap profile mounts. Use sh for the test driver so
+# only the child Bash under test sources BASH_ENV.
 # shellcheck disable=SC2016  # $TMPDIR is expanded by the inner bash, not here
 docker run --rm \
   --read-only \
@@ -19,8 +20,9 @@ docker run --rm \
   --tmpfs /workspace:rw,nosuid,nodev,size=128m,uid=1000,gid=1000 \
   --cap-drop ALL \
   --security-opt no-new-privileges:true \
-  --entrypoint bash \
+  --entrypoint sh \
   "${image}" -ec '
+    unset TMPDIR
     test "${BASH_ENV}" = /opt/deepseek-harness/bwrap-bash-env
     test "$(stat -c %a "${BASH_ENV}")" = 644
     mkdir -p /workspace/project/sub
@@ -45,7 +47,11 @@ docker run --rm \
     mkdir /workspace/race
     for i in $(seq 20); do (cd /workspace/race && HOME=/workspace/race bash -c "echo \$TMPDIR") & done > /workspace/race.out
     wait
-    test "$(grep -c -x /workspace/race/.tmp /workspace/race.out)" = 20
+    if [ "$(grep -Fxc /workspace/race/.tmp /workspace/race.out)" != 20 ]; then
+      echo "Concurrent shells selected unexpected TMPDIRs:" >&2
+      sort /workspace/race.out | uniq -c >&2
+      exit 1
+    fi
     test "$(ls -A /workspace/race/.tmp | grep -c "^\.dsh-probe\.")" = 0
   '
 
@@ -95,8 +101,9 @@ docker run --rm \
   --security-opt seccomp=unconfined \
   --security-opt systempaths=unconfined \
   --pids-limit 128 \
-  --entrypoint bash \
+  --entrypoint sh \
   "${image}" -ec '
+    unset TMPDIR
     cage() {  # cage <bound directory> <command>
       bwrap --ro-bind / / --dev /dev --unshare-pid --proc /proc --die-with-parent \
         --tmpfs /tmp --bind "$1" "$1" --chdir "$1" -- bash -c "$2"
